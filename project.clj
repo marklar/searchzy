@@ -5,8 +5,9 @@
                  [compojure "1.1.5"]
                  [org.clojure/data.json "0.2.3"]
                  [congomongo "0.4.1"]
+                 [clojurewerkz/elastisch "1.2.0"]
                  ]
-  :plugins [[lein-ring "0.8.5"]]
+  :plugins [[lein-ring "0.8.7"]]
   :ring {:handler searchzy.handler/app}
   :profiles
   {:dev {:dependencies [[ring-mock "0.1.5"]]}})
