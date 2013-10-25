@@ -1,6 +1,7 @@
 (ns searchzy.handler
   (:use compojure.core)
   (:require [searchzy.business :as business]
+            [searchzy.item-category :as item-category]
             [somnium.congomongo :as mg]
             [clojure.data.json :as json]
             [compojure.handler :as handler]
@@ -32,7 +33,14 @@
   ;; Should be a POST!
   (GET "/index_businesses" []
        (let [cnt (business/mk-idx)]
-         (str "<h1>Indexing Businesses</h1><p>number of records: " cnt "</p>")))
+         (str "<h1>Indexing Businesses</h1>"
+              "<p>number of records: " cnt "</p>")))
+
+  ;; Should be a POST!
+  (GET "/index_item_categories" []
+       (let [cnt (item-category/mk-idx)]
+         (str "<h1>Indexing ItemCategories</h1>"
+              "<p>number of records: " cnt "</p>")))
 
   (route/resources "/")
   (route/not-found "Not Found"))

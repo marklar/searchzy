@@ -1,12 +1,13 @@
 (ns searchzy.business
   (:require [searchzy.index :as index]
+            [searchzy.util :as util]
             [clojure.string :as str]
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]
             ))
 
-(def mapping-name "business")
 (def idx-name "businesses")
+(def mapping-name "business")
 
 ;; Store a field only if you need it returned to you in the search results.
 ;; The entire JSON of the document is stored anyway, so you can ask for that.
@@ -64,7 +65,7 @@
     (str (coords 0) "," (coords 1))))
 
 (defn mk-es-map
-  "Given a business map, create an ElasticSearch map."
+  "Given a business mongo-map, create an ElasticSearch map."
   [{id :_id nm :name pl :permalink
     coords :coordinates a1 :address_1 a2 :address_2
     bc-ids :business_category_ids items :business_items}]
@@ -82,17 +83,11 @@
   (let [es-map (mk-es-map mg-map)]
     ;; (println mg-map)
     ;; (println es-map)
-    ;; (println)
     (es-doc/create idx-name mapping-name es-map)))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
   []
-  (let [cnt (atom 0)]
-    (index/recreate-idx idx-name mapping-types)
-    (doseq [biz (mg/fetch :businesses :where {:active_ind true})]
-      (add-to-idx biz)
-      (swap! cnt inc)
-      (if (= 0 (mod @cnt 1000))
-        (println @cnt)))
-    @cnt))
+  (index/recreate-idx idx-name mapping-types)
+  (util/doseq-cnt add-to-idx 1000
+                  (mg/fetch :businesses :where {:active_ind true})))
