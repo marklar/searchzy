@@ -3,8 +3,7 @@
             [searchzy.util :as util]
             [clojure.string :as str]
             [somnium.congomongo :as mg]
-            [clojurewerkz.elastisch.native.document :as es-doc]
-            ))
+            [clojurewerkz.elastisch.native.document :as es-doc]))
 
 (def idx-name "businesses")
 (def mapping-name "business")

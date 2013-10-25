@@ -2,6 +2,7 @@
   (:use compojure.core)
   (:require [searchzy.business :as business]
             [searchzy.item-category :as item-category]
+            [searchzy.business-category :as business-category]
             [somnium.congomongo :as mg]
             [clojure.data.json :as json]
             [compojure.handler :as handler]
@@ -14,6 +15,13 @@
                       :port 27017))
 (mg/set-connection! conn)
 
+
+(defn build-index
+  "Perform 'f'.  Return HTML string including 'count' returned from f."
+  [f name]
+  (let [cnt (f)]
+    (str "<h1>Indexing " name "</h1>"
+         "<p>number of records: " cnt "</p>")))
 
 ;; COMPOJURE ROUTES
 (defroutes app-routes
@@ -31,16 +39,16 @@
           }))
 
   ;; Should be a POST!
-  (GET "/index_businesses" []
-       (let [cnt (business/mk-idx)]
-         (str "<h1>Indexing Businesses</h1>"
-              "<p>number of records: " cnt "</p>")))
+  (GET "/index/businesses" []
+       (build-index business/mk-idx "Businesses"))
 
   ;; Should be a POST!
-  (GET "/index_item_categories" []
-       (let [cnt (item-category/mk-idx)]
-         (str "<h1>Indexing ItemCategories</h1>"
-              "<p>number of records: " cnt "</p>")))
+  (GET "/index/item_categories" []
+       (build-index item-category/mk-idx "ItemCategories"))
+
+  ;; Should be a POST!
+  (GET "/index/business_categories" []
+       (build-index business-category/mk-idx "BusinessCategories"))
 
   (route/resources "/")
   (route/not-found "Not Found"))

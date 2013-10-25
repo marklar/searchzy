@@ -2,8 +2,7 @@
   (:require [searchzy.index :as index]
             [searchzy.util :as util]
             [somnium.congomongo :as mg]
-            [clojurewerkz.elastisch.native.document :as es-doc]
-            ))
+            [clojurewerkz.elastisch.native.document :as es-doc]))
 
 (def idx-name "item_categories")
 (def mapping-name "item_category")
@@ -28,7 +27,7 @@
   {:id id :business_category_id bci :name nm})
 
 (defn add-to-idx
-  "Given a business mongo-map, convert to es-map and add to index."
+  "Given an ItemCategory mongo-map, convert to es-map and add to index."
   [mg-map]
   (let [es-map (mk-es-map mg-map)]
     ;; (println mg-map)
@@ -36,7 +35,7 @@
     (es-doc/create idx-name mapping-name es-map)))
 
 (defn mk-idx
-  "Fetch Businesses from MongoDB and add them to index.  Return count."
+  "Fetch ItemCategories from MongoDB & add them to index.  Return count."
   []
   (index/recreate-idx idx-name mapping-types)
   (util/doseq-cnt add-to-idx 5
