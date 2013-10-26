@@ -9,6 +9,6 @@
                  [clojurewerkz/elastisch "1.2.0"]
                  ]
   :plugins [[lein-ring "0.8.7"]]
-  :main searchzy.core
+  :main searchzy.index.core
   :ring {:handler searchzy.handler/app}
   :profiles {:dev {:dependencies [[ring-mock "0.1.5"]]}})

@@ -1,6 +1,6 @@
-(ns searchzy.item-category
-  (:require [searchzy.index :as index]
-            [searchzy.util :as util]
+(ns searchzy.index.item-category
+  (:use [searchzy.util])
+  (:require [searchzy.index.util :as util]
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
 
@@ -21,20 +21,15 @@
      :name                  {:type "string"}
      }}})
 
-(defn mk-es-map
-  "Given a business mongo-map, create an ElasticSearch map."
-  [{id :_id bci :business_category_id nm :name}]
-  {:id id :business_category_id bci :name nm})
-
 (defn add-to-idx
   "Given an ItemCategory mongo-map, convert to es-map and add to index."
   [mg-map]
-  (let [es-map (mk-es-map mg-map)]
+  (let [es-map (util/rm-leading-underbar mg-map)]
     (es-doc/create idx-name mapping-name es-map)))
 
 (defn mk-idx
   "Fetch ItemCategories from MongoDB & add them to index.  Return count."
   []
-  (index/recreate-idx idx-name mapping-types)
-  (util/doseq-cnt add-to-idx 5
+  (util/recreate-idx idx-name mapping-types)
+  (doseq-cnt add-to-idx 5
                   (mg/fetch :item_categories)))

@@ -1,6 +1,6 @@
-(ns searchzy.business
-  (:require [searchzy.index :as index]
-            [searchzy.util :as util]
+(ns searchzy.index.business
+  (:use [searchzy.util])
+  (:require [searchzy.index.util :as util]
             [clojure.string :as str]
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
@@ -85,6 +85,6 @@
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
   []
-  (index/recreate-idx idx-name mapping-types)
-  (util/doseq-cnt add-to-idx 1000
+  (util/recreate-idx idx-name mapping-types)
+  (doseq-cnt add-to-idx 1000
                   (mg/fetch :businesses :where {:active_ind true})))
