@@ -30,8 +30,6 @@
   "Given an ItemCategory mongo-map, convert to es-map and add to index."
   [mg-map]
   (let [es-map (mk-es-map mg-map)]
-    ;; (println mg-map)
-    ;; (println es-map)
     (es-doc/create idx-name mapping-name es-map)))
 
 (defn mk-idx
