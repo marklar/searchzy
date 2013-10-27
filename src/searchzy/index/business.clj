@@ -13,11 +13,7 @@
 (def mapping-types
   {mapping-name
    {:properties
-    {:id                       {:type "string"
-                                :index "not_analyzed"
-                                :include_in_all false}
-
-     :name                     {:type "string"}
+    {:name                     {:type "string"}
 
      :permalink                {:type "string"
                                 :index "not_analyzed"
@@ -65,10 +61,10 @@
 
 (defn -mk-es-map
   "Given a business mongo-map, create an ElasticSearch map."
-  [{id :_id nm :name pl :permalink
+  [{_id :_id nm :name pl :permalink
     coords :coordinates a1 :address_1 a2 :address_2
     bc-ids :business_category_ids items :business_items}]
-  {:id id :name nm :permalink pl
+  {:name nm :permalink pl
    :latitude_longitude (-get-lat-lng-str coords)
    :search_address (str/join " " (remove str/blank? [a1 a2]))
    :business_category_names (-get-biz-cat-names bc-ids)
@@ -80,24 +76,19 @@
   "Given a business mongo-map, convert to es-map and add to index."
   [mg-map]
   (let [es-map (-mk-es-map mg-map)]
-    (println mg-map)
-    ;; Use es-doc/create or es-doc/put?
-    ;;
-    ;; If we use create, then ES creates an '_id' for us.
-    ;; So we move '_id' to 'id', and then also have ES's '_id'.
-    ;; This seems a bit wasteful of space and perhaps time.
-    ;;
-    ;; If we use put, then we must supply an '_id'
-    ;; as an additional arg just before the doc.
-    ;;
     ;; TODO
-    ;; Both functions return Clojure maps.
+    ;; es-doc/put returns a Clojure map.
     ;; To check if successful, use response/ok? or response/conflict?
-    (es-doc/create idx-name mapping-name es-map)))
+    ;; 
+    ;; With es-doc/put (vs. es-doc/create), you supply the _id separately.
+    (es-doc/put idx-name mapping-name
+                (str (:_id mg-map))
+                es-map)))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
   []
   (util/recreate-idx idx-name mapping-types)
-  (doseq-cnt -add-to-idx 1000
-             (mg/fetch :businesses :where {:active_ind true})))
+  (doseq-cnt -add-to-idx 5000
+             (mg/fetch :businesses
+                       :where {:active_ind true})))

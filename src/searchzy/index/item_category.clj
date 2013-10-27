@@ -10,22 +10,20 @@
 (def mapping-types
   {mapping-name
    {:properties
-    {:id                    {:type "string"
-                             :index "not_analyzed"
-                             :include_in_all false}
+    {:name                  {:type "string"}
 
+     ;; Do we need this?
      :business_category_id  {:type "string"
                              :index "not_analyzed"
                              :include_in_all false}
-                             
-     :name                  {:type "string"}
      }}})
 
 (defn -add-to-idx
   "Given an ItemCategory mongo-map, convert to es-map and add to index."
   [mg-map]
-  (let [es-map (util/rm-leading-underbar mg-map)]
-    (es-doc/create idx-name mapping-name es-map)))
+  (es-doc/put idx-name mapping-name
+              (str (:_id mg-map))
+              (dissoc mg-map :_id)))
 
 (defn mk-idx
   "Fetch ItemCategories from MongoDB & add them to index.  Return count."

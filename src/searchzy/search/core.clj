@@ -10,14 +10,12 @@
              [response :as es-rsp]]
             [clojure.pprint :as pp]))
 
-(defn -main [& args]
+(defn -main [query & args]
 
-  ;; elastic search
   (util/es-connect! cfg/elastic-search-cfg)
 
-  (let [cfg  cfg/elastic-search-cfg
-        res  (es-doc/search "businesses" "business"
-                            :query {:match {:name "Palo"}})
+  (let [res  (es-doc/search "businesses" "business"
+                            :query {:match {:name query}})
         n    (es-rsp/total-hits res)
         hits (es-rsp/hits-from res)]
     

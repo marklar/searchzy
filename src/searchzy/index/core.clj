@@ -16,9 +16,9 @@
   ;; mongo
   (util/mongo-connect! cfg/mongo-db-cfg)
   
-  (doseq [[name f] {:Businesses biz/mk-idx
-                    :ItemCategories item-cat/mk-idx
-                    :BusinessCategories biz-cat/mk-idx}]
+  (doseq [[name f] {:BusinessCategories biz-cat/mk-idx
+                    :ItemCategories     item-cat/mk-idx
+                    :Businesses         biz/mk-idx}]
     (println (str "Indexing " name "..."))
     (let [cnt (f)]
       (println (str "Indexed " cnt " " name " records.")))))
