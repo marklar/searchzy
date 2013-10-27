@@ -28,8 +28,12 @@
      :business_category_names  {:type "string"
                                 :analyzer "keyword"}
 
+     :business_category_ids    {:type "string"}
+
      :item_category_names      {:type "string"
                                 :analyzer "keyword"}
+
+     :phone_number             {:type "string"}
 
      :value_score_int          {:type "integer"
                                 :null_value 0
@@ -38,6 +42,8 @@
 
 (defn -get-biz-cat-names
   "From business_category_ids, get names by finding in MongoDB.  Cache?"
+  ;; This is relatively expensive, so if we don't need to search by
+  ;; biz cat names, we should remove this from the index documents.
   [biz-cat-ids]
   (if (empty? biz-cat-ids)
     []
@@ -59,15 +65,33 @@
     nil
     (str (coords 0) "," (coords 1))))
 
+(defn -get-country-code
+  ""
+  [country-name]
+  ;; Use map.
+  ;; http://en.wikipedia.org/wiki/List_of_country_calling_codes#Alphabetical_listing_by_country_or_region
+  (if (= "US" country-name)
+    "1"
+    nil))
+
+(defn -get-phone-number
+  ""
+  [country-name area num]
+  (str/join "-" (remove str/blank? [(-get-country-code country-name) area num])))
+
 (defn -mk-es-map
   "Given a business mongo-map, create an ElasticSearch map."
   [{_id :_id nm :name pl :permalink
     coords :coordinates a1 :address_1 a2 :address_2
+    area :phone_area_code num :phone_number
+    country-name :country
     bc-ids :business_category_ids items :business_items}]
   {:name nm :permalink pl
    :latitude_longitude (-get-lat-lng-str coords)
    :search_address (str/join " " (remove str/blank? [a1 a2]))
    :business_category_names (-get-biz-cat-names bc-ids)
+   :business_category_ids (map str bc-ids)
+   :phone_number (-get-phone-number country-name area num)
    :item_category_names (distinct (map :item_name items))
    :value_score_int (-get-value-score items)
    })
@@ -90,5 +114,4 @@
   []
   (util/recreate-idx idx-name mapping-types)
   (doseq-cnt -add-to-idx 5000
-             (mg/fetch :businesses
-                       :where {:active_ind true})))
+             (mg/fetch :businesses :where {:active_ind true})))
