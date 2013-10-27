@@ -31,5 +31,5 @@
   "Fetch ItemCategories from MongoDB & add them to index.  Return count."
   []
   (util/recreate-idx idx-name mapping-types)
-  (doseq-cnt add-to-idx 5
-                  (mg/fetch :item_categories)))
+  (doseq-cnt -add-to-idx 5
+             (mg/fetch :item_categories)))
