@@ -8,8 +8,12 @@
   (clojure.set/rename-keys mg-map {:_id :id}))
 
 (defn recreate-idx
+  "If index 'idx-name' exists, delete it. Then create it using 'mapping-types'."
   [idx-name mapping-types]
-  (es-idx/delete idx-name)
-  (if (not (es-idx/exists? idx-name))
-    (es-idx/create idx-name :mappings mapping-types)))
+  ;; TODO
+  ;; Functions delete and create return Clojure maps.
+  ;; Use response/ok? or response/conflict? to verify success.
+  (if (es-idx/exists? idx-name)
+    (es-idx/delete idx-name))
+  (es-idx/create idx-name :mappings mapping-types))
 

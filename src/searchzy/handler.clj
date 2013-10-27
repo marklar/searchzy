@@ -1,30 +1,31 @@
 (ns searchzy.handler
   (:use compojure.core)
-  (:require [clojure.data.json :as json]
+  (:require [searchzy.search.util :as util]
             [compojure.handler :as handler]
             [compojure.route :as route]))
-
-(def json-headers
-  {"Content-Type" "application/json; charset=utf-8"})
-
-(defn ok-json-response
-  [obj]
-  {:status 200
-   :headers json-headers
-   :body (json/write-str obj)})
-  
 
 ;; COMPOJURE ROUTES
 (defroutes app-routes
 
   (GET "/" [query lat lng & others]
-       (ok-json-response {:query query
-                          :lat lat, :lng lng
-                          :others others}))
+       (util/ok-json-response {:query query
+                               :lat lat, :lng lng
+                               :others others}))
+
+  (GET "/business" [query lat lng & others]
+       (util/ok-json-response {:a 1}))
 
   (route/resources "/")
   (route/not-found "Not Found"))
 
+
+;; 1. execute query against index
+;; 2. rank results by value score, match score, etc.
+;; 3. return:
+;;    * the coordinate at the center of the search
+;;    * a map: (biz-id, biz-name, biz-address,
+;;              biz-permalink, biz-coords,
+;;              value-score, match-score)
 
 ;; COMPOJURE APP
 (def app

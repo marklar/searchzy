@@ -17,7 +17,7 @@
                                 :index "not_analyzed"
                                 :include_in_all false}
 
-     :name                     {:type "string" }
+     :name                     {:type "string"}
 
      :permalink                {:type "string"
                                 :index "not_analyzed"
@@ -27,7 +27,7 @@
                                 :null_value "66.666,66.666"
                                 :include_in_all false}
 
-     :search_address           {:type "string" }
+     :search_address           {:type "string"}
 
      :business_category_names  {:type "string"
                                 :analyzer "keyword"}
@@ -40,7 +40,7 @@
                                 :include_in_all false}
      }}})
 
-(defn get-biz-cat-names
+(defn -get-biz-cat-names
   "From business_category_ids, get names by finding in MongoDB.  Cache?"
   [biz-cat-ids]
   (if (empty? biz-cat-ids)
@@ -50,41 +50,54 @@
                          :only [:name])]
       (distinct (map :name cats)))))
 
-(defn get-value-score
+(defn -get-value-score
   "For seq of business_item maps, find highest value_score (as % int)."
   [biz-items]
   (let [scores (filter number? (map :value_score biz-items))]
     (int (* 100 (apply max (cons 0 scores))))))
 
-(defn get-lat-lng-str
+(defn -get-lat-lng-str
   "From 2 nums, create string.  [10.3 40.1] => '10.3,40.1' "
   [coords]
   (if (empty? coords)
     nil
     (str (coords 0) "," (coords 1))))
 
-(defn mk-es-map
+(defn -mk-es-map
   "Given a business mongo-map, create an ElasticSearch map."
   [{id :_id nm :name pl :permalink
     coords :coordinates a1 :address_1 a2 :address_2
     bc-ids :business_category_ids items :business_items}]
   {:id id :name nm :permalink pl
-   :latitude_longitude (get-lat-lng-str coords)
-   :search_address (str/join " " (filter str/blank? [a1 a2]))
-   :business_category_names (get-biz-cat-names bc-ids)
+   :latitude_longitude (-get-lat-lng-str coords)
+   :search_address (str/join " " (remove str/blank? [a1 a2]))
+   :business_category_names (-get-biz-cat-names bc-ids)
    :item_category_names (distinct (map :item_name items))
-   :value_score_int (get-value-score items)
+   :value_score_int (-get-value-score items)
    })
    
-(defn add-to-idx
+(defn -add-to-idx
   "Given a business mongo-map, convert to es-map and add to index."
   [mg-map]
-  (let [es-map (mk-es-map mg-map)]
+  (let [es-map (-mk-es-map mg-map)]
+    (println mg-map)
+    ;; Use es-doc/create or es-doc/put?
+    ;;
+    ;; If we use create, then ES creates an '_id' for us.
+    ;; So we move '_id' to 'id', and then also have ES's '_id'.
+    ;; This seems a bit wasteful of space and perhaps time.
+    ;;
+    ;; If we use put, then we must supply an '_id'
+    ;; as an additional arg just before the doc.
+    ;;
+    ;; TODO
+    ;; Both functions return Clojure maps.
+    ;; To check if successful, use response/ok? or response/conflict?
     (es-doc/create idx-name mapping-name es-map)))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
   []
   (util/recreate-idx idx-name mapping-types)
-  (doseq-cnt add-to-idx 1000
-                  (mg/fetch :businesses :where {:active_ind true})))
+  (doseq-cnt -add-to-idx 1000
+             (mg/fetch :businesses :where {:active_ind true})))

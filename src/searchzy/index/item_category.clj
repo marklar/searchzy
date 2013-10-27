@@ -21,7 +21,7 @@
      :name                  {:type "string"}
      }}})
 
-(defn add-to-idx
+(defn -add-to-idx
   "Given an ItemCategory mongo-map, convert to es-map and add to index."
   [mg-map]
   (let [es-map (util/rm-leading-underbar mg-map)]
