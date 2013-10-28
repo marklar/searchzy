@@ -9,16 +9,21 @@
             [clojure.pprint :as pp]))
 
 
-(defn -main [query miles lat lng by-value? & args]
+(defn -main [query miles lat lng by-value? from size & args]
 
   (util/es-connect! cfg/elastic-search-cfg)
 
   (println (str "Query: " query ". "
                 "Distance: " miles "m. "
                 "Lat,lng: " lat "," lng ". "
-                "By-value?: " by-value? "."))
+                "By-value?: " by-value? ". "
+                "From,size: " from "," size "."))
 
-  (let [res  (biz/search query miles lat lng (s-util/true-str? by-value?))
+  (let [res  (biz/search query
+                         miles lat lng
+                         (s-util/true-str? by-value?)
+                         (read-string from)
+                         (read-string size))
         n    (es-rsp/total-hits res)
         hits (es-rsp/hits-from res)]
     
