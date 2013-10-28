@@ -10,6 +10,11 @@
 
 ;; Store a field only if you need it returned to you in the search results.
 ;; The entire JSON of the document is stored anyway, so you can ask for that.
+;;
+;; Each index may have one OR MORE mapping-types (each w/ a diff mapping-name),
+;; if you put more than one type of document in your index.
+;; I don't think we want to do that.
+;;
 (def mapping-types
   {mapping-name
    {:properties

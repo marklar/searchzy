@@ -2,6 +2,11 @@
   (:require [clojure.data.json :as json]))
 
 
+(defn true-str?
+  "Convert string to bool."
+  [s]
+  (contains? #{"true" "t" "1"} s))
+
 (def json-headers
   {"Content-Type" "application/json; charset=utf-8"})
 

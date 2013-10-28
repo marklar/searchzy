@@ -2,20 +2,23 @@
   (:require [searchzy
              [cfg  :as cfg]
              [util :as util]]
-            [clojurewerkz.elastisch
-             [native :as es]
-             [query  :as es-q]]
-            [clojurewerkz.elastisch.native
-             [document :as es-doc]
-             [response :as es-rsp]]
+            [searchzy.search
+             [util :as s-util]
+             [business :as biz]]
+            [clojurewerkz.elastisch.native [response :as es-rsp]]
             [clojure.pprint :as pp]))
 
-(defn -main [query & args]
+
+(defn -main [query miles lat lng by-value? & args]
 
   (util/es-connect! cfg/elastic-search-cfg)
 
-  (let [res  (es-doc/search "businesses" "business"
-                            :query {:match {:name query}})
+  (println (str "Query: " query ". "
+                "Distance: " miles "m. "
+                "Lat,lng: " lat "," lng ". "
+                "By-value?: " by-value? "."))
+
+  (let [res  (biz/search query miles lat lng (s-util/true-str? by-value?))
         n    (es-rsp/total-hits res)
         hits (es-rsp/hits-from res)]
     
