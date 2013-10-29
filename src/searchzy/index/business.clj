@@ -85,6 +85,7 @@
   [country-name area num]
   (str/join "-" (remove str/blank? [(-get-country-code country-name) area num])))
 
+
 (defn -mk-es-map
   "Given a business mongo-map, create an ElasticSearch map."
   [{_id :_id nm :name pl :permalink
@@ -113,7 +114,8 @@
     ;; 
     ;; With es-doc/put (vs. es-doc/create), you supply the _id separately.
     ;;
-    (es-doc/put idx-name mapping-name
+    (es-doc/put idx-name
+                mapping-name
                 (str (:_id mg-map))
                 es-map)))
 

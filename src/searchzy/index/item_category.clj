@@ -21,7 +21,8 @@
 (defn -add-to-idx
   "Given an ItemCategory mongo-map, convert to es-map and add to index."
   [mg-map]
-  (es-doc/put idx-name mapping-name
+  (es-doc/put idx-name
+              mapping-name
               (str (:_id mg-map))
               (dissoc mg-map :_id)))
 
@@ -29,5 +30,6 @@
   "Fetch ItemCategories from MongoDB & add them to index.  Return count."
   []
   (util/recreate-idx idx-name mapping-types)
-  (doseq-cnt -add-to-idx 5
+  (doseq-cnt -add-to-idx
+             5
              (mg/fetch :item_categories)))
