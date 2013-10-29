@@ -37,11 +37,19 @@
 (def json-headers
   {"Content-Type" "application/json; charset=utf-8"})
 
-(defn ok-json-response
-  [obj]
-  {:status 200
+(defn json-response
+  [status obj]
+  {:status status
    :headers json-headers
    :body (json/write-str obj)})
+
+(defn ok-json-response
+  [obj]
+  (json-response 200 obj))
+
+(defn error-json-response
+  [obj]
+  (json-response 404 obj))
   
 ;; To perform a query with Elastisch, use the
 ;; clojurewerkz.elastisch.rest.document/search function. It takes

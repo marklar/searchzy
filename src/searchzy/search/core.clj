@@ -8,19 +8,20 @@
             [clojurewerkz.elastisch.native [response :as es-rsp]]
             [clojure.pprint :as pp]))
 
-(defn -main [query miles address lat lng by-value from size & args]
+;; Probably not worth maintining this code!
+(defn -main [query miles address lat lng sort from size & args]
 
   (util/es-connect! cfg/elastic-search-cfg)
 
   (let [;; transform cmd-line inputs
-        miles      (s-util/str-to-val miles 4.0)
-        lat        (s-util/str-to-val lat nil)
-        lng        (s-util/str-to-val lng nil)
-        by-value?  (s-util/true-str? by-value)
-        from       (s-util/str-to-val from 0)
-        size       (s-util/str-to-val size 10)
+        miles (s-util/str-to-val miles 4.0)
+        lat   (s-util/str-to-val lat nil)
+        lng   (s-util/str-to-val lng nil)
+        sort  (util/str-to-val sort 'value)
+        from  (s-util/str-to-val from 0)
+        size  (s-util/str-to-val size 10)
         ;; look stuff up
-        res  (biz/search query address miles lat lng by-value? from size)
+        res  (biz/es-search query address miles lat lng by-value? from size)
         ;; extract results info
         n     (es-rsp/total-hits res)
         hits  (es-rsp/hits-from res)]
