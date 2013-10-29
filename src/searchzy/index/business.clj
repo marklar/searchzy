@@ -64,11 +64,12 @@
     (int (* 100 (apply max (cons 0 scores))))))
 
 (defn -get-lat-lng-str
-  "From 2 nums, create string.  [10.3 40.1] => '10.3,40.1' "
+  "From 2 nums, REVERSE ORDER, create string.  [10.3 40.1] => '10.3,40.1' "
+  ;; In MongoDB, the coords are stored backwards (i.e. first lng, then lat).
   [coords]
   (if (empty? coords)
     nil
-    (str (coords 0) "," (coords 1))))
+    (str (coords 1) "," (coords 0))))
 
 (defn -get-country-code
   ""
@@ -105,11 +106,13 @@
   "Given a business mongo-map, convert to es-map and add to index."
   [mg-map]
   (let [es-map (-mk-es-map mg-map)]
+    ;;
     ;; TODO
     ;; es-doc/put returns a Clojure map.
     ;; To check if successful, use response/ok? or response/conflict?
     ;; 
     ;; With es-doc/put (vs. es-doc/create), you supply the _id separately.
+    ;;
     (es-doc/put idx-name mapping-name
                 (str (:_id mg-map))
                 es-map)))

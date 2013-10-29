@@ -8,25 +8,30 @@
             [clojurewerkz.elastisch.native [response :as es-rsp]]
             [clojure.pprint :as pp]))
 
-
-(defn -main [query miles lat lng by-value? from size & args]
+(defn -main [query miles address lat lng by-value from size & args]
 
   (util/es-connect! cfg/elastic-search-cfg)
 
-  (println (str "Query: " query ". "
-                "Distance: " miles "m. "
-                "Lat,lng: " lat "," lng ". "
-                "By-value?: " by-value? ". "
-                "From,size: " from "," size "."))
-
-  (let [res  (biz/search query
-                         miles lat lng
-                         (s-util/true-str? by-value?)
-                         (read-string from)
-                         (read-string size))
-        n    (es-rsp/total-hits res)
-        hits (es-rsp/hits-from res)]
+  (let [;; transform cmd-line inputs
+        miles      (s-util/str-to-val miles 4.0)
+        lat        (s-util/str-to-val lat nil)
+        lng        (s-util/str-to-val lng nil)
+        by-value?  (s-util/true-str? by-value)
+        from       (s-util/str-to-val from 0)
+        size       (s-util/str-to-val size 10)
+        ;; look stuff up
+        res  (biz/search query address miles lat lng by-value? from size)
+        ;; extract results info
+        n     (es-rsp/total-hits res)
+        hits  (es-rsp/hits-from res)]
     
+    (println (str "Query: " query ". "
+                  "Distance: " miles "m. "
+                  "Address: '" address "'. "
+                  "Lat,lng: " lat "," lng ". "
+                  "By-value?: " by-value? ". "
+                  "From,size: " from "," size "."))
+
     (println (format "Total hits: %d" n))
     (pp/pprint res)))
 

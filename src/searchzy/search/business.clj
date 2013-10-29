@@ -1,5 +1,7 @@
 (ns searchzy.search.business
-  (:require [clojurewerkz.elastisch
+  (:require [searchzy.search
+             [util :as util]]
+            [clojurewerkz.elastisch
              [native :as es]
              [query  :as es-q]]
             [clojurewerkz.elastisch.native
@@ -37,11 +39,12 @@
 (defn search
   "Perform ES search, return results map.
    If by-value? is true, change scoring function and sort by it.
-   types: string int/string int/float int/float bool int int"
-  [query miles lat lng by-value? from size]
-  (es-doc/search "businesses" "business"
-                 :query  (-mk-query by-value? query)
-                 :filter (-mk-geo-filter miles lat lng)
-                 :sort   (-mk-sort by-value?)
-                 :from   from
-                 :size   size))
+   types: string string float float float bool int int"
+  [query address miles lat lng by-value? from size]
+  (let [{lat :lat lng :lng}  (util/get-lat-lng lat lng address)]
+    (es-doc/search "businesses" "business"
+                   :query  (-mk-query by-value? query)
+                   :filter (-mk-geo-filter miles lat lng)
+                   :sort   (-mk-sort by-value?)
+                   :from   from
+                   :size   size)))
