@@ -80,9 +80,9 @@
       :query query
       :index "businesses"
       :geo_filter {:miles miles
-               :address address
-               :lat lat
-               :lng lng}
+                   :address address
+                   :lat lat
+                   :lng lng}
       :sort sort
       :paging {:from from
                :size size})))
@@ -97,33 +97,45 @@
   (and (clojure.string/blank? address)
        (or (nil? lat) (nil? lng))))
 
+(defn -response-bad-query
+  [orig-query norm-query]
+  (util/error-json-response
+   {:error "Param 'query' must be non-empty after normalization."
+    :original-query orig-query
+    :normalized-query norm-query}))
+
+(defn -response-bad-location
+  [address orig-lat orig-lng]
+  (util/error-json-response
+   {:error "Must provide EITHER address OR both lat & lng."
+    :address address
+    :lat orig-lat
+    :lng orig-lng}))
+
+(defn -response-bad-sort
+  [sort]
+  (util/error-json-response
+   {:error "Param 'sort' must be: 'value', 'lexical', or absent."
+    :sort sort}))
+
 (defn validate-and-search
   [orig-query address miles orig-lat orig-lng sort from size]
 
   ;; Validate query.
   (let [query (q/normalize orig-query)]
     (if (clojure.string/blank? query)
-      (util/error-json-response
-       {:error "Param 'query' must be non-empty after normalization."
-        :orig-query orig-query
-        :normalized-query query})
+      (-response-bad-query orig-query query)
       
       ;; Validate location info.
       (let [lat (util/str-to-val orig-lat nil)
             lng (util/str-to-val orig-lng nil)]
         (if (-invalid-location? address lat lng)
-          (util/error-json-response
-           {:error "Must provide EITHER address OR both lat & lng."
-            :address address
-            :lat orig-lat
-            :lng orig-lng})
+          (-response-bad-location address orig-lat orig-lng)
           
-          ;; Validate sort -- either nil, "value" (default), or "lexical".
+          ;; Validate sort - #{nil 'value 'lexical}.  Def: 'value.
           (let [sort (util/str-to-val sort 'value)]
             (if (not (-valid-sort? sort))
-              (util/error-json-response
-               {:error "Param 'sort' must be: 'value', 'lexical', or absent."
-                :sort sort})
+              (-response-bad-sort sort)
               
               ;; OK, make query.
               (let [;; transform params
@@ -131,6 +143,7 @@
                     from   (util/str-to-val from 0)
                     size   (util/str-to-val size 10)
                     ;; fetch results
-                    res (es-search query address
-                                   miles lat lng sort from size)]
-                (util/ok-json-response res)))))))))
+                    es-res (es-search query address
+                                      miles lat lng
+                                      sort from size)]
+                (util/ok-json-response es-res)))))))))
