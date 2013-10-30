@@ -1,5 +1,7 @@
 (ns searchzy.service.business.core
   (:require [searchzy.service
+             [inputs :as inputs]
+             [geo :as geo]
              [util :as util]
              [query :as q]]
             [searchzy.service.business
@@ -43,22 +45,22 @@
       (validate/response-bad-query orig-query query)
       
       ;; Validate location info.
-      (let [lat (util/str-to-val orig-lat nil)
-            lng (util/str-to-val orig-lng nil)]
+      (let [lat (inputs/str-to-val orig-lat nil)
+            lng (inputs/str-to-val orig-lng nil)]
         (if (validate/invalid-location? address lat lng)
           (validate/response-bad-location address orig-lat orig-lng)
           
           ;; Validate sort - #{nil 'value 'lexical}.  Def: 'value.
-          (let [sort (util/str-to-val sort 'value)]
+          (let [sort (inputs/str-to-val sort 'value)]
             (if (not (validate/valid-sort? sort))
               (validate/response-bad-sort sort)
               
               ;; OK, make query.
               (let [;; transform params
-                    miles  (util/str-to-val miles 4.0)
-                    from   (util/str-to-val from 0)
-                    size   (util/str-to-val size 10)
-                    {lat :lat lng :lng} (util/get-lat-lng lat lng address)
+                    miles  (inputs/str-to-val miles 4.0)
+                    from   (inputs/str-to-val from 0)
+                    size   (inputs/str-to-val size 10)
+                    {lat :lat lng :lng} (geo/get-lat-lng lat lng address)
                     ;; fetch results
                     es-res (search/es-search query miles lat lng sort from size)]
 

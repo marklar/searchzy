@@ -1,6 +1,8 @@
 (ns searchzy.service.business.validate
-  (:require [searchzy.service
-             [util :as util]]))
+  (:require [clojure.string :as str]
+            [searchzy.service.util :as util]))
+
+;; -- Validations --
 
 (defn valid-sort?
   "Has the user input a legal value for 'sort'?"
@@ -11,8 +13,10 @@
 (defn invalid-location?
   "Has the user provided _IN_sufficient location information?"
   [address lat lng]
-  (and (clojure.string/blank? address)
+  (and (str/blank? address)
        (or (nil? lat) (nil? lng))))
+
+;; -- Negative responses --
 
 (defn response-bad-query
   "The user has input an invalid query, so we return 404."
