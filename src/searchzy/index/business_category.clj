@@ -1,10 +1,11 @@
 (ns searchzy.index.business-category
   (:use [searchzy.util])
   (:require [searchzy.index.util :as util]
+            [searchzy.cfg :as cfg]
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
 
-(def idx-name "business_categories")
+(def idx-name (:business_categories cfg/index-names))
 (def mapping-name "business_category")
 
 (def mapping-types

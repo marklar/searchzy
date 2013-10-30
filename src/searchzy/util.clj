@@ -4,7 +4,8 @@
 
 
 (defn doseq-cnt
-  "Call function 'f' on each of 'seq', printing count each 'num'."
+  "Call function 'f' on each of 'seq',
+   printing count out after each 'num' items."
   [f num seq]
   (let [cnt (atom 0)]
     (doseq [i seq]
@@ -14,6 +15,8 @@
         (println @cnt)))
     @cnt))
 
+
+;; TODO: Move these to "connect" module?
 
 (defn es-connect!
   "ElasticSearch native client connection."

@@ -1,11 +1,12 @@
 (ns searchzy.index.business
   (:use [searchzy.util])
   (:require [searchzy.index.util :as util]
+            [searchzy.cfg :as cfg]
             [clojure.string :as str]
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
 
-(def idx-name "businesses")
+(def idx-name (:businesses cfg/index-names))
 (def mapping-name "business")
 
 ;; Store a field only if you need it returned to you in the search results.

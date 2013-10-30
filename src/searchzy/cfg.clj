@@ -16,3 +16,10 @@
   {:db-name "centzy2_development"
    :host "127.0.0.1"
    :port 27017})
+
+(def index-names
+  ;; If you'd like to use different ElasticSearch indices, just change these.
+  ;; You'll have to re-index before you can search against them, obviously.
+  {:businesses          "businesses"
+   :business_categories "business_categories"
+   :item_categories     "item_categories"})

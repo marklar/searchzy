@@ -1,5 +1,6 @@
 (ns searchzy.service.business.core
-  (:require [searchzy.service
+  (:require [searchzy.cfg :as cfg]
+            [searchzy.service
              [inputs :as inputs]
              [geo :as geo]
              [responses :as responses]
@@ -28,13 +29,13 @@
   "From ES response, create service response."
   [{hits-map :hits} query miles address lat lng sort from size]
   (responses/ok-json
-   {:query query         ; Normalized query, that is.
-    :index "businesses"  ; TODO - add this to cfg.
+   {:query      query  ; Normalized query, that is.
+    :index      (:businesses cfg/index-names)
     :geo_filter {:miles miles :address address :lat lat :lng lng}
-    :sort sort
-    :paging {:from from :size size}
+    :sort       sort
+    :paging     {:from from :size size}
     :total_hits (:total hits-map)
-    :hits (map -mk-hit-response (:hits hits-map))}))
+    :hits       (map -mk-hit-response (:hits hits-map))}))
 
 (defn validate-and-search
   [orig-query address miles orig-lat orig-lng sort from size]
