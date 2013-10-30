@@ -37,55 +37,18 @@
         :script_score {:script "_score + (doc['value_score_int'].value / 20)"}}
        })))
 
-(defn -mk-biz-hit-response
-  "From ES hit, make service hit."
-  [{id :_id
-    {n :name a :search_address
-     p :permalink l :latitude_longitude} :_source}]
-  {:_id id
-   :name n
-   :address a
-   :permalink p
-   :lat_lng l
-   })
-
-(defn -mk-biz-response
-  "From ES response, create service response."
-  [{hits-map :hits}]
-  (let [n    (:total hits-map)
-        hits (:hits hits-map)]
-    {:total_hits n
-     :hits (map -mk-biz-hit-response hits)}))
-
-(defn es-search
+(defn -es-search
   "Perform ES search, return results map.
    If by-value?, change scoring function and sort by its result.
    TYPES: string string float float float bool int int"
-  [query address miles lat lng sort from size]
-  (let [{lat :lat lng :lng}  (util/get-lat-lng lat lng address)
-
-        ;; FIXME: We may have more sort opts than just #{'value 'lexical}.
-        by-value? (= 'value sort)
-
-        es-response (es-doc/search "businesses" "business"
-                                   :query  (-mk-query by-value? query)
-                                   :filter (-mk-geo-filter miles lat lng)
-                                   :sort   (-mk-sort by-value?)
-                                   :from   from
-                                   :size   size)]
-
-    ;; TODO: Move this to separate wrapper fn?
-    (assoc (-mk-biz-response es-response)
-      ;; This is the normalized query.  Should we also include the orig-query?
-      :query query
-      :index "businesses"
-      :geo_filter {:miles miles
-                   :address address
-                   :lat lat
-                   :lng lng}
-      :sort sort
-      :paging {:from from
-               :size size})))
+  [query miles lat lng sort from size]
+  (let [by-value? (= 'value sort)]
+    (es-doc/search "businesses" "business"
+                   :query  (-mk-query by-value? query)
+                   :filter (-mk-geo-filter miles lat lng)
+                   :sort   (-mk-sort by-value?)
+                   :from   from
+                   :size   size)))
 
 (defn -valid-sort?
   [sym]
@@ -118,6 +81,31 @@
    {:error "Param 'sort' must be: 'value', 'lexical', or absent."
     :sort sort}))
 
+(defn -mk-hit-response
+  "From ES hit, make service hit."
+  [{id :_id
+    {n :name a :search_address
+     p :permalink l :latitude_longitude} :_source}]
+  {:_id id
+   :name n
+   :address a
+   :permalink p
+   :lat_lng l
+   })
+
+(defn -mk-response
+  "From ES response, create service response."
+  [{hits-map :hits} query miles address lat lng sort from size]
+  (util/ok-json-response
+   {:query query  ; normalized
+    :index "businesses"
+    :geo_filter {:miles miles :address address
+                 :lat lat :lng lng}
+    :sort sort
+    :paging {:from from :size size}
+    :total_hits (:total hits-map)
+    :hits (map -mk-hit-response (:hits hits-map))}))
+
 (defn validate-and-search
   [orig-query address miles orig-lat orig-lng sort from size]
 
@@ -142,8 +130,12 @@
                     miles  (util/str-to-val miles 4.0)
                     from   (util/str-to-val from 0)
                     size   (util/str-to-val size 10)
+                    {lat :lat lng :lng} (util/get-lat-lng lat lng address)
                     ;; fetch results
-                    es-res (es-search query address
-                                      miles lat lng
-                                      sort from size)]
-                (util/ok-json-response es-res)))))))))
+                    es-res (-es-search query miles lat lng sort from size)]
+
+                ;; Extract info from ES-results, create JSON response.
+                (-mk-response es-res query miles address lat lng
+                              sort from size)))))))))
+
+
