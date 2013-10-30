@@ -4,8 +4,9 @@
              [util :as util]
              [cfg :as cfg]]
             [searchzy.search
-             [util :as s-util]
-             [business :as biz]]
+             [util :as s-util]]
+            [searchzy.search.business
+             [core :as biz]]
             [compojure
              [handler :as handler]
              [route :as route]]))

@@ -1,9 +1,10 @@
-(ns searchzy.search.business
+(ns searchzy.search.business.core
   (:require [searchzy.search
              [util :as util]
-             [query :as q]
-             [business-validate :as validate]
-             [business-search :as biz-search]]))
+             [query :as q]]
+            [searchzy.search.business
+             [validate :as validate]
+             [search :as search]]))
 
 ;;
 ;; the aggregate bits of information i need to display are: avg price,
@@ -59,7 +60,7 @@
                     size   (util/str-to-val size 10)
                     {lat :lat lng :lng} (util/get-lat-lng lat lng address)
                     ;; fetch results
-                    es-res (biz-search/es-search query miles lat lng sort from size)]
+                    es-res (search/es-search query miles lat lng sort from size)]
 
                 ;; Extract info from ES-results, create JSON response.
                 (-mk-response es-res query miles address lat lng

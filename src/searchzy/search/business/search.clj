@@ -1,4 +1,4 @@
-(ns searchzy.search.business-search
+(ns searchzy.search.business.search
   (:require [clojurewerkz.elastisch.native
              [document :as es-doc]]))
 
@@ -15,21 +15,23 @@
     {:value_score_int :desc}
     {:_score :desc}))
 
+(defn -mk-function-score-query
+  "Return a 'function_score' query-map, for sorting by value_score_int."
+  [simple-query-map]
+  {:function_score
+   {:query simple-query-map
+    :boost_mode "replace"   ; Replace _score with the modified one.
+    :script_score {:script "_score + (doc['value_score_int'].value / 20)"}}
+   })
+
 (defn -mk-query
-  "Create map for querying - either just by 'query',
-   or with a scoring fn for sorting."
+  "Create map for querying -
+   EITHER: just with 'query' -OR- with a scoring fn for sorting."
   [by-value? query]
-  (let [q {:text {:name query}}]
+  (let [simple-query-map {:text {:name query}}]
     (if by-value?
-      ;; Simple query.
-      q
-      ;; Function_score query, for sorting by value_score_int.
-      {:function_score
-       {:query q
-        ;; Replace the _score with a modified version.
-        :boost_mode "replace"
-        :script_score {:script "_score + (doc['value_score_int'].value / 20)"}}
-       })))
+      simple-query-map
+      (-mk-function-score-query simple-query-map))))
 
 (defn es-search
   "Perform ES search, return results map.
