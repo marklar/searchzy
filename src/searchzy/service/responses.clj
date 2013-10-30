@@ -1,7 +1,5 @@
-(ns searchzy.service.util
+(ns searchzy.service.responses
   (:require [clojure.data.json :as json]))
-
-;; TODO: rename this namespace to 'responses' or somesuch.
 
 (def -json-headers
   {"Content-Type" "application/json; charset=utf-8"})
@@ -12,10 +10,10 @@
    :headers -json-headers
    :body (json/write-str obj)})
 
-(defn ok-json-response
+(defn ok-json
   [obj]
   (-json-response 200 obj))
 
-(defn error-json-response
+(defn error-json
   [obj]
   (-json-response 404 obj))

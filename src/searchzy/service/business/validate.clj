@@ -1,6 +1,6 @@
 (ns searchzy.service.business.validate
   (:require [clojure.string :as str]
-            [searchzy.service.util :as util]))
+            [searchzy.service.responses :as responses]))
 
 ;; -- Validations --
 
@@ -21,7 +21,7 @@
 (defn response-bad-query
   "The user has input an invalid query, so we return 404."
   [orig-query norm-query]
-  (util/error-json-response
+  (responses/error-json
    {:error "Param 'query' must be non-empty after normalization."
     :original-query orig-query
     :normalized-query norm-query}))
@@ -30,7 +30,7 @@
   "The user has input insufficient location (lat/lng or address) info,
    so return a 404."
   [address orig-lat orig-lng]
-  (util/error-json-response
+  (responses/error-json
    {:error "Must provide EITHER address OR both lat & lng."
     :address address
     :lat orig-lat
@@ -39,6 +39,6 @@
 (defn response-bad-sort
   "The user has input an invalid 'sort' value, so return 404."
   [sort]
-  (util/error-json-response
+  (responses/error-json
    {:error "Param 'sort' must be: 'value', 'lexical', or absent."
     :sort sort}))

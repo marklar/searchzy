@@ -2,7 +2,7 @@
   (:require [searchzy.service
              [inputs :as inputs]
              [geo :as geo]
-             [util :as util]
+             [responses :as responses]
              [query :as q]]
             [searchzy.service.business
              [validate :as validate]
@@ -27,9 +27,9 @@
 (defn -mk-response
   "From ES response, create service response."
   [{hits-map :hits} query miles address lat lng sort from size]
-  (util/ok-json-response
-   {:query query  ; normalized query, that is
-    :index "businesses"  ; TODO - add this to cfg
+  (responses/ok-json
+   {:query query         ; Normalized query, that is.
+    :index "businesses"  ; TODO - add this to cfg.
     :geo_filter {:miles miles :address address :lat lat :lng lng}
     :sort sort
     :paging {:from from :size size}
@@ -57,10 +57,11 @@
               
               ;; OK, make query.
               (let [;; transform params
-                    miles  (inputs/str-to-val miles 4.0)
-                    from   (inputs/str-to-val from 0)
-                    size   (inputs/str-to-val size 10)
-                    {lat :lat lng :lng} (geo/get-lat-lng lat lng address)
+                    miles      (inputs/str-to-val miles 4.0)
+                    from       (inputs/str-to-val from 0)
+                    size       (inputs/str-to-val size 10)
+                    {lat :lat
+                     lng :lng} (geo/get-lat-lng lat lng address)
                     ;; fetch results
                     es-res (search/es-search query miles lat lng sort from size)]
 

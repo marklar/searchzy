@@ -4,7 +4,7 @@
              [util :as util]
              [cfg :as cfg]]
             [searchzy.service
-             [util :as s-util]]
+             [responses :as responses]]
             [searchzy.service.business
              [core :as biz]]
             [compojure
@@ -16,12 +16,14 @@
 (defroutes app-routes
 
   (GET "/" [query lat lng & others]
-       (s-util/ok-json-response {:query query
-                                 :lat lat, :lng lng
-                                 :others others}))
+       (responses/ok-json {:query query
+                           :lat lat, :lng lng
+                           :others others}))
 
   (GET "/business" [query address miles lat lng sort from size & args]
-       (biz/validate-and-search query address miles lat lng sort from size))
+       (biz/validate-and-search query
+                                address miles lat lng
+                                sort from size))
 
   (route/resources "/")
   (route/not-found "Not Found"))
