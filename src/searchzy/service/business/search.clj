@@ -1,4 +1,4 @@
-(ns searchzy.search.business.search
+(ns searchzy.service.business.search
   (:require [clojurewerkz.elastisch.native
              [document :as es-doc]]))
 

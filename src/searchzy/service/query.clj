@@ -1,4 +1,4 @@
-(ns searchzy.search.query)
+(ns searchzy.service.query)
 ;; Query normalization.
 
 (defn -double-quote-each-char

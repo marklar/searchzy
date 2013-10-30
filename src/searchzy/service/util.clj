@@ -1,4 +1,4 @@
-(ns searchzy.search.util
+(ns searchzy.service.util
   (:require [geocoder.google :as geo]       ;; #{bing geonames google}
             [clojure.string]
             [clojure.data.json :as json]))

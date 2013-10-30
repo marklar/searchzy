@@ -1,5 +1,5 @@
-(ns searchzy.search.business.validate
-  (:require [searchzy.search
+(ns searchzy.service.business.validate
+  (:require [searchzy.service
              [util :as util]]))
 
 (defn valid-sort?

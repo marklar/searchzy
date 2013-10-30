@@ -9,5 +9,5 @@
                  [geocoder-clj "0.2.3"]]
   :plugins [[lein-ring "0.8.7"]]
   :main searchzy.index.core
-  :ring {:handler searchzy.handler/app}
+  :ring {:handler searchzy.service.handler/app}
   :profiles {:dev {:dependencies [[ring-mock "0.1.5"]]}})

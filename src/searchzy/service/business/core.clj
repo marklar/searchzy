@@ -1,8 +1,8 @@
-(ns searchzy.search.business.core
-  (:require [searchzy.search
+(ns searchzy.service.business.core
+  (:require [searchzy.service
              [util :as util]
              [query :as q]]
-            [searchzy.search.business
+            [searchzy.service.business
              [validate :as validate]
              [search :as search]]))
 

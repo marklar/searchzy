@@ -1,11 +1,11 @@
-(ns searchzy.handler
+(ns searchzy.service.handler
   (:use compojure.core)
   (:require [searchzy 
              [util :as util]
              [cfg :as cfg]]
-            [searchzy.search
+            [searchzy.service
              [util :as s-util]]
-            [searchzy.search.business
+            [searchzy.service.business
              [core :as biz]]
             [compojure
              [handler :as handler]
