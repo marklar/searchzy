@@ -1,6 +1,7 @@
 (ns searchzy.search.business
   (:require [searchzy.search
-             [util :as util]]
+             [util :as util]
+             [query :as q]]
             [clojurewerkz.elastisch
              [native :as es]
              [query  :as es-q]]
@@ -24,7 +25,7 @@
   "Create map for querying - either just by 'query',
    or with a scoring fn for sorting."
   [by-value? query]
-  (let [q {:term {:name query}}]
+  (let [q {:text {:name query}}]
     (if by-value?
       ;; Simple query.
       q
@@ -58,8 +59,8 @@
 
 (defn es-search
   "Perform ES search, return results map.
-   If by-value? is true, change scoring function and sort by it.
-   types: string string float float float bool int int"
+   If by-value?, change scoring function and sort by its result.
+   TYPES: string string float float float bool int int"
   [query address miles lat lng sort from size]
   (let [{lat :lat lng :lng}  (util/get-lat-lng lat lng address)
 
@@ -75,6 +76,7 @@
 
     ;; TODO: Move this to separate wrapper fn?
     (assoc (-mk-biz-response es-response)
+      ;; This is the normalized query.  Should we also include the orig-query?
       :query query
       :index "businesses"
       :geo_filter {:miles miles
@@ -95,37 +97,40 @@
   (and (clojure.string/blank? address)
        (or (nil? lat) (nil? lng))))
 
-(defn biz-search
-  [query address miles orig-lat orig-lng sort from size]
+(defn validate-and-search
+  [orig-query address miles orig-lat orig-lng sort from size]
 
   ;; Validate query.
-  (if (clojure.string/blank? query)
-    (util/error-json-response
-     {:error "Param 'query' must be non-empty."})
-    
-    ;; Validate location info.
-    (let [lat (util/str-to-val orig-lat nil)
-          lng (util/str-to-val orig-lng nil)]
-      (if (-invalid-location? address lat lng)
-        (util/error-json-response
-         {:error "Must provide EITHER address OR both lat & lng."
-          :address address
-          :lat orig-lat
-          :lng orig-lng})
-        
-        ;; Validate sort -- either nil, "value" (default), or "lexical".
-        (let [sort (util/str-to-val sort 'value)]
-          (if (not (-valid-sort? sort))
-            (util/error-json-response
-             {:error "Param 'sort' must be: 'value', 'lexical', or absent."
-              :sort sort})
-            
-            ;; OK, make query.
-            (let [;; transform params
-                  miles  (util/str-to-val miles 4.0)
-                  from   (util/str-to-val from 0)
-                  size   (util/str-to-val size 10)
-                  ;; fetch results
-                  res (es-search query address
-                                 miles lat lng sort from size)]
-              (util/ok-json-response res))))))))
+  (let [query (q/normalize orig-query)]
+    (if (clojure.string/blank? query)
+      (util/error-json-response
+       {:error "Param 'query' must be non-empty after normalization."
+        :orig-query orig-query
+        :normalized-query query})
+      
+      ;; Validate location info.
+      (let [lat (util/str-to-val orig-lat nil)
+            lng (util/str-to-val orig-lng nil)]
+        (if (-invalid-location? address lat lng)
+          (util/error-json-response
+           {:error "Must provide EITHER address OR both lat & lng."
+            :address address
+            :lat orig-lat
+            :lng orig-lng})
+          
+          ;; Validate sort -- either nil, "value" (default), or "lexical".
+          (let [sort (util/str-to-val sort 'value)]
+            (if (not (-valid-sort? sort))
+              (util/error-json-response
+               {:error "Param 'sort' must be: 'value', 'lexical', or absent."
+                :sort sort})
+              
+              ;; OK, make query.
+              (let [;; transform params
+                    miles  (util/str-to-val miles 4.0)
+                    from   (util/str-to-val from 0)
+                    size   (util/str-to-val size 10)
+                    ;; fetch results
+                    res (es-search query address
+                                   miles lat lng sort from size)]
+                (util/ok-json-response res)))))))))

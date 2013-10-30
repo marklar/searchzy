@@ -11,15 +11,6 @@
              [route :as route]]))
 
 
-(defn normalize-query
-  "1. Escape special chars.
-   2. Escape bool operators.
-   3. Escape odd quotes."
-  [str]
-  (if (clojure.string/blank? str)
-    nil
-    (clojure.string/lower-case str)))
-
 ;; COMPOJURE ROUTES
 (defroutes app-routes
 
@@ -29,8 +20,7 @@
                                  :others others}))
 
   (GET "/business" [query address miles lat lng sort from size & args]
-       (biz/biz-search (normalize-query query)
-                       address miles lat lng sort from size))
+       (biz/validate-and-search query address miles lat lng sort from size))
 
   (route/resources "/")
   (route/not-found "Not Found"))
