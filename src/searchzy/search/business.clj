@@ -5,26 +5,29 @@
              [business-validate :as validate]
              [business-search :as biz-search]]))
 
+;;
+;; the aggregate bits of information i need to display are: avg price,
+;; min price, max price and latest opening time.
+;;
+;; that means having prices and hours in the indices.
+;;
+;; and for the hours, it means having to know what day it is,
+;; in order to extract the proper hours.
+;;
+
 (defn -mk-hit-response
   "From ES hit, make service hit."
-  [{id :_id
-    {n :name a :search_address
-     p :permalink l :latitude_longitude} :_source}]
-  {:_id id
-   :name n
-   :address a
-   :permalink p
-   :lat_lng l
-   })
+  [{id :_id {n :name a :search_address
+             p :permalink l :latitude_longitude} :_source}]
+  {:_id id :name n :address a :permalink p :lat_lng l})
 
 (defn -mk-response
   "From ES response, create service response."
   [{hits-map :hits} query miles address lat lng sort from size]
   (util/ok-json-response
-   {:query query  ; normalized
-    :index "businesses"
-    :geo_filter {:miles miles :address address
-                 :lat lat :lng lng}
+   {:query query  ; normalized query, that is
+    :index "businesses"  ; TODO - add this to cfg
+    :geo_filter {:miles miles :address address :lat lat :lng lng}
     :sort sort
     :paging {:from from :size size}
     :total_hits (:total hits-map)
