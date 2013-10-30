@@ -18,6 +18,8 @@
 (def mapping-types
   {mapping-name
    {:properties
+
+    ;; TODO: Add hours information.
     {:name                     {:type "string"}
 
      :permalink                {:type "string"
@@ -30,15 +32,19 @@
 
      :search_address           {:type "string"}
 
+     ;; TODO: Can remove these.
      :business_category_names  {:type "string"
                                 :analyzer "keyword"}
 
      :business_category_ids    {:type "string"}
 
+     ;; TODO: Can remove these.
      :item_category_names      {:type "string"
                                 :analyzer "keyword"}
 
      :phone_number             {:type "string"}
+
+     ;; From the embedded BusinessItems, extract prices.
 
      :value_score_int          {:type "integer"
                                 :null_value 0
