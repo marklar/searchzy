@@ -12,9 +12,9 @@
 
 (defn invalid-location?
   "Has the user provided _IN_sufficient location information?"
-  [address lat lng]
+  [address lat lon]
   (and (str/blank? address)
-       (or (nil? lat) (nil? lng))))
+       (or (nil? lat) (nil? lon))))
 
 ;; -- Negative responses --
 
@@ -27,14 +27,14 @@
     :normalized-query norm-query}))
 
 (defn response-bad-location
-  "The user has input insufficient location (lat/lng or address) info,
+  "The user has input insufficient location (lat/lon or address) info,
    so return a 404."
-  [address orig-lat orig-lng]
+  [address orig-lat orig-lon]
   (responses/error-json
-   {:error "Must provide EITHER address OR both lat & lng."
+   {:error "Must provide EITHER address OR both lat & lon."
     :address address
     :lat orig-lat
-    :lng orig-lng}))
+    :lon orig-lon}))
 
 (defn response-bad-sort
   "The user has input an invalid 'sort' value, so return 404."

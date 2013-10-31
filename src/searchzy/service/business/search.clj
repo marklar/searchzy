@@ -4,9 +4,9 @@
 
 (defn -mk-geo-filter
   "Create map for filtering by geographic distance."
-  [miles lat lng]
+  [miles lat lon]
   {:geo_distance {:distance (str miles "mi")
-                  :latitude_longitude (str lat "," lng)}})
+                  :latitude_longitude (str lat "," lon)}})
 
 (defn -mk-sort
   "Create map for sorting results, depending on sort setting."
@@ -37,11 +37,11 @@
   "Perform ES search, return results map.
    If by-value?, change scoring function and sort by its result.
    TYPES: string string float float float bool int int"
-  [query miles lat lng sort from size]
+  [query miles lat lon sort from size]
   (let [by-value? (= 'value sort)]
     (es-doc/search "businesses" "business"
                    :query  (-mk-query by-value? query)
-                   :filter (-mk-geo-filter miles lat lng)
+                   :filter (-mk-geo-filter miles lat lon)
                    :sort   (-mk-sort by-value?)
                    :from   from
                    :size   size)))

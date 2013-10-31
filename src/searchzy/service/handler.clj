@@ -15,14 +15,14 @@
 ;; COMPOJURE ROUTES
 (defroutes app-routes
 
-  (GET "/" [query lat lng & others]
+  (GET "/" [query lat lon & others]
        (responses/ok-json {:query query
-                           :lat lat, :lng lng
+                           :lat lat, :lon lon
                            :others others}))
 
-  (GET "/business" [query address miles lat lng sort from size & args]
+  (GET "/business" [query address miles lat lon sort from size & args]
        (biz/validate-and-search query
-                                address miles lat lng
+                                address miles lat lon
                                 sort from size))
 
   (route/resources "/")

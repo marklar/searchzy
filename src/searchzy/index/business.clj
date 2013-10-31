@@ -52,17 +52,17 @@
                                 :include_in_all false}
      }}})
 
-(defn -get-biz-cat-names
-  "From business_category_ids, get names by finding in MongoDB.  Cache?"
-  ;; This is relatively expensive, so if we don't need to search by
-  ;; biz cat names, we should remove this from the index documents.
-  [biz-cat-ids]
-  (if (empty? biz-cat-ids)
-    []
-    (let [cats (mg/fetch :business_categories
-                         :where {:_id {:$in biz-cat-ids}}
-                         :only [:name])]
-      (distinct (map :name cats)))))
+;; (defn -get-biz-cat-names
+;;   "From business_category_ids, get names by finding in MongoDB.  Cache?"
+;;   ;; This is relatively expensive, so if we don't need to search by
+;;   ;; biz cat names, we should remove this from the index documents.
+;;   [biz-cat-ids]
+;;   (if (empty? biz-cat-ids)
+;;     []
+;;     (let [cats (mg/fetch :business_categories
+;;                          :where {:_id {:$in biz-cat-ids}}
+;;                          :only [:name])]
+;;       (distinct (map :name cats)))))
 
 (defn -get-value-score
   "For seq of business_item maps, find highest value_score (as % int)."
@@ -70,9 +70,9 @@
   (let [scores (filter number? (map :value_score biz-items))]
     (int (* 100 (apply max (cons 0 scores))))))
 
-(defn -get-lat-lng-str
+(defn -get-lat-lon-str
   "From 2 nums, REVERSE ORDER, create string.  [10.3 40.1] => '10.3,40.1' "
-  ;; In MongoDB, the coords are stored backwards (i.e. first lng, then lat).
+  ;; In MongoDB, the coords are stored backwards (i.e. first lon, then lat).
   [coords]
   (if (empty? coords)
     nil
@@ -101,9 +101,9 @@
     country-name :country
     bc-ids :business_category_ids items :business_items}]
   {:name nm :permalink pl
-   :latitude_longitude (-get-lat-lng-str coords)
+   :latitude_longitude (-get-lat-lon-str coords)
    :search_address (str/join " " (remove str/blank? [a1 a2]))
-   :business_category_names (-get-biz-cat-names bc-ids)
+   ;; :business_category_names (-get-biz-cat-names bc-ids)
    :business_category_ids (map str bc-ids)
    :phone_number (-get-phone-number country-name area num)
    :item_category_names (distinct (map :item_name items))
