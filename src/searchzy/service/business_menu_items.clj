@@ -11,11 +11,6 @@
             [clojurewerkz.elastisch.native
              [document :as es-doc]]))
 
-(defn -get-day-of-week
-  []
-  (let [gc (GregorianCalendar.)]
-    (.get gc Calendar/DAY_OF_WEEK)))
-
 (defn -mk-one-hit
   "Replace :hours with :hours_today, using :day_of_week.
    Add :distance_in_mi."
@@ -44,7 +39,7 @@
 (defn -mk-response
   "From ES response, create service response."
   [{hits :hits} item_id miles address lat lon from size]
-  (let [day-of-week (-get-day-of-week)
+  (let [day-of-week (util/get-day-of-week)
         resp-hits (map #(-mk-one-hit (:_source %) day-of-week lat lon)
                        (:hits hits))]
     (responses/ok-json

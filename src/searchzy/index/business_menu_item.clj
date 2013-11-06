@@ -7,8 +7,8 @@
             [clojurewerkz.elastisch.native.document :as es-doc]))
 
 
-(def idx-name (:index (:business_menu_items cfg/electric-search-names)))
-(def mapping-name (:mapping (:business_menu_items cfg/electric-search-names)))
+(def idx-name (:index (:business_menu_items cfg/elastic-search-names)))
+(def mapping-name (:mapping (:business_menu_items cfg/elastic-search-names)))
 
 (def mapping-types
   {mapping-name

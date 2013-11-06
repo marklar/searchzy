@@ -1,5 +1,6 @@
 (ns searchzy.service.business.core
   (:require [searchzy.service
+             [util :as util]
              [inputs :as inputs]
              [geo :as geo]
              [responses :as responses]
@@ -18,22 +19,47 @@
 ;; in order to extract the proper hours.
 ;;
 
+(defn -get-today-hours
+  [day-of-week hours]
+  (if (empty? hours)
+    nil
+    (:hours (nth hours day-of-week))))
+
 (defn -mk-hit-response
   "From ES hit, make service hit."
-  [{id :_id {n :name a :address
-             p :permalink l :latitude_longitude} :_source}]
-  {:_id id :name n :address a :permalink p :latitude_longitude l})
+  [geo-point day-of-week {id :_id
+                          {n :name a :address
+                           phone_number :phone_number
+                           cs :coordinates
+                           hs :hours
+                           p :permalink} :_source}]
+  ;; :hours_today
+  (let [dist (util/haversine cs geo-point)
+        hours-today (-get-today-hours day-of-week hs)]
+    {:_id id :name n :address a :permalink p
+     :phone_number phone_number
+     :distance_in_mi dist
+     :coordinates cs
+     :hours-today hours-today}))
 
 (defn -mk-response
   "From ES response, create service response."
   [{hits-map :hits} query miles address lat lon sort from size]
-  (responses/ok-json
-   {:query      query  ; Normalized query, that is.
-    :geo_filter {:miles miles :address address :lat lat :lon lon}
-    :sort       sort
-    :paging     {:from from :size size}
-    :total_hits (:total hits-map)
-    :hits       (map -mk-hit-response (:hits hits-map))}))
+  (let [day-of-week (util/get-day-of-week)]
+    (responses/ok-json
+     {:endpoint "/v1/businesses.json"
+      :query_string {:query query  ; Normalized query, that is.
+                     ;; What else?
+                     }
+      :arguments {:query query
+                  :sort sort
+                  :paging {:from from :size size}
+                  :geo_filter {:miles miles :address address :lat lat :lon lon}
+                  :day_of_week day-of-week
+                  }
+      :results {:count (:total hits-map)
+                :hits (map #(-mk-hit-response {:lat lat :lon lon} day-of-week %)
+                           (:hits hits-map))}})))
 
 (defn validate-and-search
   ;; [orig-query address miles orig-lat orig-lon sort from size]

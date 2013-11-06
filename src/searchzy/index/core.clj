@@ -20,6 +20,33 @@
   (doseq [n names]
     (-rm-index n)))
 
+(defn -index-all []
+  "Serial index creation.
+   Use either this or -par-index-all (parallel)."
+  (doseq [[name f] {:BusinessMenuItems  biz-menu-item/mk-idx
+                    :BusinessCategories biz-cat/mk-idx
+                    :Items              item/mk-idx
+                    :Businesses         biz/mk-idx}]
+    (println (str "Indexing " name "..."))
+    (let [cnt (f)]
+      (println (str "Indexed " cnt " " (str name) " records.")))))
+
+(defn -update
+  [[name f]]
+  (println (str "indexing: " name))
+  (let [cnt (f)]
+    (println (str "indexed " cnt " " (str name) " records."))
+    cnt))
+
+(defn -par-index-all []
+  (let [agents (doall (map agent {"Biz Menu Items" biz-menu-item/mk-idx
+                                  "Biz Categories" biz-cat/mk-idx
+                                  "Items"          item/mk-idx
+                                  "Businesses"     biz/mk-idx}))]
+    (doseq [a agents] (send a -update))
+    (apply await agents)
+    (println "done!")))
+
 ;; MAIN
 (defn -main [& args]
 
@@ -33,10 +60,4 @@
   ;; (-rm-es-indices ["business_categories" "itemcategories" "businesses"])
   ;; (mg/drop-database! "centzy2_development")
 
-  (doseq [[name f] {:BusinessMenuItems  biz-menu-item/mk-idx
-                    :BusinessCategories biz-cat/mk-idx
-                    :Items              item/mk-idx
-                    :Businesses         biz/mk-idx}]
-    (println (str "Indexing " name "..."))
-    (let [cnt (f)]
-      (println (str "Indexed " cnt " " (str name) " records.")))))
+  (-par-index-all))

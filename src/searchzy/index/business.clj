@@ -92,16 +92,19 @@
 ;; -- search document --
 
 ;; PUBLIC -- because used by business-menu-item/-mk-es-maps.
+;; FIXME: Change this from using:
+;;    embedded :business_items to
+;;    :unified_menu => :sections => :items
 (defn mk-es-map
   "Given a business mongo-map, create an ElasticSearch map."
-  [{:keys [name permalink business_items] :as mg-map}]
+  [{:keys [name permalink business-items] :as mg-map}]
   {;; search
    :name name
    :phone_number (-get-phone-number mg-map)
    ;; filter
    :latitude_longitude (-get-lat-lon-str mg-map)
    ;; sort
-   :value_score_int (-get-value-score business_items)
+   :value_score_int (-get-value-score business-items)
    ;; presentation
    :address (-get-address mg-map)
    :coordinates (-get-coords mg-map)
