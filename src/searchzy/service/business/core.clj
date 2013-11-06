@@ -1,6 +1,5 @@
 (ns searchzy.service.business.core
-  (:require [searchzy.cfg :as cfg]
-            [searchzy.service
+  (:require [searchzy.service
              [inputs :as inputs]
              [geo :as geo]
              [responses :as responses]
@@ -21,16 +20,15 @@
 
 (defn -mk-hit-response
   "From ES hit, make service hit."
-  [{id :_id {n :name a :search_address
+  [{id :_id {n :name a :address
              p :permalink l :latitude_longitude} :_source}]
-  {:_id id :name n :address a :permalink p :lat_lon l})
+  {:_id id :name n :address a :permalink p :latitude_longitude l})
 
 (defn -mk-response
   "From ES response, create service response."
   [{hits-map :hits} query miles address lat lon sort from size]
   (responses/ok-json
    {:query      query  ; Normalized query, that is.
-    :index      (:businesses cfg/index-names)
     :geo_filter {:miles miles :address address :lat lat :lon lon}
     :sort       sort
     :paging     {:from from :size size}
@@ -38,7 +36,8 @@
     :hits       (map -mk-hit-response (:hits hits-map))}))
 
 (defn validate-and-search
-  [orig-query address miles orig-lat orig-lon sort from size]
+  ;; [orig-query address miles orig-lat orig-lon sort from size]
+  [orig-query address orig-lat orig-lon sort from size]
 
   ;; Validate query.
   (let [query (q/normalize orig-query)]
@@ -58,16 +57,16 @@
               
               ;; OK, make query.
               (let [;; transform params
-                    miles      (inputs/str-to-val miles 4.0)
+                    ;; miles      (inputs/str-to-val miles 4.0)
+                    miles      4.0
                     from       (inputs/str-to-val from 0)
                     size       (inputs/str-to-val size 10)
-                    {lat :lat
-                     lon :lon} (geo/get-lat-lon lat lon address)
+                    {lat :lat lon :lon} (geo/get-lat-lon lat lon address)
                     ;; fetch results
-                    es-res (search/es-search query miles lat lon sort from size)]
+                    es-res (search/es-search query :text
+                                             miles lat lon
+                                             sort from size)]
 
                 ;; Extract info from ES-results, create JSON response.
                 (-mk-response es-res query miles address lat lon
                               sort from size)))))))))
-
-

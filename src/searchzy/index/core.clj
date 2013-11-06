@@ -2,10 +2,23 @@
   (:require [searchzy
              [util :as util]
              [cfg :as cfg]]
+            [clojurewerkz.elastisch.native.index :as es-idx]
             [searchzy.index
              [business :as biz]
-             [item-category :as item-cat]
+             [item :as item]
+             [business-menu-item :as biz-menu-item]
              [business-category :as biz-cat]]))
+
+(defn -rm-index [name]
+  (let [pre (str "index '" name "': ")]
+    (if (es-idx/exists? name)
+      (do (println (str pre "exists.  deleting."))
+          (es-idx/delete name))
+      (println (str pre "doesn't exist.")))))
+
+(defn -rm-es-indices [names]
+  (doseq [n names]
+    (-rm-index n)))
 
 ;; MAIN
 (defn -main [& args]
@@ -15,10 +28,15 @@
   
   ;; mongo
   (util/mongo-connect! cfg/mongo-db-cfg)
-  
-  (doseq [[name f] {:BusinessCategories biz-cat/mk-idx
-                    :ItemCategories     item-cat/mk-idx
+
+  ;; -- FOR BLOWING EVERYTHING AWAY --
+  ;; (-rm-es-indices ["business_categories" "itemcategories" "businesses"])
+  ;; (mg/drop-database! "centzy2_development")
+
+  (doseq [[name f] {:BusinessMenuItems  biz-menu-item/mk-idx
+                    :BusinessCategories biz-cat/mk-idx
+                    :Items              item/mk-idx
                     :Businesses         biz/mk-idx}]
     (println (str "Indexing " name "..."))
     (let [cnt (f)]
-      (println (str "Indexed " cnt " " name " records.")))))
+      (println (str "Indexed " cnt " " (str name) " records.")))))

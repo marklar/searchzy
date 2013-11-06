@@ -1,12 +1,8 @@
 (ns searchzy.service.business.search
   (:require [clojurewerkz.elastisch.native
-             [document :as es-doc]]))
-
-(defn -mk-geo-filter
-  "Create map for filtering by geographic distance."
-  [miles lat lon]
-  {:geo_distance {:distance (str miles "mi")
-                  :latitude_longitude (str lat "," lon)}})
+             [document :as es-doc]]
+            [searchzy.service.util :as util]
+            [searchzy.cfg :as cfg]))
 
 (defn -mk-sort
   "Create map for sorting results, depending on sort setting."
@@ -27,8 +23,8 @@
 (defn -mk-query
   "Create map for querying -
    EITHER: just with 'query' -OR- with a scoring fn for sorting."
-  [by-value? query]
-  (let [simple-query-map {:text {:name query}}]
+  [by-value? query query-type]
+  (let [simple-query-map {query-type {:name query}}]
     (if by-value?
       simple-query-map
       (-mk-function-score-query simple-query-map))))
@@ -37,11 +33,12 @@
   "Perform ES search, return results map.
    If by-value?, change scoring function and sort by its result.
    TYPES: string string float float float bool int int"
-  [query miles lat lon sort from size]
-  (let [by-value? (= 'value sort)]
-    (es-doc/search "businesses" "business"
-                   :query  (-mk-query by-value? query)
-                   :filter (-mk-geo-filter miles lat lon)
+  [query query-type miles lat lon sort from size]
+  (let [by-value? (= 'value sort)
+        es-names (:businesses cfg/elastic-search-names)]
+    (es-doc/search (:index es-names) (:mapping es-names)
+                   :query  (-mk-query by-value? query query-type)
+                   :filter (util/mk-geo-filter miles lat lon)
                    :sort   (-mk-sort by-value?)
                    :from   from
                    :size   size)))

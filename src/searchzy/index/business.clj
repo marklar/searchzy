@@ -6,63 +6,43 @@
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
 
-(def idx-name (:businesses cfg/index-names))
-(def mapping-name "business")
+(def idx-name (:index (:businesses cfg/elastic-search-names)))
+(def mapping-name (:mapping (:businesses cfg/elastic-search-names)))
 
-;; Store a field only if you need it returned to you in the search results.
-;; The entire JSON of the document is stored anyway, so you can ask for that.
-;;
 ;; Each index may have one OR MORE mapping-types (each w/ a diff mapping-name),
 ;; if you put more than one type of document in your index.
 ;; I don't think we want to do that.
-;;
 (def mapping-types
   {mapping-name
    {:properties
+    {
+     ;; SEARCH
+     :name         {:type "string"}
+     :phone_number {:type "string"}
 
-    ;; TODO: Add hours information.
-    {:name                     {:type "string"}
+     ;; FILTER
+     :latitude_longitude {:type "geo_point"
+                          :null_value "66.66,66.66"
+                          :include_in_all false}
 
-     :permalink                {:type "string"
-                                :index "not_analyzed"
-                                :include_in_all false}
+     ;; SORT    (calculated from prices of embedded BusinessItems)
+     :value_score_int {:type "integer" :null_value 0 :include_in_all false}
 
-     :latitude_longitude       {:type "geo_point"
-                                :null_value "66.666,66.666"
-                                :include_in_all false}
-
-     :search_address           {:type "string"}
-
-     ;; TODO: Can remove these.
-     :business_category_names  {:type "string"
-                                :analyzer "keyword"}
-
-     :business_category_ids    {:type "string"}
-
-     ;; TODO: Can remove these.
-     :item_category_names      {:type "string"
-                                :analyzer "keyword"}
-
-     :phone_number             {:type "string"}
-
-     ;; From the embedded BusinessItems, extract prices.
-
-     :value_score_int          {:type "integer"
-                                :null_value 0
-                                :include_in_all false}
+     ;; PRESENTATION - include these in the search document, but don't map them.
+     ;; :address     {:index "not_analyzed" :include_in_all false}
+     ;; :coordinates {:index "not_analyzed" :include_in_all false}
+     ;; :hours       {:index "not_analyzed" :include_in_all false}
+     ;; :permalink   {:index "not_analyzed" :include_in_all false}
      }}})
 
-;; (defn -get-biz-cat-names
-;;   "From business_category_ids, get names by finding in MongoDB.  Cache?"
-;;   ;; This is relatively expensive, so if we don't need to search by
-;;   ;; biz cat names, we should remove this from the index documents.
-;;   [biz-cat-ids]
-;;   (if (empty? biz-cat-ids)
-;;     []
-;;     (let [cats (mg/fetch :business_categories
-;;                          :where {:_id {:$in biz-cat-ids}}
-;;                          :only [:name])]
-;;       (distinct (map :name cats)))))
+;; -- search --
+
+(defn -get-phone-number
+  ""
+  [{pc :phone_country_code pa :phone_area_code pn :phone_number}]
+  (str/join "-" (remove str/blank? [pc pa pn])))
+
+;; -- sort --
 
 (defn -get-value-score
   "For seq of business_item maps, find highest value_score (as % int)."
@@ -70,50 +50,69 @@
   (let [scores (filter number? (map :value_score biz-items))]
     (int (* 100 (apply max (cons 0 scores))))))
 
+;; -- filter --
+
 (defn -get-lat-lon-str
-  "From 2 nums, REVERSE ORDER, create string.  [10.3 40.1] => '10.3,40.1' "
+  "From MongoMap, get two nums, in REVERSE ORDER, and create string.
+   e.g. [10.3 40.1] => '10.3,40.1' "
   ;; In MongoDB, the coords are stored backwards (i.e. first lon, then lat).
-  [coords]
+  [{coords :coordinates}]
   (if (empty? coords)
     nil
     (str (coords 1) "," (coords 0))))
 
-(defn -get-country-code
+;; -- presentation --
+
+(defn -get-coords
+  "From MongoMap, extract coords."
+  [{coords :coordinates}]
+  (if (empty? coords)
+    nil
+    {:lat (coords 1) :lon (coords 0)}))
+
+(defn -get-biz-hour-info
+  "From MongoMap's hours info for a single day, extract hours."
+  [{d :wday c? :is_closed
+    oh :open_hour om :open_minute
+    ch :close_hour cm :close_minute}]
+  (merge {:wday d}
+    (if c?
+      {:is_closed true}
+      {:hours {:open  {:hour oh :minute om}
+               :close {:hour ch :minute cm}}})))
+
+(defn -get-address
   ""
-  [country-name]
-  ;; Use map.
-  ;; http://en.wikipedia.org/wiki/List_of_country_calling_codes#Alphabetical_listing_by_country_or_region
-  (if (= "US" country-name)
-    "1"
-    nil))
+  [{a1 :address_1 a2 :address_2 city :city state :state zip :zip}]
+  :address {:street (str/join ", " (remove str/blank? [a1 a2]))
+            :city city
+            :state state
+            :zip zip})
 
-(defn -get-phone-number
-  ""
-  [country-name area num]
-  (str/join "-" (remove str/blank? [(-get-country-code country-name) area num])))
+;; -- search document --
 
-
-(defn -mk-es-map
+;; PUBLIC -- because used by business-menu-item/-mk-es-maps.
+(defn mk-es-map
   "Given a business mongo-map, create an ElasticSearch map."
-  [{_id :_id nm :name pl :permalink
-    coords :coordinates a1 :address_1 a2 :address_2
-    area :phone_area_code num :phone_number
-    country-name :country
-    bc-ids :business_category_ids items :business_items}]
-  {:name nm :permalink pl
-   :latitude_longitude (-get-lat-lon-str coords)
-   :search_address (str/join " " (remove str/blank? [a1 a2]))
-   ;; :business_category_names (-get-biz-cat-names bc-ids)
-   :business_category_ids (map str bc-ids)
-   :phone_number (-get-phone-number country-name area num)
-   :item_category_names (distinct (map :item_name items))
-   :value_score_int (-get-value-score items)
+  [{:keys [name permalink business_items] :as mg-map}]
+  {;; search
+   :name name
+   :phone_number (-get-phone-number mg-map)
+   ;; filter
+   :latitude_longitude (-get-lat-lon-str mg-map)
+   ;; sort
+   :value_score_int (-get-value-score business_items)
+   ;; presentation
+   :address (-get-address mg-map)
+   :coordinates (-get-coords mg-map)
+   :hours (map -get-biz-hour-info (:business_hours mg-map))
+   :permalink permalink
    })
    
 (defn -add-to-idx
   "Given a business mongo-map, convert to es-map and add to index."
   [mg-map]
-  (let [es-map (-mk-es-map mg-map)]
+  (let [es-map (mk-es-map mg-map)]
     ;;
     ;; TODO
     ;; es-doc/put returns a Clojure map.
@@ -121,8 +120,7 @@
     ;; 
     ;; With es-doc/put (vs. es-doc/create), you supply the _id separately.
     ;;
-    (es-doc/put idx-name
-                mapping-name
+    (es-doc/put idx-name mapping-name
                 (str (:_id mg-map))
                 es-map)))
 
@@ -132,3 +130,11 @@
   (util/recreate-idx idx-name mapping-types)
   (doseq-cnt -add-to-idx 5000
              (mg/fetch :businesses :where {:active_ind true})))
+
+
+;; -- Just for testing --
+(defn -main [& args]
+  (searchzy.util/mongo-connect! cfg/mongo-db-cfg)
+  (doseq [doc (take 200 (mg/fetch :businesses :where {:active_ind true}))]
+    (println doc)
+    (println)))

@@ -5,17 +5,18 @@
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
 
-(def idx-name (:business_categories cfg/index-names))
-(def mapping-name "business_category")
+;; TODO: merge this with item-category.
+
+(def idx-name (:index (:business_categories cfg/elastic-search-names)))
+(def mapping-name (:mapping (:business_categories cfg/elastic-search-names)))
 
 (def mapping-types
   {mapping-name
    {:properties
-    {:name  {:type "string"}}
-    }})
+    {:name {:type "string"}}}})
 
 (defn -add-to-idx
-  "Given a biz-cat mongo-map, convert to es-map and add to index."
+  "Given a BusinessCategory mongo-map, convert to es-map and add to index."
   [mg-map]
   (es-doc/put idx-name mapping-name
               (str (:_id mg-map))
