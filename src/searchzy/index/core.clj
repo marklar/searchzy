@@ -20,30 +20,32 @@
   (doseq [n names]
     (-rm-index n)))
 
-(defn -index-all []
-  "Serial index creation.
-   Use either this or -par-index-all (parallel)."
-  (doseq [[name f] {:BusinessMenuItems  biz-menu-item/mk-idx
-                    :BusinessCategories biz-cat/mk-idx
-                    :Items              item/mk-idx
-                    :Businesses         biz/mk-idx}]
-    (println (str "Indexing " name "..."))
-    (let [cnt (f)]
-      (println (str "Indexed " cnt " " (str name) " records.")))))
-
-(defn -update
+(defn -index-one
   [[name f]]
   (println (str "indexing: " name))
   (let [cnt (f)]
     (println (str "indexed " cnt " " (str name) " records."))
     cnt))
 
-(defn -par-index-all []
-  (let [agents (doall (map agent {"Biz Menu Items" biz-menu-item/mk-idx
-                                  "Biz Categories" biz-cat/mk-idx
-                                  "Items"          item/mk-idx
-                                  "Businesses"     biz/mk-idx}))]
-    (doseq [a agents] (send a -update))
+(def idx_name_2_fn {"Biz Menu Items" biz-menu-item/mk-idx
+                    "Biz Categories" biz-cat/mk-idx
+                    "Items"          item/mk-idx
+                    "Businesses"     biz/mk-idx})
+
+(defn -index-all
+  "Serial index creation."
+  []
+  (doseq [pair idx_name_2_fn]
+    (-index-one pair)))
+
+(defn -par-index-all
+  "Parallel indexing.
+   On my laptop, this uses way too much memory and crashes the JVM.
+   (Perhaps I just need to change the JVM's memory settins?)
+   On Big Iron, using this indexing method may well work find and be faster."
+  []
+  (let [agents (map agent idx_name_2_fn)]
+    (doseq [a agents] (send a -index-one))
     (apply await agents)
     (println "done!")))
 
@@ -60,4 +62,4 @@
   ;; (-rm-es-indices ["business_categories" "itemcategories" "businesses"])
   ;; (mg/drop-database! "centzy2_development")
 
-  (-par-index-all))
+  (-index-all))

@@ -67,6 +67,8 @@ To index, run this command:
 
     lein run
 
+Indexing currently takes just over 1 hour (on my MacBook Air laptop).
+
 To start the search service, run:
 
     lein ring server
