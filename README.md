@@ -9,6 +9,11 @@ transport between the JVM processes.
 
 ## Prerequisites
 
+### Java
+
+Both ElasticSearch and Searchzy run on the JVM, so you'll need to have
+Java installed.
+
 
 ### Leiningen
 
@@ -17,7 +22,8 @@ You will need [Leiningen][1] 1.7.0 or above installed.
 [1]: https://github.com/technomancy/leiningen
 
 Leiningen is magic.  It's a tool for managing your project's
-dependencies, running your code, and producing binary deliverables.
+dependencies (including Clojure itself), running your code, producing
+binary deliverables, and much more.
 
 
 ### ElasticSearch
