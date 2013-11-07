@@ -40,21 +40,27 @@ Once ElasticSearch is installed, run it thus:
 
     elasticsearch -f -D es.config=/usr/local/opt/elasticsearch/config/elasticsearch.yml
 
-Then, you must tell Searchzy where to find ElasticSearch.  Currently,
-you can do so by modifying this file:
+Then, you must tell Searchzy where to find ElasticSearch.
+
+First, you need to find out your ElasticSearch's cluster name.
+Retrieve it via ElasticSearch's REST API, thus:
+
+    > curl http://localhost.com:9200/_cluster/nodes
+    {"ok":true,"cluster_name":"elasticsearch_markwong-vanharen","nodes":...}}
+
+Then, within this file:
 
     src/searchzy/cfg.clj
 
-Within this data structure:
+modify the values of this data structure:
 
     (def elastic-search-cfg
       {:cluster-name "elasticsearch_markwong-vanharen"
        :host "127.0.0.1"
        :port 9300})
 
-, change the values of :cluster-name and :host to match your
-ElasticSearch setup.  (You won't likely need to change the :port, as
-9300 is the standard port for ElasticSearch's binary transport.)
+You won't likely need to change the :port, as 9300 is the standard
+port for ElasticSearch's binary transport.
 
 
 ### MongoDB
