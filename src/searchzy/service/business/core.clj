@@ -10,20 +10,13 @@
              [search :as search]]))
 
 ;;
-;; the aggregate bits of information i need to display are: avg price,
-;; min price, max price and latest opening time.
+;; the aggregate info:
+;;   * latest closing time
+;;   * prices
+;;     - mean
+;;     - min
+;;     - max
 ;;
-;; that means having prices and hours in the indices.
-;;
-;; and for the hours, it means having to know what day it is,
-;; in order to extract the proper hours.
-;;
-
-(defn -get-today-hours
-  [day-of-week hours]
-  (if (empty? hours)
-    nil
-    (:hours (nth hours day-of-week))))
 
 (defn -mk-hit-response
   "From ES hit, make service hit."
@@ -33,9 +26,8 @@
                            cs :coordinates
                            hs :hours
                            p :permalink} :_source}]
-  ;; :hours_today
   (let [dist (util/haversine cs geo-point)
-        hours-today (-get-today-hours day-of-week hs)]
+        hours-today (util/get-hours-today hs day-of-week)]
     {:_id id :name n :address a :permalink p
      :phone_number phone_number
      :distance_in_mi dist

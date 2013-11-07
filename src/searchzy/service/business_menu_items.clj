@@ -14,10 +14,10 @@
 (defn -mk-one-hit
   "Replace :hours with :hours_today, using :day_of_week.
    Add :distance_in_mi."
-  [source-map day_of_week lat lon]
+  [source-map day-of-week lat lon]
   (let [old-biz     (:business source-map)
         hours       (:hours old-biz)
-        hours-today (:hours (nth hours day_of_week))
+        hours-today (util/get-hours-today hours day-of-week)
         dist        (util/haversine (:coordinates old-biz) {:lat lat :lon lon})
         new-biz     (assoc (dissoc old-biz :hours :latitude_longitude)
                       :hours_today hours-today
@@ -67,7 +67,9 @@
   [item-id miles lat lon from size]
   (es-doc/search -idx-name -mapping-name
                  :query {:match {:item_id item-id}}
-                 :sort  {:value_score_picos :desc}
+                 :sort  (array-map :yelp_star_rating  :desc
+                                   :yelp_review_count :desc
+                                   :value_score_picos :desc)
                  :from  from
                  :size  size))
 

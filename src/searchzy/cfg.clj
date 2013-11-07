@@ -5,7 +5,7 @@
 ;; via HTTP API, for example:
 ;;
 ;;   > curl http://localhost:9200/_cluster/nodes
-;;   {"ok":true,"cluster_name":"elasticsearch_antares","nodes":...}}
+;;   {"ok":true,"cluster_name":"elasticsearch_markwong-vanharen","nodes":...}}
 ;;
 (def elastic-search-cfg
   {:cluster-name "elasticsearch_markwong-vanharen"
@@ -20,11 +20,11 @@
 ;; If you'd like to use different ElasticSearch indices, just change these.
 ;; You'll have to re-index before you can search against them, obviously.
 (def elastic-search-names
-  {:businesses               {:index "businesses"
-                              :mapping "business"}
-   :business_categories      {:index "business_categories"
-                              :mapping "business_category"}
-   :items                    {:index "items"
-                              :mapping "item"}
-   :business_menu_items      {:index "business_menu_items"
-                              :mapping "business_menu_item"}})
+  {:businesses           {:index "businesses"
+                          :mapping "business"}
+   :business_categories  {:index "business_categories"
+                          :mapping "business_category"}
+   :items                {:index "items"
+                          :mapping "item"}
+   :business_menu_items  {:index "business_menu_items"
+                          :mapping "business_menu_item"}})

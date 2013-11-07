@@ -7,9 +7,12 @@
 (defn -mk-sort
   "Create map for sorting results, depending on sort setting."
   [by-value?]
-  (if by-value?
-    {:value_score_int :desc}
-    {:_score :desc}))
+  (if (not by-value?)
+    {:_score :desc}
+    (array-map :yelp_star_rating  :desc
+               :yelp_review_count :desc
+               :value_score_int   :desc
+               :_score            :desc)))
 
 (defn -mk-function-score-query
   "Return a 'function_score' query-map, for sorting by value_score_int."

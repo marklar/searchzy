@@ -9,6 +9,8 @@
              [business-menu-item :as biz-menu-item]
              [business-category :as biz-cat]]))
 
+;; -- deleting --
+
 (defn -rm-index [name]
   (let [pre (str "index '" name "': ")]
     (if (es-idx/exists? name)
@@ -16,9 +18,15 @@
           (es-idx/delete name))
       (println (str pre "doesn't exist.")))))
 
-(defn -rm-es-indices [names]
-  (doseq [n names]
+(defn -get-idx-names []
+  (map (fn [k m] (:index m)) cfg/elastic-search-names))
+
+(defn -blow-away-everything []
+  ;;(mg/drop-database! "centzy_web_production")
+  (doseq [n (-get-idx-names)]
     (-rm-index n)))
+
+;; -- indexing --
 
 (defn -index-one
   [[name f]]
@@ -41,7 +49,7 @@
 (defn -par-index-all
   "Parallel indexing.
    On my laptop, this uses way too much memory and crashes the JVM.
-   (Perhaps I just need to change the JVM's memory settins?)
+   (Perhaps I just need to change the JVM's memory settings?)
    On Big Iron, using this indexing method may well work find and be faster."
   []
   (let [agents (map agent idx_name_2_fn)]
@@ -51,15 +59,7 @@
 
 ;; MAIN
 (defn -main [& args]
-
-  ;; elastic search
   (util/es-connect! cfg/elastic-search-cfg)
-  
-  ;; mongo
   (util/mongo-connect! cfg/mongo-db-cfg)
-
-  ;; -- FOR BLOWING EVERYTHING AWAY --
-  ;; (-rm-es-indices ["business_categories" "itemcategories" "businesses"])
-  ;; (mg/drop-database! "centzy2_development")
-
+  ;; (-blow-away-everything) 
   (-index-all))

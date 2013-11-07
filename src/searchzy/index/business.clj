@@ -9,9 +9,6 @@
 (def idx-name (:index (:businesses cfg/elastic-search-names)))
 (def mapping-name (:mapping (:businesses cfg/elastic-search-names)))
 
-;; Each index may have one OR MORE mapping-types (each w/ a diff mapping-name),
-;; if you put more than one type of document in your index.
-;; I don't think we want to do that.
 (def mapping-types
   {mapping-name
    {:properties
@@ -25,14 +22,11 @@
                           :null_value "66.66,66.66"
                           :include_in_all false}
 
-     ;; SORT    (calculated from prices of embedded BusinessItems)
-     :value_score_int {:type "integer" :null_value 0 :include_in_all false}
-
-     ;; PRESENTATION - include these in the search document, but don't map them.
-     ;; :address     {:index "not_analyzed" :include_in_all false}
-     ;; :coordinates {:index "not_analyzed" :include_in_all false}
-     ;; :hours       {:index "not_analyzed" :include_in_all false}
-     ;; :permalink   {:index "not_analyzed" :include_in_all false}
+     ;; SORT
+     :yelp_star_rating  {:type "float"   :null_value 0 :include_in_all false}
+     :yelp_review_count {:type "integer" :null_value 0 :include_in_all false}
+     ;; calculated from prices of embedded BusinessItems
+     :value_score_int   {:type "integer" :null_value 0 :include_in_all false}
      }}})
 
 ;; -- search --

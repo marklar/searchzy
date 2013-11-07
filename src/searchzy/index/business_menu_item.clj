@@ -15,18 +15,21 @@
    {:properties
     {
      ;; SEARCH
-     :item_id {:type "string"
-               :index "not_analyzed"}
+     ;; from the menu_item itself
+     :item_id {:type "string" :index "not_analyzed"}
 
      ;; FILTER
+     ;; from the business
      :latitude_longitude {:type "geo_point"
                           :null_value "66.66,66.66"
                           :include_in_all false}
 
      ;; SORT
-     :value_score_picos {:type "long"
-                         :null_value 0
-                         :include_in_all false}
+     ;; from the business
+     :yelp_star_rating  {:type "float"   :null_value 0 :include_in_all false}
+     :yelp_review_count {:type "integer" :null_value 0 :include_in_all false}
+     ;; from the menu_item itself
+     :value_score_picos {:type "long"    :null_value 0 :include_in_all false}
      }}})
 
 ;; -- search document --
@@ -55,6 +58,8 @@
         items (-get-items-from-mg-map mg-map)]
     (map
      #(assoc %
+        :yelp_star_rating   (:yelp_star_rating biz-map)
+        :yelp_review_count  (:yelp_review_count biz-map)
         :latitude_longitude (:latitude_longitude biz-map)
         :business biz-map)
      (remove nil? (map -mk-es-item-map items)))))

@@ -1,12 +1,28 @@
 (ns searchzy.service.util
   (:import [java.util Calendar GregorianCalendar]))
 
+(defn -day-hour-maps-to-alist
+  [hour-maps]
+  (map (fn [{:keys [wday hours]}] [wday hours])
+       hour-maps))
+
+(defn get-hours-today
+  "Specifically related to how hours are stored in a Business object.
+   Probably doesn't really belong in util."
+  [hours day-of-week]
+  ;; We cannot rely on the hours being a complete list.
+  ;; Sometimes, there'll be a day or more missing.
+  ;; It's necessary to look at each entry's :wday.
+  (let [alist       (-day-hour-maps-to-alist hours)
+        num-2-hours (apply hash-map (flatten alist))]
+    (num-2-hours day-of-week)))
+
 (defn get-day-of-week
   []
   (let [gc (GregorianCalendar.)]
     (.get gc Calendar/DAY_OF_WEEK)))
 
-;; These are all geo-related -- could be moved into searchzy.service.geo.
+;; -- GEO-RELATED -- could be moved into searchzy.service.geo.
 
 (defn mk-geo-filter
   "Create map for filtering by geographic distance."

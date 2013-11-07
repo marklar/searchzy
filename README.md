@@ -48,7 +48,7 @@ Retrieve it via ElasticSearch's REST API, thus:
     > curl http://localhost.com:9200/_cluster/nodes
     {"ok":true,"cluster_name":"elasticsearch_markwong-vanharen","nodes":...}}
 
-Then, within this file:
+Second, within this file:
 
     src/searchzy/cfg.clj
 
