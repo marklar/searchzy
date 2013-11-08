@@ -19,10 +19,19 @@
         hours       (:hours old-biz)
         hours-today (util/get-hours-today hours day-of-week)
         dist        (util/haversine (:coordinates old-biz) {:lat lat :lon lon})
-        new-biz     (assoc (dissoc old-biz :hours :latitude_longitude)
+        new-biz     (assoc (dissoc old-biz
+                                   :hours :latitude_longitude
+                                   :yelp_star_rating
+                                   :yelp_review_count
+                                   :yelp_id)
+                      :yelp {:id (:yelp_id old-biz)
+                             :star_rating (:yelp_star_rating old-biz)
+                             :review_count (:yelp_review_count old-biz)}
                       :hours_today hours-today
                       :distance_in_mi dist)]
-    (assoc (dissoc source-map :latitude_longitude) :business new-biz)))
+    (assoc
+        (dissoc source-map :latitude_longitude :yelp_star_rating :yelp_review_count)
+      :business new-biz)))
 
 ;; TODO
 (defn -prices-for-hits

@@ -104,6 +104,9 @@
    :coordinates (-get-coords mg-map)
    :hours (map -get-biz-hour-info (:business_hours mg-map))
    :permalink permalink
+   :yelp_star_rating (:yelp_star_rating mg-map)
+   :yelp_review_count (:yelp_review_count mg-map)
+   :yelp_id (:yelp_id mg-map)
    })
    
 (defn -put [id es-map]

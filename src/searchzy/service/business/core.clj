@@ -25,10 +25,14 @@
                            phone_number :phone_number
                            cs :coordinates
                            hs :hours
+                           ysr :yelp_star_rating
+                           yrc :yelp_review_count
+                           yid :yelp_id
                            p :permalink} :_source}]
   (let [dist (util/haversine cs geo-point)
         hours-today (util/get-hours-today hs day-of-week)]
     {:_id id :name n :address a :permalink p
+     :yelp {:id yid, :star_rating ysr, :review_count yrc}
      :phone_number phone_number
      :distance_in_mi dist
      :coordinates cs
