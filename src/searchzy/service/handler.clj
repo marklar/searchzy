@@ -58,7 +58,7 @@
   (route/not-found "Not Found"))
 
 
-(util/es-connect! cfg/elastic-search-cfg)
+(util/es-connect! (:elastic-search (cfg/get-cfg)))
 
 ;; COMPOJURE APP
 (def app

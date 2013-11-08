@@ -138,7 +138,7 @@
 
 ;; -- Just for testing --
 (defn -main [& args]
-  (searchzy.util/mongo-connect! cfg/mongo-db-cfg)
+  (searchzy.util/mongo-connect! (:mongo-db (cfg/get-cfg)))
   (doseq [doc (take 200 (mg/fetch :businesses :where {:active_ind true}))]
     (println doc)
     (println)))

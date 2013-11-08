@@ -71,7 +71,7 @@
 
 ;; MAIN
 (defn -main [& args]
-  (util/es-connect! cfg/elastic-search-cfg)
-  (util/mongo-connect! cfg/mongo-db-cfg)
+  (util/es-connect! (:elastic-search (cfg/get-cfg)))
+  (util/mongo-connect! (:mongo-db (cfg/get-cfg)))
   ;; (-blow-away-everything) 
   (-index-all))

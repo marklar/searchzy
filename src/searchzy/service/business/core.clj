@@ -32,7 +32,7 @@
      :phone_number phone_number
      :distance_in_mi dist
      :coordinates cs
-     :hours-today hours-today}))
+     :hours_today hours-today}))
 
 (defn -mk-response
   "From ES response, create service response."
