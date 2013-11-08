@@ -43,11 +43,7 @@
         resp-hits (map #(-mk-one-hit (:_source %) day-of-week lat lon)
                        (:hits hits))]
     (responses/ok-json
-     {:endpoint "/v1/business_menu_items.json"   ; TODO: pass this in
-      :query_string {:item_id item_id
-                                        ; FIXME: was it address or lat/lon?
-                                        ; how about from/size?
-                     }   
+     {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item_id
                   :geo_filter {:miles miles :address address :lat lat :lon lon}
                   :paging {:from from :size size}

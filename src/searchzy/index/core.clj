@@ -44,9 +44,11 @@
 ;; Speed is limited not by MongoDB fetching, but by ES indexing.
 ;; 
 (def idx_name_2_fn {
-                    "Businesses"     biz/mk-idx
+                    ;; quick
                     "Biz Categories" biz-cat/mk-idx
                     "Items"          item/mk-idx
+                    ;; slow
+                    "Businesses"     biz/mk-idx
                     "Biz Menu Items" biz-menu-item/mk-idx
                     })
 

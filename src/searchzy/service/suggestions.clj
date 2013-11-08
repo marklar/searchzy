@@ -73,16 +73,21 @@
   {:count (:total hits-map)
    :hits  (map f (:hits hits-map))})
 
+(defn -mk-arguments
+  [query miles address lat lon size html?]
+  {:query query
+   :geo_filter {:miles miles :address address :lat lat :lon lon}
+   :paging {:from 0 :size size}
+   :html html?})
+
 (defn -mk-response
   "From ES response, create service response."
   [{biz-hits-map :hits}
    {biz-cat-hits-map :hits}
    {item-hits-map :hits}
-   query miles address lat lon]
-  {:endpoint "/v1/suggestions.json"   ; TODO: pass this in
-   :query_string {}  ; TODO
-   :arguments {:query query
-               :geo_filter {:miles miles :address address :lat lat :lon lon}}
+   query miles address lat lon size html?]
+  {:endpoint "/v1/suggestions"   ; TODO: pass this in
+   :arguments (-mk-arguments query miles address lat lon size html?)
    :results {:businesses
              (-mk-res-map -mk-biz-hit-response    biz-hits-map)
              :business_categories
@@ -104,7 +109,7 @@
       - businesses (w/ filtering)
       - business_categories
       - items"
-  [orig-query address orig-lat orig-lon html?]
+  [orig-query address orig-lat orig-lon miles size html]
 
   ;; Validate query.
   (let [query (q/normalize orig-query)]
@@ -120,10 +125,11 @@
           ;; OK, make queries.
           (let [
                 ;; transform params
-                miles 4.0
-                from  0
-                size  10
+                miles (inputs/str-to-val miles 4.0)
                 {lat :lat lon :lon} (geo/get-lat-lon lat lon address)
+                from  0
+                size  (inputs/str-to-val size 5)
+                html? (inputs/true-str? html)
                 
                 ;; fetch results
                 ;; TODO: in *parallel*.  How?
@@ -139,9 +145,9 @@
 
             (responses/ok-json
              (if html?
-               {:html
-                (apply -mk-html (map #(:hits (:hits %))
-                                     [biz-res biz-cat-res item-res]))}
+               {:arguments (-mk-arguments query miles address lat lon size html?)
+                :html (apply -mk-html (map #(:hits (:hits %))
+                                           [biz-res biz-cat-res item-res]))}
                ;; Extract info from ES-results, create JSON response.
                (-mk-response biz-res biz-cat-res item-res
-                             query miles address lat lon)))))))))
+                             query miles address lat lon size html?)))))))))

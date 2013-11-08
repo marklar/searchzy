@@ -39,10 +39,7 @@
   [{hits-map :hits} query miles address lat lon sort from size]
   (let [day-of-week (util/get-day-of-week)]
     (responses/ok-json
-     {:endpoint "/v1/businesses.json"
-      :query_string {:query query  ; Normalized query, that is.
-                     ;; What else?
-                     }
+     {:endpoint "/v1/businesses"
       :arguments {:query query
                   :sort sort
                   :paging {:from from :size size}
