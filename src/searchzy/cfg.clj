@@ -37,11 +37,8 @@
 
 ;; -- yaml config --
 
-;; FIXME -- How to make this relative?
-;; Currently, it just looks in whatever the *current* directory is.
-(def cfg-file-name
-  ;; "/Users/markwong-vanharen/Locality/searchzy/.config.yaml")
-  ".config.yaml")
+;; FIXME -- Currently, it just looks in whatever the *current* directory is.
+(def cfg-file-name ".config.yaml")
 
 (defn create-yaml-str []
   (yaml/generate-string default-cfg))
