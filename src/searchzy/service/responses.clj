@@ -12,13 +12,27 @@
   [status obj]
   {:status status
    :headers -json-headers
-   :body (-json-p (json/write-str obj))
-   })
+   :body (json/write-str obj)})
+
+(defn -json-p-response
+  [status obj]
+  (let [r (-json-response status obj)]
+    (assoc r :body (-json-p (:body r)))))
 
 (defn ok-json
   [obj]
-  (-json-response 200 obj))
+  ;; (-json-response 200 obj))
+  (-json-p-response 200 obj))
+
+;; (defn ok-json-p
+;;   [obj]
+;;   (-json-p-response 200 obj))
 
 (defn error-json
   [obj]
-  (-json-response 404 obj))
+  ;; (-json-response 404 obj))
+  (-json-p-response 404 obj))
+
+;; (defn error-json-p
+;;   [obj]
+;;   (-json-p-response 404 obj))
