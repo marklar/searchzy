@@ -66,6 +66,7 @@
                  :sort  (array-map :yelp_star_rating  :desc
                                    :yelp_review_count :desc
                                    :value_score_picos :desc)
+                 :filter (util/mk-geo-filter miles lat lon)
                  :from  from
                  :size  size))
 
