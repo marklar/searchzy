@@ -4,11 +4,16 @@
 (def -json-headers
   {"Content-Type" "application/json; charset=utf-8"})
 
+(defn -json-p
+  [json]
+  (str "jsonCallBack(" json ")"))
+
 (defn -json-response
   [status obj]
   {:status status
    :headers -json-headers
-   :body (json/write-str obj)})
+   :body (-json-p (json/write-str obj))
+   })
 
 (defn ok-json
   [obj]
