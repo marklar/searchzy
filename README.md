@@ -41,28 +41,8 @@ Once ElasticSearch is installed, run it thus:
 
     elasticsearch -f -D es.config=/usr/local/opt/elasticsearch/config/elasticsearch.yml
 
-Then, you must tell Searchzy where to find ElasticSearch.
-
-First, you need to find out your ElasticSearch's cluster name.
-Retrieve it via ElasticSearch's REST API, thus:
-
-    > curl http://localhost.com:9200/_cluster/nodes
-    {"ok":true,"cluster_name":"elasticsearch_markwong-vanharen","nodes":...}}
-
-Second, within this file:
-
-    src/searchzy/cfg.clj
-
-modify the values of this data structure:
-
-    (def elastic-search-cfg
-      {:cluster-name "elasticsearch_markwong-vanharen"
-       :host "127.0.0.1"
-       :port 9300})
-
-You won't likely need to change the :port, as 9300 is the standard
-port for ElasticSearch's binary transport.
-
+We must also tell Searchzy where to find ElasticSearch, but we'll
+leave that for the "Configuration" section below.
 
 ### MongoDB
 
@@ -70,22 +50,43 @@ The data over which Searchzy searches comes from MongoDB.  At indexing
 time, you must have MongoDB running.
 
 To run MongoDB:
-    
+
     mongod
 
-You must also tell Searchzy where to find MongoDB.  You can do so by
-modifying this file:
+Jast as with ElasticSearch, you must tell Searchzy where to find
+MongoDB.  So let's get to the configuration step now.
 
-    src/searchzy/cfg.clj
 
-Modify the values in this data structure:
+## Configuration
 
-    (def mongo-db-cfg
-      {:db-name "centzy_web_production"
-       :host "127.0.0.1"
-       :port 27017})
+In the top-level directory of this project, add a file called:
 
-to match your MongoDB setup.
+    .config.yaml
+
+Don't forget the leading period.
+
+Its contents should look like this:
+
+    mongo-db:
+        host: 127.0.0.1
+        port: 27017
+        db-name: centzy_web_production
+    elastic-search:
+        host: 127.0.0.1
+        port: 9300
+        cluster-name: elasticsearch_something
+
+Except that some of the values will need to change.
+
+In particular, you need to find out your ElasticSearch's cluster name.
+Retrieve it via ElasticSearch's REST API, thus:
+
+    > curl http://localhost.com:9200/_cluster/nodes
+    {"ok":true,"cluster_name":"elasticsearch_markwong-vanharen","nodes":...}}
+
+You won't likely need to change the ports.  (27017 is the standard
+MongoDB port, and 9300 is the standard port for ElasticSearch's binary
+transport.)
 
 
 ## Running

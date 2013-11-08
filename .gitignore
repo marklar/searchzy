@@ -3,6 +3,7 @@ pom.xml
 /lib/
 /classes/
 /targets/
+.config.yaml
 .lein-deps-sum
 .lein*
 *~
