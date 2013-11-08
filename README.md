@@ -82,7 +82,7 @@ In particular, you need to find out your ElasticSearch's cluster name.
 Retrieve it via ElasticSearch's REST API, thus:
 
     > curl http://localhost.com:9200/_cluster/nodes
-    {"ok":true,"cluster_name":"elasticsearch_markwong-vanharen","nodes":...}}
+    {"ok":true,"cluster_name":"elasticsearch_something","nodes":...}}
 
 You won't likely need to change the ports.  (27017 is the standard
 MongoDB port, and 9300 is the standard port for ElasticSearch's binary
