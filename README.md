@@ -21,7 +21,8 @@ You will need [Leiningen][1] 1.7.0 or above installed.
 
 [1]: https://github.com/technomancy/leiningen
 
-Leiningen is magic.  It's a tool for managing your project's
+Leiningen is magic.  Leiningen is your best friend.  It's like RVM and
+Bundler and Rake all in one.  It's a tool for managing your project's
 dependencies (including Clojure itself), running your code, producing
 binary deliverables, and much more.
 

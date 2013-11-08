@@ -64,7 +64,22 @@
         :business biz-map)
      (remove nil? (map -mk-es-item-map items)))))
 
-(defn -add-to-idx
+(defn -new-mk-es-maps
+  "Given a business mongo-map, return a seq of menu-item-maps."
+  [mg-map biz-map]
+  (let [items (-get-items-from-mg-map mg-map)]
+    (map
+     #(assoc %
+        :yelp_star_rating   (:yelp_star_rating biz-map)
+        :yelp_review_count  (:yelp_review_count biz-map)
+        :latitude_longitude (:latitude_longitude biz-map)
+        :business biz-map)
+     (remove nil? (map -mk-es-item-map items)))))
+
+(defn -put [id es-map]
+  (es-doc/put idx-name mapping-name id es-map))
+
+(defn add-to-idx
   "Given a business mongo-map,
    extract each embedded BusinessUnifiedMenuItems.
    For each BusinessUnifiedMenuItem,
@@ -72,24 +87,25 @@
    and add the es-map to the index."
   [mg-map]
   (let [es-maps (-mk-es-maps mg-map)]
-    ;;
-    ;; TODO
-    ;; es-doc/put returns a Clojure map.
-    ;; To check if successful, use response/ok? or response/conflict?
-    ;; 
-    ;; With es-doc/put (vs. es-doc/create), you supply the _id separately.
-    ;;
     (doseq [m es-maps]
-      (es-doc/put idx-name
-                  mapping-name
-                  (str (:_id m))
-                  m))))
+      (let [id (str (:_id m))]
+        (-put id m)))))
+
+(defn new-add-to-idx
+  [mg-map biz-es-map]
+  (let [es-maps (-new-mk-es-maps mg-map biz-es-map)]
+    (doseq [m es-maps]
+      (let [id (str (:_id m))]
+        (-put id m)))))
+
+(defn recreate-idx []
+  (util/recreate-idx idx-name mapping-types))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB.
    Add it (and its embedded BusinessUnifiedMenuItems) to the index.
    Return count (of Businesses)."
   []
-  (util/recreate-idx idx-name mapping-types)
-  (doseq-cnt -add-to-idx 5000
+  (recreate-idx)
+  (doseq-cnt add-to-idx 5000
              (mg/fetch :businesses :where {:active_ind true})))

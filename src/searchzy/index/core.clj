@@ -4,6 +4,7 @@
              [cfg :as cfg]]
             [clojurewerkz.elastisch.native.index :as es-idx]
             [searchzy.index
+             [biz-combined :as biz-combined]
              [business :as biz]
              [item :as item]
              [business-menu-item :as biz-menu-item]
@@ -35,10 +36,19 @@
     (println (str "indexed " cnt " " (str name) " records."))
     cnt))
 
-(def idx_name_2_fn {"Biz Menu Items" biz-menu-item/mk-idx
+;;
+;; Can use this:
+;;     "Biz combined"   biz-combined/mk-idx
+;; instead of "Biz Menu Items" and "Businesses",
+;; but it takes the same amount of time.
+;; Speed is limited not by MongoDB fetching, but by ES indexing.
+;; 
+(def idx_name_2_fn {
+                    "Businesses"     biz/mk-idx
                     "Biz Categories" biz-cat/mk-idx
                     "Items"          item/mk-idx
-                    "Businesses"     biz/mk-idx})
+                    "Biz Menu Items" biz-menu-item/mk-idx
+                    })
 
 (defn -index-all
   "Serial index creation."

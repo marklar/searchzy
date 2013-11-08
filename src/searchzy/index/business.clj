@@ -106,26 +106,33 @@
    :permalink permalink
    })
    
-(defn -add-to-idx
+(defn -put [id es-map]
+  ;; TODO
+  ;; es-doc/put returns a Clojure map.
+  ;; To check if successful, use response/ok? or response/conflict?
+  ;; With es-doc/put (vs. es-doc/create), you supply the _id separately.
+  (es-doc/put idx-name mapping-name id es-map))
+
+(defn add-to-idx
   "Given a business mongo-map, convert to es-map and add to index."
   [mg-map]
-  (let [es-map (mk-es-map mg-map)]
-    ;;
-    ;; TODO
-    ;; es-doc/put returns a Clojure map.
-    ;; To check if successful, use response/ok? or response/conflict?
-    ;; 
-    ;; With es-doc/put (vs. es-doc/create), you supply the _id separately.
-    ;;
-    (es-doc/put idx-name mapping-name
-                (str (:_id mg-map))
-                es-map)))
+  (let [es-map (mk-es-map mg-map)
+        id     (str (:_id mg-map))]
+    (-put id es-map)))
+
+(defn new-add-to-idx
+  [mg-map es-map]
+  (let [id (str (:_id mg-map))]
+    (-put id es-map)))
+
+(defn recreate-idx []
+  (util/recreate-idx idx-name mapping-types))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
   []
-  (util/recreate-idx idx-name mapping-types)
-  (doseq-cnt -add-to-idx 5000
+  (recreate-idx)
+  (doseq-cnt add-to-idx 5000
              (mg/fetch :businesses :where {:active_ind true})))
 
 

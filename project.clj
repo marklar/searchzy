@@ -4,6 +4,7 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/data.json "0.2.3"]
                  [compojure "1.1.5"]
+                 [hiccup "1.0.4"]
                  [congomongo "0.4.1"]
                  [clojurewerkz/elastisch "1.2.0"]
                  [geocoder-clj "0.2.3"]]

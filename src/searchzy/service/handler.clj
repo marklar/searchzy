@@ -36,8 +36,8 @@
        (items/validate-and-search item_id address lat lon from size))
 
   (GET (v-path 1 "/suggestions.json")
-       [query address lat lon]
-       (sugg/validate-and-search query address lat lon))
+       [query address lat lon html]
+       (sugg/validate-and-search query address lat lon html))
 
   (route/resources "/")
   (route/not-found "Not Found"))
