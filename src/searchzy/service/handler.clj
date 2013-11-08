@@ -52,7 +52,8 @@
 
   (GET (v-path 1 "/suggestions")
        [query address lat lon miles size html]
-       (sugg/validate-and-search query address lat lon miles size html))
+       (responses/p-ify
+        (sugg/validate-and-search query address lat lon miles size html)))
 
   (route/resources "/")
   (route/not-found "Not Found"))
