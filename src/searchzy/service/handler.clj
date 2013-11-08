@@ -52,7 +52,7 @@
 
   (GET (v-path 1 "/suggestions")
        [query address lat lon miles size html]
-       (responses/p-ify
+       (responses/json-p-ify
         (sugg/validate-and-search query address lat lon miles size html)))
 
   (route/resources "/")

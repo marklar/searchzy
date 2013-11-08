@@ -4,10 +4,6 @@
 (def -json-headers
   {"Content-Type" "application/json; charset=utf-8"})
 
-(defn -json-p
-  [json]
-  (str "jsonCallBack(" json ")"))
-
 (defn -json-response
   [status obj]
   {:status status
@@ -16,10 +12,11 @@
 
 ;; -- public --
 
-(defn p-ify
-  "Ring middleware!"
-  [resp]
-  (assoc resp :body (-json-p (:body resp))))
+(defn json-p-ify
+  "Ring middleware!
+   Take a response map.  Output another w/ the body wrapped in JSONP."
+  [{b :body :as resp}]
+  (assoc resp :body (str "jsonCallBack(" b ")")))
 
 ;; -- ok --
 
@@ -27,16 +24,8 @@
   [obj]
   (-json-response 200 obj))
 
-(defn ok-json-p
-  [obj]
-  (p-ify (ok-json obj)))
-
 ;; -- error --
 
 (defn error-json
   [obj]
   (-json-response 404 obj))
-
-(defn error-json-p
-  [obj]
-  (p-ify (error-json)))
