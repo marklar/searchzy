@@ -72,7 +72,7 @@
 
 (defn validate-and-search
   ""
-  [item-id address orig-lat orig-lon from size]
+  [item-id address orig-lat orig-lon miles from size]
 
   ;; Validate item-id.
   (if (clojure.string/blank? item-id)
@@ -86,7 +86,7 @@
           
         ;; OK, make query.
         (let [;; transform params
-              miles 4.0
+              miles      (inputs/str-to-val miles 4.0)
               from       (inputs/str-to-val from 0)
               size       (inputs/str-to-val size 10)
               {lat :lat

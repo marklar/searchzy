@@ -47,8 +47,8 @@
        (biz/validate-and-search query address lat lon sort from size))
 
   (GET (v-path 1 "/business_menu_items")
-       [item_id address lat lon from size]
-       (items/validate-and-search item_id address lat lon from size))
+       [item_id address lat lon miles from size]
+       (items/validate-and-search item_id address lat lon miles from size))
 
   (GET (v-path 1 "/suggestions")
        [query address lat lon miles size html]
