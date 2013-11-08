@@ -3,8 +3,12 @@
   (:require [searchzy 
              [util :as util]
              [cfg :as cfg]]
+            [searchzy.service.docs
+             [core :as core-docs]
+             [suggestions :as sugg-docs]
+             [businesses :as biz-docs]
+             [business-menu-items :as item-docs]]
             [searchzy.service
-             [docs :as docs]
              [responses :as responses]
              [suggestions :as sugg]
              [business-menu-items :as items]]
@@ -27,10 +31,16 @@
        "Welcome to Searchzy!")
 
   (GET "/docs" []
-       (docs/show))
+       (core-docs/show))
 
   (GET "/docs/suggestions" []
-       (docs/suggestions))
+       (sugg-docs/show))
+
+  (GET "/docs/businesses" []
+       (biz-docs/show))
+
+  (GET "/docs/business_menu_items" []
+       (item-docs/show))
 
   (GET (v-path 1 "/businesses")
        [query address lat lon sort from size]

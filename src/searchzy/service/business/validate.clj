@@ -23,18 +23,18 @@
   [orig-query norm-query]
   (responses/error-json
    {:error "Param 'query' must be non-empty after normalization."
-    :original-query orig-query
-    :normalized-query norm-query}))
+    :params {:original-query orig-query
+             :normalized-query norm-query}}))
 
 (defn response-bad-location
   "The user has input insufficient location (lat/lon or address) info,
    so return a 404."
   [address orig-lat orig-lon]
   (responses/error-json
-   {:error "Must provide EITHER address OR both lat & lon."
-    :address address
-    :lat orig-lat
-    :lon orig-lon}))
+   {:error "Must provide: ('address' OR ('lat' AND 'lon'))."
+    :params {:address address
+             :lat orig-lat
+             :lon orig-lon}}))
 
 (defn response-bad-sort
   "The user has input an invalid 'sort' value, so return 404."
