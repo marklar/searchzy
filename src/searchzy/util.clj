@@ -24,11 +24,16 @@
   (es/connect! [[(:host es-cfg), (:port es-cfg)]]
                {"cluster.name" (:cluster-name es-cfg)}))
 
-
+(defn mk-conn-str
+  [{:keys [db-name host port username password]}]
+  (str "mongodb://"
+       (if (and username password)
+         (str username ":" password "@")
+         "")
+       host ":" port "/" db-name))
+  
 (defn mongo-connect!
   "MongoDB connection."
   [mg-cfg]
-  (let [conn (mg/make-connection (:db-name mg-cfg)
-                                 :host (:host mg-cfg)
-                                 :port (:port mg-cfg))]
+  (let [conn (mg/make-connection (mk-conn-str mg-cfg))]
     (mg/set-connection! conn)))
