@@ -95,12 +95,26 @@
              :items
              (-mk-res-map -mk-simple-hit-response item-hits-map)}})
 
+(defn -mk-query
+  "String 's' may contain mutiple terms.
+   Perform a boolean query."
+  [s]
+  ;; split s into tokens.
+  ;; take all but last token: create :term query for each.
+  ;; take last token: create prefix match.
+  (let [tokens (clojure.string/split s #" ")
+        prefix (last tokens)
+        fulls  (butlast tokens)]
+    (let [foo (cons {:prefix {:name prefix}}
+                    (map (fn [t] {:term {:name t}}) fulls))]
+      {:bool {:must foo}})))
+
 (defn -simple-search
   "Perform prefix search against names."
   [domain query from size]
   (let [es-names (domain cfg/elastic-search-names)]
     (es-doc/search (:index es-names) (:mapping es-names)
-                   :query  {:prefix {:name query}}
+                   :query  (-mk-query query)
                    :from   from
                    :size   size)))
 
@@ -136,10 +150,20 @@
                 ;;  - pmap: Probably not worth the coordination overhead.
                 ;;  - clojure.core.reducers/map
                 ;;  - agents (uncoordinated, asynchronous)
-                biz-res     (biz-search/es-search query :prefix
+
+                ;; biz-res     (biz-search/es-search query :prefix
+                ;;                                   miles lat lon
+                ;;                                   nil  ; -sort-
+                ;;                                   from size)
+
+                ;; FIXME FIXME FIXME
+                ;; Need to make this a prefix search,
+                ;; as in -simple-search
+                biz-res     (biz-search/es-search query :match
                                                   miles lat lon
                                                   nil  ; -sort-
                                                   from size)
+
                 biz-cat-res (-simple-search :business_categories query from size)
                 item-res    (-simple-search :items query from size)]
 
