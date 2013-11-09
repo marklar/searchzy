@@ -82,7 +82,7 @@
                     size       (inputs/str-to-val size 10)
                     {lat :lat lon :lon} (geo/get-lat-lon lat lon address)
                     ;; fetch results
-                    es-res (search/es-search query :text
+                    es-res (search/es-search query :match
                                              miles lat lon
                                              sort from size)]
 

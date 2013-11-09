@@ -27,7 +27,8 @@
   "Create map for querying -
    EITHER: just with 'query' -OR- with a scoring fn for sorting."
   [by-value? query query-type]
-  (let [simple-query-map {query-type {:name query}}]
+  (let [simple-query-map {query-type {:name {:query query
+                                             :operator "and"}}}]
     (if by-value?
       simple-query-map
       (-mk-function-score-query simple-query-map))))

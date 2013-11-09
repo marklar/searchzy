@@ -37,7 +37,8 @@
    1. Escape special chars.
    2. Escape odd double quotes.
    (Escaping bool operators isn't necessary.
-   The str is already downcased, and Lucene bool ops must be SHOUTED.)"
+   The str is already downcased, and Lucene bool ops must be SHOUTED.)
+   3. Trim."
   [str]
   (if (clojure.string/blank? str)
     str
@@ -45,4 +46,5 @@
         clojure.string/lower-case
         ;; TODO: Why do we want to escape special chars?
         ;; -escape-special-chars
-        -escape-odd-double-quotes)))
+        -escape-odd-double-quotes
+        clojure.string/trim)))
