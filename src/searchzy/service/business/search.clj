@@ -37,12 +37,12 @@
   "Perform ES search, return results map.
    If by-value?, change scoring function and sort by its result.
    TYPES: string string float float float bool int int"
-  [query query-type miles lat lon sort from size]
+  [query-str query-type geo-map sort page-map]
   (let [by-value? (= 'value sort)
         es-names (:businesses cfg/elastic-search-names)]
     (es-doc/search (:index es-names) (:mapping es-names)
-                   :query  (-mk-query by-value? query query-type)
-                   :filter (util/mk-geo-filter miles lat lon)
+                   :query  (-mk-query by-value? query-str query-type)
+                   :filter (util/mk-geo-filter geo-map)
                    :sort   (-mk-sort by-value?)
-                   :from   from
-                   :size   size)))
+                   :from   (:from page-map)
+                   :size   (:size page-map))))

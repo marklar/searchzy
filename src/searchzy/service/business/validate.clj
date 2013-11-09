@@ -29,12 +29,12 @@
 (defn response-bad-location
   "The user has input insufficient location (lat/lon or address) info,
    so return a 404."
-  [address orig-lat orig-lon]
+  [{:keys [address lat lon]}]
   (responses/error-json
    {:error "Must provide: ('address' OR ('lat' AND 'lon'))."
     :params {:address address
-             :lat orig-lat
-             :lon orig-lon}}))
+             :lat lat
+             :lon lon}}))
 
 (defn response-bad-sort
   "The user has input an invalid 'sort' value, so return 404."

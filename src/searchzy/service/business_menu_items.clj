@@ -14,11 +14,11 @@
 (defn -mk-one-hit
   "Replace :hours with :hours_today, using :day_of_week.
    Add :distance_in_mi."
-  [source-map day-of-week lat lon]
+  [source-map day-of-week coords]
   (let [old-biz     (:business source-map)
         hours       (:hours old-biz)
         hours-today (util/get-hours-today hours day-of-week)
-        dist        (util/haversine (:coordinates old-biz) {:lat lat :lon lon})
+        dist        (util/haversine (:coordinates old-biz) coords)
         new-biz     (assoc (dissoc old-biz
                                    :hours :latitude_longitude
                                    :yelp_star_rating
@@ -47,20 +47,19 @@
 
 (defn -mk-response
   "From ES response, create service response."
-  [{hits :hits} item_id miles address lat lon from size]
+  [{hits :hits} item-id geo-map page-map]
   (let [day-of-week (util/get-day-of-week)
-        resp-hits (map #(-mk-one-hit (:_source %) day-of-week lat lon)
+        resp-hits (map #(-mk-one-hit (:_source %) day-of-week (:coords geo-map))
                        (:hits hits))]
     (responses/ok-json
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
-      :arguments {:item_id item_id
-                  :geo_filter {:miles miles :address address :lat lat :lon lon}
-                  :paging {:from from :size size}
+      :arguments {:item_id item-id
+                  :geo_filter geo-map
+                  :paging page-map
                   :day_of_week day-of-week}
       :results {:count (:total hits)
                 :prices_picos (-prices-for-hits resp-hits)
                 :latest_close (-latest-close resp-hits)
-                ;; TODO: group items by businesses.
                 :hits resp-hits
                 }})))
 
@@ -69,39 +68,33 @@
 
 (defn -item-search
   "Perform search against item_id."
-  [item-id miles lat lon from size]
+  [item-id geo-map page-map]
   (es-doc/search -idx-name -mapping-name
-                 :query {:match {:item_id item-id}}
-                 :sort  (array-map :yelp_star_rating  :desc
-                                   :yelp_review_count :desc
-                                   :value_score_picos :desc)
-                 :filter (util/mk-geo-filter miles lat lon)
-                 :from  from
-                 :size  size))
+                 :query  {:match {:item_id item-id}}
+                 ;; :sort   (array-map :yelp_star_rating  :desc
+                 ;;                    :yelp_review_count :desc
+                 ;;                    :value_score_picos :desc)
+                 :sort   {:value_score_picos :desc}
+                 :filter (util/mk-geo-filter geo-map)
+                 :from   (:from page-map)
+                 :size   (:size page-map)))
 
 (defn validate-and-search
   ""
-  [item-id address orig-lat orig-lon miles from size]
+  [item-id input-geo-map input-page-map]
 
   ;; Validate item-id.
   (if (clojure.string/blank? item-id)
     (responses/error-json {:error "Param 'item_id' must be non-empty."})
       
     ;; Validate location info.
-    (let [lat (inputs/str-to-val orig-lat nil)
-          lon (inputs/str-to-val orig-lon nil)]
-      (if (validate/invalid-location? address lat lon)
-        (validate/response-bad-location address orig-lat orig-lon)
+    (let [geo-map (inputs/mk-geo-map input-geo-map)]
+      (if (nil? geo-map)
+        (validate/response-bad-location input-geo-map)
           
-        ;; OK, make query.
-        (let [;; transform params
-              miles      (inputs/str-to-val miles 4.0)
-              from       (inputs/str-to-val from 0)
-              size       (inputs/str-to-val size 10)
-              {lat :lat
-               lon :lon} (geo/get-lat-lon lat lon address)
-              ;; fetch results
-              item-res (-item-search item-id miles lat lon from size)]
+        ;; OK, do search.
+        (let [page-map (inputs/mk-page-map input-page-map)
+              item-res (-item-search item-id geo-map page-map)]
             
             ;; Extract info from ES-results, create JSON response.
-            (-mk-response item-res item-id miles address lat lon from size))))))
+            (-mk-response item-res item-id geo-map page-map))))))

@@ -1,7 +1,7 @@
 (ns searchzy.service.geo
   (:require [geocoder.google :as geo]))     ;; #{bing geonames google}
             
-(defn -get-geolocation
+(defn get-geolocation
   "Given an address (e.g. '2491 Aztec Way, Palo Alto, CA 94303'),
    return a map with keys :lat, :lon."
   [address]
@@ -17,6 +17,6 @@
    Otherwise use address to look up geocoordinates (and return as map)."
   [lat lon address]
   (if (or (nil? lat) (nil? lon))
-    (-get-geolocation address)
+    (get-geolocation address)
     {:lat lat :lon lon}))
 

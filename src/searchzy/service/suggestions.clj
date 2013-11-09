@@ -61,12 +61,12 @@
 (defn -mk-biz-hit-response
   "From ES biz hit, make service hit."
   [{id :_id {n :name a :address} :_source}]
-  {:id id :name n :address a})
+  {:id id, :name n, :address a})
 
 (defn -mk-simple-hit-response
   "For ES hit of either biz-category or item, make a service hit."
   [{i :_id, {n :name} :_source}]
-  {:id i :name n})
+  {:id i, :name n})
 
 (defn -mk-res-map
   [f hits-map]
@@ -74,26 +74,31 @@
    :hits  (map f (:hits hits-map))})
 
 (defn -mk-arguments
-  [query miles address lat lon size html?]
+  [query geo-map page-map html?]
   {:query query
-   :geo_filter {:miles miles :address address :lat lat :lon lon}
-   :paging {:from 0 :size size}
+   :geo_filter geo-map
+   :paging page-map
    :html html?})
 
 (defn -mk-response
   "From ES response, create service response."
-  [{biz-hits-map :hits}
-   {biz-cat-hits-map :hits}
-   {item-hits-map :hits}
-   query miles address lat lon size html?]
-  {:endpoint "/v1/suggestions"   ; TODO: pass this in
-   :arguments (-mk-arguments query miles address lat lon size html?)
-   :results {:businesses
-             (-mk-res-map -mk-biz-hit-response    biz-hits-map)
-             :business_categories
-             (-mk-res-map -mk-simple-hit-response biz-cat-hits-map)
-             :items
-             (-mk-res-map -mk-simple-hit-response item-hits-map)}})
+  [biz-res biz-cat-res item-res query geo-map page-map html?]
+  (let [partial {:arguments {:query query
+                             :geo_filter geo-map
+                             :paging page-map
+                             :html html?}
+                 :endpoint "/v1/suggestions"   ; TODO: pass this in
+                 }]
+    (merge
+     (if html?
+       {:html (apply -mk-html (map :hits [biz-res biz-cat-res item-res]))}
+       {:results {:businesses
+                  (-mk-res-map -mk-biz-hit-response    biz-res)
+                  :business_categories
+                  (-mk-res-map -mk-simple-hit-response biz-cat-res)
+                  :items
+                  (-mk-res-map -mk-simple-hit-response item-res)}})
+     partial)))
 
 (defn -mk-query
   "String 's' may contain mutiple terms.
@@ -111,67 +116,53 @@
 
 (defn -simple-search
   "Perform prefix search against names."
-  [domain query from size]
+  [domain query {:keys [from size]}]
   (let [es-names (domain cfg/elastic-search-names)]
     (es-doc/search (:index es-names) (:mapping es-names)
                    :query  (-mk-query query)
                    :from   from
                    :size   size)))
 
+;; fetch results
+;; TODO: in *parallel*.  How?
+;;  - pmap: Probably not worth the coordination overhead.
+;;  - clojure.core.reducers/map
+;;  - agents (uncoordinated, asynchronous)
+
 (defn validate-and-search
   "Perform 3 searches (in parallel!):
       - businesses (w/ filtering)
       - business_categories
       - items"
-  [orig-query address orig-lat orig-lon miles size html]
+  [input-query input-geo-map input-page-map input-html]
 
   ;; Validate query.
-  (let [query (q/normalize orig-query)]
+  (let [query (q/normalize input-query)]
     (if (clojure.string/blank? query)
-      (validate/response-bad-query orig-query query)
+      (validate/response-bad-query input-query query)
       
       ;; Validate location info.
-      (let [lat (inputs/str-to-val orig-lat nil)
-            lon (inputs/str-to-val orig-lon nil)]
-        (if (validate/invalid-location? address lat lon)
-          (validate/response-bad-location address orig-lat orig-lon)
+      (let [geo-map (inputs/mk-geo-map input-geo-map)]
+        (if (nil? geo-map)
+          (validate/response-bad-location input-geo-map)
           
-          ;; OK, make queries.
-          (let [
-                ;; transform params
-                miles (inputs/str-to-val miles 4.0)
-                {lat :lat lon :lon} (geo/get-lat-lon lat lon address)
-                from  0
-                size  (inputs/str-to-val size 5)
-                html? (inputs/true-str? html)
+          ;; OK, do searches.
+          (let [page-map (inputs/mk-page-map input-page-map)
+                html? (inputs/true-str? input-html)
                 
-                ;; fetch results
-                ;; TODO: in *parallel*.  How?
-                ;;  - pmap: Probably not worth the coordination overhead.
-                ;;  - clojure.core.reducers/map
-                ;;  - agents (uncoordinated, asynchronous)
-
-                ;; biz-res     (biz-search/es-search query :prefix
-                ;;                                   miles lat lon
-                ;;                                   nil  ; -sort-
-                ;;                                   from size)
-
                 ;; FIXME FIXME FIXME
                 ;; Need to make this a prefix search,
                 ;; as in -simple-search
                 biz-res     (biz-search/es-search query :match
-                                                  miles lat lon
+                                                  geo-map
                                                   nil  ; -sort-
-                                                  from size)
+                                                  page-map)
 
-                biz-cat-res (-simple-search :business_categories query from size)
-                item-res    (-simple-search :items query from size)]
+                biz-cat-res (-simple-search :business_categories query page-map)
+                item-res    (-simple-search :items query page-map)]
 
             (responses/ok-json
-             (if html?
-               {:arguments (-mk-arguments query miles address lat lon size html?)
-                :html (apply -mk-html (map #(:hits (:hits %))
-                                           [biz-res biz-cat-res item-res]))}
-               ;; Extract info from ES-results, create JSON response.
-               (-mk-response biz-res biz-cat-res item-res
-                             query miles address lat lon size html?)))))))))
+             (-mk-response (:hits biz-res)
+                           (:hits biz-cat-res)
+                           (:hits item-res)
+                           query geo-map page-map html?))))))))

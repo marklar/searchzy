@@ -26,9 +26,10 @@
 
 (defn mk-geo-filter
   "Create map for filtering by geographic distance."
-  [miles lat lon]
-  {:geo_distance {:distance (str miles "mi")
-                  :latitude_longitude (str lat "," lon)}})
+  [{:keys [miles coords]}]
+  (let [coords-str (str (:lat coords) "," (:lon coords))]
+    {:geo_distance {:distance (str miles "mi")
+                    :latitude_longitude coords-str}}))
 
 ;; Haversine
 

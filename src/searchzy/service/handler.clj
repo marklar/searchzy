@@ -43,17 +43,23 @@
        (item-docs/show))
 
   (GET (v-path 1 "/businesses")
-       [query address lat lon sort from size]
-       (biz/validate-and-search query address lat lon sort from size))
+       [query address lat lon miles sort from size]
+       (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
+             page-map {:from from, :size size}]
+         (biz/validate-and-search query geo-map sort page-map)))
 
   (GET (v-path 1 "/business_menu_items")
        [item_id address lat lon miles from size]
-       (items/validate-and-search item_id address lat lon miles from size))
+       (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
+             page-map {:from from, :size size}]
+         (items/validate-and-search item_id geo-map page-map)))
 
   (GET (v-path 1 "/suggestions")
        [query address lat lon miles size html]
-       (responses/json-p-ify
-        (sugg/validate-and-search query address lat lon miles size html)))
+       (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
+             page-map {:from "0", :size size}]
+         (responses/json-p-ify
+          (sugg/validate-and-search query geo-map page-map html))))
 
   (route/resources "/")
   (route/not-found "Not Found"))
