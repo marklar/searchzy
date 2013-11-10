@@ -34,7 +34,7 @@
 
 ;; -- search document --
 
-(defn -mk-es-item-map
+(defn- mk-es-item-map
   "Given a MenuItem, create a MenuItem-specific es-map.
    Later we'll add in its Business info."
   [{item_id :item_id :as item}]
@@ -47,36 +47,36 @@
        :price_micros (:price_micros item)
        :value_score_picos vsp})))
 
-(defn -get-items-from-mg-map
+(defn- get-items-from-mg-map
   [{{sections :sections} :unified_menu}]
   (flatten (map :items sections)))
 
-(defn -mk-es-maps
+(defn- mk-es-maps
   "Given a business mongo-map, return a seq of menu-item-maps."
   [mg-map]
   (let [biz-map (biz/mk-es-map mg-map)
-        items (-get-items-from-mg-map mg-map)]
+        items (get-items-from-mg-map mg-map)]
     (map
      #(assoc %
         :yelp_star_rating   (:yelp_star_rating biz-map)
         :yelp_review_count  (:yelp_review_count biz-map)
         :latitude_longitude (:latitude_longitude biz-map)
         :business biz-map)
-     (remove nil? (map -mk-es-item-map items)))))
+     (remove nil? (map mk-es-item-map items)))))
 
-(defn -new-mk-es-maps
+(defn- new-mk-es-maps
   "Given a business mongo-map, return a seq of menu-item-maps."
   [mg-map biz-map]
-  (let [items (-get-items-from-mg-map mg-map)]
+  (let [items (get-items-from-mg-map mg-map)]
     (map
      #(assoc %
         :yelp_star_rating   (:yelp_star_rating biz-map)
         :yelp_review_count  (:yelp_review_count biz-map)
         :latitude_longitude (:latitude_longitude biz-map)
         :business biz-map)
-     (remove nil? (map -mk-es-item-map items)))))
+     (remove nil? (map mk-es-item-map items)))))
 
-(defn -put [id es-map]
+(defn- put [id es-map]
   (es-doc/put idx-name mapping-name id es-map))
 
 (defn add-to-idx
@@ -86,17 +86,17 @@
    convert to es-map (along w/ embedded Business information),
    and add the es-map to the index."
   [mg-map]
-  (let [es-maps (-mk-es-maps mg-map)]
+  (let [es-maps (mk-es-maps mg-map)]
     (doseq [m es-maps]
       (let [id (str (:_id m))]
-        (-put id m)))))
+        (put id m)))))
 
 (defn new-add-to-idx
   [mg-map biz-es-map]
-  (let [es-maps (-new-mk-es-maps mg-map biz-es-map)]
+  (let [es-maps (new-mk-es-maps mg-map biz-es-map)]
     (doseq [m es-maps]
       (let [id (str (:_id m))]
-        (-put id m)))))
+        (put id m)))))
 
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))

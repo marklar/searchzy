@@ -6,7 +6,7 @@
              [business :as biz]
              [business-menu-item :as item]]))
 
-(defn -add-to-idx
+(defn- add-to-idx
   [mg-map]
   ;; In parallel, using agents?
 
@@ -27,5 +27,5 @@
   []
   (biz/recreate-idx)
   (item/recreate-idx)
-  (doseq-cnt -add-to-idx 5000
+  (doseq-cnt add-to-idx 5000
              (mg/fetch :businesses :where {:active_ind true})))
