@@ -46,8 +46,8 @@
 ;; 
 (def idx_name_2_fn {
                     ;; quick
-                    ;; "Biz Categories" biz-cat/mk-idx
-                    ;; "Items"          item/mk-idx
+                    "Biz Categories" biz-cat/mk-idx
+                    "Items"          item/mk-idx
                     ;; slow
                     "Combined"       biz-combined/mk-idx
                     ;; "Businesses"     biz/mk-idx
