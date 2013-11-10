@@ -1,13 +1,13 @@
 (ns searchzy.service.responses
   (:require [clojure.data.json :as json]))
 
-(def -json-headers
+(def json-headers
   {"Content-Type" "application/json; charset=utf-8"})
 
-(defn -json-response
+(defn- json-response
   [status obj]
   {:status status
-   :headers -json-headers
+   :headers json-headers
    :body (json/write-str obj)})
 
 ;; -- public --
@@ -20,8 +20,12 @@
 
 (defn ok-json
   [obj]
-  (-json-response 200 obj))
+  (json-response 200 obj))
+
+(defn forbidden-json
+  [obj]
+  (json-response 403 obj))
 
 (defn error-json
   [obj]
-  (-json-response 404 obj))
+  (json-response 404 obj))

@@ -20,11 +20,16 @@
 
 (defn- valid-key?
   [api-key]
-  (= api-key (:api-key (cfg/get-cfg))))
+  (let [lock (:api-key (cfg/get-cfg))]
+    (if (nil? lock)
+      true
+      (= api-key lock))))
 
 (defn- bounce []
   (responses/json-p-ify
-   (responses/error-json {:error "Not authorized."})))
+   ;; Using "forbidden" (403) instead of "unauthorized" (401)
+   ;; because I don't want to deal with authentication headers.
+   (responses/forbidden-json {:error "Not authorized."})))
 
 
 (def current-version "v1")
