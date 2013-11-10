@@ -2,16 +2,14 @@
   (:require [clojure.string :as str]
             [searchzy.service [geo :as geo]]))
 
+;; TODO: Use (Integer. s) ?
 (defn str-to-val
   "Taking an HTTP query parameter and convert it to a proper value,
    using a default value if none provided."
   [str default]
   (if (str/blank? str)
     default
-    (let [val (read-string str)]
-      (if (nil? val)
-        default
-        val))))
+    (or (read-string str) default)))
 
 (defn true-str?
   "Convert string (e.g. from cmd-line or http params) to bool."

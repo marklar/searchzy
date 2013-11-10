@@ -6,11 +6,16 @@
    return a map with keys :lat, :lon."
   [address]
   ;; -- Makes remote call. --
-  ;; Google uses 'lng' instead of 'lon'.  (Which is better?)
-  ;; NOTE: We're changing the key from 'lng' to 'lon'!!!
-  (clojure.set/rename-keys 
-   (:location (:geometry (first (geo/geocode-address address))))
-   {:lng :lon}))
+  ;; Google uses 'lng' instead of 'lon'.
+  ;; NB: We change it: :lng -> :lon.
+  ;;
+  ;; We don't use clojure.set because, for I have no idea what reason,
+  ;; it's not recognized when one runs this as "lein run".
+  ;; (clojure.set/rename-keys coords {:lng :lon})))
+  ;;
+  (let [{:keys [lat lng]}
+        (:location (:geometry (first (geo/geocode-address address))))]
+    {:lat lat, :lon lng}))
 
 (defn get-lat-lon
   "If lat,lon are good, just return as map.

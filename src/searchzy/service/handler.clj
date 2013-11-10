@@ -91,6 +91,6 @@
 
 (util/es-connect! (:elastic-search (cfg/get-cfg)))
 
-;; COMPOJURE APP
+;; COMPOJURE APP -- fn :: request-map -> response-map
 (def app
   (handler/site app-routes))
