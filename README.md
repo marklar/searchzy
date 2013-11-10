@@ -6,8 +6,19 @@ the hood.
 Searchzy is implemented in Clojure, to take advantage of native
 transport between the JVM processes.
 
+## Contents
 
-## Prerequisites
+* [Prerequisites][1]
+* [Configuration][2]
+* [Running][3]
+* [Deploying][4]
+
+[1]: #prereqs
+[2]: #config
+[3]: #run
+[4]: #deploy
+
+## <a name="prereqs"></a>Prerequisites
 
 ### Java
 
@@ -17,9 +28,9 @@ Java installed.
 
 ### Leiningen
 
-You will need [Leiningen][1] 1.7.0 or above installed.
+You will need [Leiningen][4] 1.7.0 or above installed.
 
-[1]: https://github.com/technomancy/leiningen
+[4]: https://github.com/technomancy/leiningen
 
 Leiningen is magic.  Leiningen is your best friend.  It's like RVM and
 Bundler and Rake all in one.  It's a tool for managing your project's
@@ -57,7 +68,7 @@ Jast as with ElasticSearch, you must tell Searchzy where to find
 MongoDB.  So let's get to the configuration step now.
 
 
-## Configuration
+## <a name="config"></a>Configuration
 
 In the top-level directory of this project, add a file called:
 
@@ -67,16 +78,20 @@ Don't forget the leading period.
 
 Its contents should look like this:
 
+    api-key:
     mongo-db:
         host: 127.0.0.1
         port: 27017
+        username:
+        password:
         db-name: centzy_web_production
     elastic-search:
         host: 127.0.0.1
         port: 9300
         cluster-name: elasticsearch_something
 
-Except that some of the values will need to change.
+Except that some of the values will need to add (e.g.: api-key) or
+change.
 
 In particular, you need to find out your ElasticSearch's cluster name.
 Retrieve it via ElasticSearch's REST API, thus:
@@ -89,18 +104,59 @@ MongoDB port, and 9300 is the standard port for ElasticSearch's binary
 transport.)
 
 
-## Running
+## <a name="run"></a>Running
+
+### Indexing
 
 To index, run this command:
 
-    lein run
+    lein run -m searchzy.index.core
 
 Indexing currently takes just over 1 hour (on my MacBook Air laptop).
 
-To start the search service, run:
+### Service
+
+You may run Searchzy in either dev mode or prod mode.
+
+#### Devevelopment mode
+
+In dev mode, any Clojure code you modify gets automatically reloaded
+with each server request.  This is very convenient for interactive
+development.
 
     lein ring server
 
+#### Production mode
+
+In prod mode, your code doesn't get reloaded once the server is
+launched.
+
+There are two ways to run in prod mode.  The first requires that you
+have leiningen installed whenever you want to start the server.
+
+    lein run <PORT>
+
+The second way allows you to create an 'uberjar' using leiningen:
+
+    lein uberjar
+
+and from that point forward just running the AOT-compiled Java bytecode
+directly:
+
+    java -jar target/searchzy-0.1.0-SNAPSHOT-standalone.jar <PORT>
+
+
+## <a name="deploy"></a>Deploying
+
+To deploy Searchzy to production machines, you will need two scp two
+files to the same target directory:
+
+    .config.yaml
+    searchzy-0.1.0-SNAPSHOT-standalone.jar
+
+Then, from that directory, start the server:
+
+    java -jar searchzy-0.1.0-SNAPSHOT-standalone.jar
 
 
 ## License
