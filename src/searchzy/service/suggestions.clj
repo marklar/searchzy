@@ -2,6 +2,7 @@
   (:use [hiccup.core])
   (:require [searchzy.cfg :as cfg]
             [searchzy.service
+             [util :as util]
              [inputs :as inputs]
              [geo :as geo]
              [responses :as responses]
@@ -18,11 +19,11 @@
 ;;   - app/assets/javascripts/landings/search.js.coffee
 ;;
 
-(defn -mk-addr-str
+(defn- mk-addr-str
   [{:keys [street city state zip]}]
   (str (clojure.string/join ", " [street city state]) " " zip))
 
-(defn -mk-html
+(defn- mk-html
   [biz-hits biz-cat-hits item-hits]
   (html
    [:div#auto_complete_list
@@ -52,35 +53,35 @@
          [:li.ac_biz_item {:id (str "ac_biz_" id)}
           [:a.auto_complete_list_business {:href (str "/place/" permalink)}
            (str name "&nbsp;")
-           [:span.address (-mk-addr-str address)]]])])
+           [:span.address (mk-addr-str address)]]])])
     
     [:ul
      [:li
       [:a#dropdown_submit_search {:href "#"} "Search all businesses"]]]]))
 
-(defn -mk-biz-hit-response
+(defn- mk-biz-hit-response
   "From ES biz hit, make service hit."
   [{id :_id {n :name a :address} :_source}]
   {:id id, :name n, :address a})
 
-(defn -mk-simple-hit-response
+(defn- mk-simple-hit-response
   "For ES hit of either biz-category or item, make a service hit."
   [{i :_id, {n :name} :_source}]
   {:id i, :name n})
 
-(defn -mk-res-map
+(defn- mk-res-map
   [f hits-map]
   {:count (:total hits-map)
    :hits  (map f (:hits hits-map))})
 
-(defn -mk-arguments
+(defn- mk-arguments
   [query geo-map page-map html?]
   {:query query
    :geo_filter geo-map
    :paging page-map
    :html html?})
 
-(defn -mk-response
+(defn- mk-response
   "From ES response, create service response."
   [biz-res biz-cat-res item-res query geo-map page-map html?]
   (let [partial {:arguments {:query query
@@ -91,35 +92,21 @@
                  }]
     (merge
      (if html?
-       {:html (apply -mk-html (map :hits [biz-res biz-cat-res item-res]))}
+       {:html (apply mk-html (map :hits [biz-res biz-cat-res item-res]))}
        {:results {:businesses
-                  (-mk-res-map -mk-biz-hit-response    biz-res)
+                  (mk-res-map mk-biz-hit-response    biz-res)
                   :business_categories
-                  (-mk-res-map -mk-simple-hit-response biz-cat-res)
+                  (mk-res-map mk-simple-hit-response biz-cat-res)
                   :items
-                  (-mk-res-map -mk-simple-hit-response item-res)}})
+                  (mk-res-map mk-simple-hit-response item-res)}})
      partial)))
 
-(defn -mk-query
-  "String 's' may contain mutiple terms.
-   Perform a boolean query."
-  [s]
-  ;; split s into tokens.
-  ;; take all but last token: create :term query for each.
-  ;; take last token: create prefix match.
-  (let [tokens (clojure.string/split s #" ")
-        prefix (last tokens)
-        fulls  (butlast tokens)]
-    (let [foo (cons {:prefix {:name prefix}}
-                    (map (fn [t] {:term {:name t}}) fulls))]
-      {:bool {:must foo}})))
-
-(defn -simple-search
+(defn- simple-search
   "Perform prefix search against names."
   [domain query {:keys [from size]}]
-  (let [es-names (domain cfg/elastic-search-names)]
+  (let [es-names (get cfg/elastic-search-names domain)]
     (es-doc/search (:index es-names) (:mapping es-names)
-                   :query  (-mk-query query)
+                   :query  (util/mk-suggestion-query query)
                    :from   from
                    :size   size)))
 
@@ -149,20 +136,15 @@
           ;; OK, do searches.
           (let [page-map (inputs/mk-page-map input-page-map)
                 html? (inputs/true-str? input-html)
-                
-                ;; FIXME FIXME FIXME
-                ;; Need to make this a prefix search,
-                ;; as in -simple-search
-                biz-res     (biz-search/es-search query :match
+                biz-res     (biz-search/es-search query :prefix
                                                   geo-map
                                                   nil  ; -sort-
                                                   page-map)
-
-                biz-cat-res (-simple-search :business_categories query page-map)
-                item-res    (-simple-search :items query page-map)]
+                biz-cat-res (simple-search :business_categories query page-map)
+                item-res    (simple-search :items query page-map)]
 
             (responses/ok-json
-             (-mk-response (:hits biz-res)
-                           (:hits biz-cat-res)
-                           (:hits item-res)
-                           query geo-map page-map html?))))))))
+             (mk-response (:hits biz-res)
+                          (:hits biz-cat-res)
+                          (:hits item-res)
+                          query geo-map page-map html?))))))))

@@ -1,7 +1,7 @@
 (ns searchzy.service.util
   (:import [java.util Calendar GregorianCalendar]))
 
-(defn -day-hour-maps-to-alist
+(defn- day-hour-maps-to-alist
   [hour-maps]
   (map (fn [{:keys [wday hours]}] [wday hours])
        hour-maps))
@@ -13,7 +13,7 @@
   ;; We cannot rely on the hours being a complete list.
   ;; Sometimes, there'll be a day or more missing.
   ;; It's necessary to look at each entry's :wday.
-  (let [alist       (-day-hour-maps-to-alist hours)
+  (let [alist       (day-hour-maps-to-alist hours)
         num-2-hours (apply hash-map (flatten alist))]
     (num-2-hours day-of-week)))
 
@@ -47,7 +47,7 @@
                    (Math/cos lat1) (Math/cos lat2)))]
     (* R 2 (Math/asin (Math/sqrt a)))))
 
-(defn -geo-str-to-map
+(defn- geo-str-to-map
   "geo-point string to geo-point map"
   [s]
   (let [[lat-str lon-str] (clojure.string/split s #",")]
@@ -57,6 +57,22 @@
 (defn haversine-from-strs
   "Find geo distance between to geo-points."
   [loc1-str loc2-str]
-  (let [loc1 (-geo-str-to-map loc1-str)
-        loc2 (-geo-str-to-map loc2-str)]
+  (let [loc1 (geo-str-to-map loc1-str)
+        loc2 (geo-str-to-map loc2-str)]
     (haversine loc1 loc2)))
+
+;; -----
+
+(defn mk-suggestion-query
+  "String 's' may contain mutiple terms.
+   Perform a boolean query."
+  [s]
+  ;; split s into tokens.
+  ;; take all but last token: create :term query for each.
+  ;; take last token: create prefix match.
+  (let [tokens (clojure.string/split s #" ")
+        prefix (last tokens)
+        fulls  (butlast tokens)]
+    (let [foo (cons {:prefix {:name prefix}}
+                    (map (fn [t] {:term {:name t}}) fulls))]
+      {:bool {:must foo}})))
