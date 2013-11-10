@@ -4,7 +4,6 @@
 
 ;; -- default config --
 
-
 ;; If you'd like to use different ElasticSearch indices, just change these.
 ;; You'll have to re-index before you can search against them, obviously.
 (def elastic-search-names
@@ -26,11 +25,10 @@
 ;;
 
 (def default-cfg
-  {:elastic-search {:cluster-name "elasticsearch_markwong-vanharen"
+  {:api-key        nil
+   :elastic-search {:cluster-name "elasticsearch_markwong-vanharen"
                     :host "127.0.0.1"
                     :port 9300}
-
-   ;; (m/make-connection "mongodb://user:pass@host:27071/databasename")
    :mongo-db       {:db-name "centzy_web_production"
                     :username nil
                     :password nil
@@ -44,13 +42,13 @@
 ;; FIXME -- Currently, it just looks in whatever the *current* directory is.
 (def cfg-file-name ".config.yaml")
 
-(defn create-yaml-str []
+(defn- create-yaml-str []
   (yaml/generate-string default-cfg))
 
-(defn dump-cfg [file-name]
+(defn- dump-cfg [file-name]
   (spit file-name (create-yaml-str)))
 
-(defn -load-cfg
+(defn load-cfg
   "If cfg file exists, return cfg data.
    If it does not, return default-cfg."
   [file-name]
@@ -65,5 +63,5 @@
 
 (defn get-cfg []
   (if (nil? @cfg)
-    (reset! cfg (-load-cfg cfg-file-name)))
+    (reset! cfg (load-cfg cfg-file-name)))
   @cfg)

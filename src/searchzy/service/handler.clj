@@ -4,10 +4,10 @@
              [util :as util]
              [cfg :as cfg]]
             [searchzy.service.docs
-             [core :as core-docs]
-             [suggestions :as sugg-docs]
-             [businesses :as biz-docs]
-             [business-menu-items :as item-docs]]
+             [core :as docs.core]
+             [suggestions :as docs.sugg]
+             [businesses :as docs.biz]
+             [business-menu-items :as docs.items]]
             [searchzy.service
              [responses :as responses]
              [suggestions :as sugg]
@@ -17,6 +17,15 @@
             [compojure
              [handler :as handler]
              [route :as route]]))
+
+(defn- valid-key?
+  [api-key]
+  (= api-key (:api-key (cfg/get-cfg))))
+
+(defn- bounce []
+  (responses/json-p-ify
+   (responses/error-json {:error "Not authorized."})))
+
 
 (def current-version "v1")
 (defn v-path
@@ -31,31 +40,40 @@
        "Welcome to Searchzy!")
 
   (GET "/docs" []
-       (core-docs/show))
+       (docs.core/show))
 
   (GET "/docs/suggestions" []
-       (sugg-docs/show))
+       (docs.sugg/show))
 
   (GET "/docs/businesses" []
-       (biz-docs/show))
+       (docs.biz/show))
 
   (GET "/docs/business_menu_items" []
-       (item-docs/show))
+       (docs.items/show))
 
   (GET (v-path 1 "/businesses")
-       [query address lat lon miles sort from size]
-       (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
-             page-map {:from from, :size size}]
-         (biz/validate-and-search query geo-map sort page-map)))
+       [api_key query address lat lon miles sort from size]
+
+       (if (not (valid-key? api_key))
+         (bounce)
+
+         (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
+               page-map {:from from, :size size}]
+           (biz/validate-and-search query geo-map sort page-map))))
 
   (GET (v-path 1 "/business_menu_items")
-       [item_id address lat lon miles from size]
-       (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
-             page-map {:from from, :size size}]
-         (items/validate-and-search item_id geo-map page-map)))
+       [api_key item_id address lat lon miles from size]
+
+       (if (not (valid-key? api_key))
+         (bounce)
+
+         (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
+               page-map {:from from, :size size}]
+           (items/validate-and-search item_id geo-map page-map))))
 
   (GET (v-path 1 "/suggestions")
        [query address lat lon miles size html]
+
        (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
              page-map {:from "0", :size size}]
          (responses/json-p-ify

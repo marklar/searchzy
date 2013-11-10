@@ -18,11 +18,15 @@
 
 ;; TODO: Move these to "connect" module?
 
+;; -- elastic-search --
+
 (defn es-connect!
   "ElasticSearch native client connection."
   [es-cfg]
   (es/connect! [[(:host es-cfg), (:port es-cfg)]]
                {"cluster.name" (:cluster-name es-cfg)}))
+
+;; -- mongo --
 
 (defn mk-conn-str
   [{:keys [db-name host port username password]}]
