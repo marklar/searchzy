@@ -35,19 +35,19 @@
 
 (defn- mk-response
   "From ES response, create service response."
-  [{hits :hits} prices close item-id geo-map page-map]
+  [results metadata item-id geo-map page-map]
   (let [day-of-week (util/get-day-of-week)
         resp-hits (map #(mk-one-hit % day-of-week (:coords geo-map))
-                       (map :_source (:hits hits)))]
+                       (map :_source (:hits results)))]
     (responses/ok-json
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id
                   :geo_filter geo-map
                   :paging page-map
                   :day_of_week day-of-week}
-      :results {:count (:total hits)
-                :prices_picos prices
-                :latest_close close
+      :results {:count (:total results)
+                :prices_picos (:prices-picos metadata)
+                :latest_close (:latest-close metadata)
                 :hits resp-hits
                 }})))
 
@@ -67,10 +67,11 @@
                  :from   (:from page-map)
                  :size   (:size page-map)))
 
+(defn- compact [seq] (remove nil? seq))
 
 (defn- get-prices
-  [{hits :hits}]
-  (let [prices (remove nil? (map #(-> % :_source :price_micros) (:hits hits)))
+  [hits]
+  (let [prices (compact (map #(-> % :_source :price_micros) hits))
         sum (apply + prices)
         cnt (count prices)]
     (if (= 0 cnt)
@@ -78,20 +79,41 @@
       {:mean (/ sum cnt)
        :max  (apply max prices)
        :min  (apply min prices)})))
-    
-(defn- get-latest-close
-  "Get: minute, hour"
-  [{hits :hits}]
+
+(defn- get-all-hours-today
+  [hits]
   (let [day-of-week (util/get-day-of-week)
-        all-hours (remove nil? (map #(-> % :_source :business :hours) (:hits hits)))
-        all-hours-today (remove nil? (map #(util/get-hours-today % day-of-week) all-hours))
-        all-closing (map :close all-hours-today)
-        as-minutes (fn [time] (+ (:minute time) (* 60 (:hour time))))
-        max-mins (apply max (cons 0 (map as-minutes all-closing)))
-        minute (mod max-mins 60)
-        hours  (/ (- max-mins minute) 60)]
-    {:hour hours
-     :minute minute}))
+        all-hours (compact (map #(-> % :_source :business :hours) hits))]
+    (compact (map #(util/get-hours-today % day-of-week) all-hours))))
+
+(def HOUR_MINS 60)
+
+(defn- mins-to-hour
+  [minutes]
+  (let [m (mod minutes HOUR_MINS)]
+    {:hour   (/ (- minutes m) HOUR_MINS)
+     :minute m}))
+
+(defn- get-latest-hour
+  "Given [{:hour h :minute m}], return the latest one."
+  [hour-list]
+  (let [as-minutes (fn [{h :hour, m :minute}] (+ m (* HOUR_MINS h)))
+        max-minutes (apply max (cons 0 (map as-minutes hour-list)))]
+    (mins-to-hour max-minutes)))
+
+(defn- get-latest-close
+  "Given ES hits, return a single 'hour' (i.e. {:hour h, :minute m})."
+  [hits]
+  (let [all-closing (map :close (get-all-hours-today hits))]
+    (get-latest-hour all-closing)))
+
+(def MAX_ITEMS 1000)
+
+(defn- restrict-hits-in-results
+  "Create a restricted set of results to return to client."
+  [results {:keys [from size]}]
+  (let [new-item-hits (take size (drop from (:hits results)))]
+    (assoc results :hits new-item-hits)))
 
 (defn validate-and-search
   ""
@@ -106,25 +128,18 @@
       (if (nil? geo-map)
         (validate/response-bad-location input-geo-map)
           
-        ;; OK, do search.
         (let [page-map (inputs/mk-page-map input-page-map)
-              all-page-map {:from 0, :size 100}
-              ;; Use all-page-map to make the ES query.
-              all-item-res (item-search item-id geo-map all-page-map)
+
+              ;; Do search, getting lots of (MAX_ITEMS) results.
+              big-item-res (:hits (item-search item-id geo-map
+                                               {:from 0, :size MAX_ITEMS}))
+
               ;; Gather metadata from the results returned.
-              prices       (get-prices all-item-res)
-              latest-close (get-latest-close all-item-res)
+              metadata {:prices-picos (get-prices (:hits big-item-res))
+                        :latest-close (get-latest-close (:hits big-item-res))}
 
-              ;; THIS SURE IS UGLY, BUT IT WORKS.
-
-              ;; Then use page-map to restrict results.
-              hits (:hits all-item-res)
-              item-hits (:hits hits)
-              new-item-hits (take (:size page-map)
-                                  (drop (:from page-map) item-hits))
-              new-hits (assoc hits :hits new-item-hits)
-              item-res (assoc all-item-res :hits new-hits)]
+              ;; Create a restricted set of results to return to client.
+              item-res (restrict-hits-in-results big-item-res page-map)]
             
             ;; Extract info from ES-results, create JSON response.
-            (mk-response item-res prices latest-close
-                         item-id geo-map page-map))))))
+            (mk-response item-res metadata item-id geo-map page-map))))))
