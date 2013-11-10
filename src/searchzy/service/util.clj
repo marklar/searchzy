@@ -15,7 +15,7 @@
   ;; It's necessary to look at each entry's :wday.
   (let [alist       (day-hour-maps-to-alist hours)
         num-2-hours (apply hash-map (flatten alist))]
-    (num-2-hours day-of-week)))
+    (get num-2-hours day-of-week)))
 
 (defn get-day-of-week
   []

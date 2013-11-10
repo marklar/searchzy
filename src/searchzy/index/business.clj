@@ -109,7 +109,7 @@
    :yelp_id (:yelp_id mg-map)
    })
    
-(defn -put [id es-map]
+(defn- put [id es-map]
   ;; TODO
   ;; es-doc/put returns a Clojure map.
   ;; To check if successful, use response/ok? or response/conflict?
@@ -121,12 +121,12 @@
   [mg-map]
   (let [es-map (mk-es-map mg-map)
         id     (str (:_id mg-map))]
-    (-put id es-map)))
+    (put id es-map)))
 
 (defn new-add-to-idx
   [mg-map es-map]
   (let [id (str (:_id mg-map))]
-    (-put id es-map)))
+    (put id es-map)))
 
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))

@@ -11,7 +11,7 @@
 
 ;; -- create response --
 
-(defn -mk-hit-response
+(defn- mk-hit-response
   "From ES hit, make service hit."
   [coords day-of-week {id :_id
                           {n :name a :address
@@ -39,7 +39,7 @@
 ;;     - min
 ;;     - max
 ;;
-(defn -mk-response
+(defn- mk-response
   "From ES response, create service response."
   [{hits-map :hits} query-str geo-map sort pager]
   (let [day-of-week (util/get-day-of-week)]
@@ -51,7 +51,7 @@
                   :geo_filter geo-map
                   :day_of_week day-of-week}
       :results {:count (:total hits-map)
-                :hits (map #(-mk-hit-response (:coords geo-map) day-of-week %)
+                :hits (map #(mk-hit-response (:coords geo-map) day-of-week %)
                            (:hits hits-map))}})))
 
 ;; -- do search --
@@ -81,4 +81,4 @@
                                              geo-map sort page-map)]
 
                 ;; Extract info from ES-results, create JSON response.
-                (-mk-response es-res query-str geo-map sort page-map)))))))))
+                (mk-response es-res query-str geo-map sort page-map)))))))))

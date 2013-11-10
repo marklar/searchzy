@@ -66,6 +66,7 @@
                page-map {:from from, :size size}]
            (biz/validate-and-search query geo-map sort page-map))))
 
+  ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
        [api_key item_id address lat lon miles from size]
 
