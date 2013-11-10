@@ -24,15 +24,15 @@
   (str (clojure.string/join ", " [street city state]) " " zip))
 
 (defn- mk-html
-  [biz-hits biz-cat-hits item-hits]
+  [biz-hits cat-hits item-hits]
   (html
    [:div#auto_complete_list
 
-    (if (not (empty? biz-cat-hits))
+    (if (not (empty? cat-hits))
       [:h4.business_categories "Categories"])
-    (if (not (empty? biz-cat-hits))
+    (if (not (empty? cat-hits))
       [:ul.buinesss_categories
-       (for [{id :_id {name :name} :_source} biz-cat-hits]
+       (for [{id :_id {name :name} :_source} cat-hits]
          [:li.ac_biz_category {:id id}
           [:a {:href "#", :data-biz-category name} name]])])
     
@@ -83,7 +83,7 @@
 
 (defn- mk-response
   "From ES response, create service response."
-  [biz-res biz-cat-res item-res query geo-map page-map html?]
+  [biz-res cat-res item-res query geo-map page-map html?]
   (let [partial {:arguments {:query query
                              :geo_filter geo-map
                              :paging page-map
@@ -92,23 +92,23 @@
                  }]
     (merge
      (if html?
-       {:html (apply mk-html (map :hits [biz-res biz-cat-res item-res]))}
+       {:html (apply mk-html (map :hits [biz-res cat-res item-res]))}
        {:results {:businesses
                   (mk-res-map mk-biz-hit-response    biz-res)
                   :business_categories
-                  (mk-res-map mk-simple-hit-response biz-cat-res)
+                  (mk-res-map mk-simple-hit-response cat-res)
                   :items
                   (mk-res-map mk-simple-hit-response item-res)}})
      partial)))
 
-(defn- simple-search
+(defn- get-results
   "Perform prefix search against names."
   [domain query {:keys [from size]}]
   (let [es-names (get cfg/elastic-search-names domain)]
-    (es-doc/search (:index es-names) (:mapping es-names)
-                   :query  (util/mk-suggestion-query query)
-                   :from   from
-                   :size   size)))
+    (:hits (es-doc/search (:index es-names) (:mapping es-names)
+                          :query  (util/mk-suggestion-query query)
+                          :from   from
+                          :size   size))))
 
 ;; fetch results
 ;; TODO: in *parallel*.  How?
@@ -136,15 +136,13 @@
           ;; OK, do searches.
           (let [page-map (inputs/mk-page-map input-page-map)
                 html? (inputs/true-str? input-html)
-                biz-res     (biz-search/es-search query :prefix
-                                                  geo-map
-                                                  nil  ; -sort-
-                                                  page-map)
-                biz-cat-res (simple-search :business_categories query page-map)
-                item-res    (simple-search :items query page-map)]
+                biz-results  (biz-search/get-results query :prefix
+                                                     geo-map
+                                                     nil  ; -sort-
+                                                     page-map)
+                cat-results  (get-results :business_categories query page-map)
+                item-results (get-results :items query page-map)]
 
             (responses/ok-json
-             (mk-response (:hits biz-res)
-                          (:hits biz-cat-res)
-                          (:hits item-res)
+             (mk-response biz-results cat-results item-results
                           query geo-map page-map html?))))))))

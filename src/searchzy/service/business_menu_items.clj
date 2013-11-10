@@ -46,7 +46,7 @@
                   :paging page-map
                   :day_of_week day-of-week}
       :results {:count (:total results)
-                :prices_picos (:prices-picos metadata)
+                :prices_micros (:prices-micros metadata)
                 :latest_close (:latest-close metadata)
                 :hits resp-hits
                 }})))
@@ -54,23 +54,24 @@
 (def idx-name (:index (:business_menu_items cfg/elastic-search-names)))
 (def mapping-name (:mapping (:business_menu_items cfg/elastic-search-names)))
 
-(defn- item-search
+(defn- get-results
   "Perform search against item_id."
   [item-id geo-map page-map]
-  (es-doc/search idx-name mapping-name
-                 :query  {:match {:item_id item-id}}
-                 ;; :sort   (array-map :yelp_star_rating  :desc
-                 ;;                    :yelp_review_count :desc
-                 ;;                    :value_score_picos :desc)
-                 :sort   {:value_score_picos :desc}
-                 :filter (util/mk-geo-filter geo-map)
-                 :from   (:from page-map)
-                 :size   (:size page-map)))
+  (:hits
+   (es-doc/search idx-name mapping-name
+                  :query  {:match {:item_id item-id}}
+                  ;; :sort   (array-map :yelp_star_rating  :desc
+                  ;;                    :yelp_review_count :desc
+                  ;;                    :value_score_picos :desc)
+                  :sort   {:value_score_picos :desc}
+                  :filter (util/mk-geo-filter geo-map)
+                  :from   (:from page-map)
+                  :size   (:size page-map))))
 
 (defn- compact [seq] (remove nil? seq))
 
-(defn- get-prices
-  [hits]
+(defn- get-prices-micros
+  [{hits :hits}]
   (let [prices (compact (map #(-> % :_source :price_micros) hits))
         sum (apply + prices)
         cnt (count prices)]
@@ -103,7 +104,7 @@
 
 (defn- get-latest-close
   "Given ES hits, return a single 'hour' (i.e. {:hour h, :minute m})."
-  [hits]
+  [{hits :hits}]
   (let [all-closing (map :close (get-all-hours-today hits))]
     (get-latest-hour all-closing)))
 
@@ -131,12 +132,12 @@
         (let [page-map (inputs/mk-page-map input-page-map)
 
               ;; Do search, getting lots of (MAX_ITEMS) results.
-              big-item-res (:hits (item-search item-id geo-map
-                                               {:from 0, :size MAX_ITEMS}))
+              big-item-res (get-results item-id geo-map
+                                        {:from 0, :size MAX_ITEMS})
 
               ;; Gather metadata from the results returned.
-              metadata {:prices-picos (get-prices (:hits big-item-res))
-                        :latest-close (get-latest-close (:hits big-item-res))}
+              metadata {:prices-micros (get-prices-micros big-item-res)
+                        :latest-close (get-latest-close big-item-res)}
 
               ;; Create a restricted set of results to return to client.
               item-res (restrict-hits-in-results big-item-res page-map)]
