@@ -148,15 +148,24 @@ directly:
 
 ## <a name="deploy"></a>Deploying
 
-To deploy Searchzy to production machines, you will need two scp two
-files to the same target directory:
+To deploy Searchzy to production machines, you will need two create
+these two files:
 
     .config.yaml
     searchzy-0.1.0-SNAPSHOT-standalone.jar
 
-Then, from that directory, start the server:
+To create .config.yaml, see [configuration][2].
 
-    java -jar searchzy-0.1.0-SNAPSHOT-standalone.jar
+To create the uberjar, run:
+
+    lein uberjar
+
+Once you have those two files, you must scp them to your production
+machine.
+
+Finally, from the same directory, start the server:
+
+    java -jar searchzy-0.1.0-SNAPSHOT-standalone.jar <PORT>
 
 
 ## License
