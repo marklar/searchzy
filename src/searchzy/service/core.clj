@@ -8,9 +8,9 @@
 (defn get-port
   "Try, in order: [1] cmd line, [2] env var, [3] default."
   [port-str]
-  (Integer. (or port
+  (Integer. (or port-str
                 (System/getenv "PORT")
                 DEF_PORT)))
 
 (defn -main [& [port-str]] 
-  (jetty/run-jetty handler/app {:port (get-port port-str) :join? false})))
+  (jetty/run-jetty handler/app {:port (get-port port-str) :join? false}))
