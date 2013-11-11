@@ -55,6 +55,16 @@
                            (:hits es-results))}})))
 
 ;; -- do search --
+
+;; TODO: http://adambard.com/blog/acceptable-error-handling-in-clojure/
+;;
+;; return a tuple of value and error message
+;;
+;; (defn bind-error [f [val err]]
+;;   (if (nil? err)
+;;     (f val)
+;;     [nil err]))
+;;
           
 (defn validate-and-search
   ""

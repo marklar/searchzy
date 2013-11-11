@@ -31,7 +31,7 @@
    so return a 404."
   [{:keys [address lat lon]}]
   (responses/error-json
-   {:error "Must provide: ('address' OR ('lat' AND 'lon'))."
+   {:error "Must provide: (valid 'address' OR ('lat' AND 'lon'))."
     :params {:address address
              :lat lat
              :lon lon}}))

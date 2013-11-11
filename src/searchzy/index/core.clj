@@ -40,9 +40,10 @@
 ;;
 ;; Can use this:
 ;;     "Biz combined"   biz-combined/mk-idx
-;; instead of "Biz Menu Items" and "Businesses",
-;; but it takes the same amount of time.
-;; Speed is limited not by MongoDB fetching, but by ES indexing.
+;; instead of "Biz Menu Items" and "Businesses".
+;;
+;; On my laptop, MongoDB fetching isn't the bottleneck,
+;; so it takes the same amount of time.
 ;; 
 (def idx_name_2_fn {
                     ;; quick
