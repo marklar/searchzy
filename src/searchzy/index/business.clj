@@ -31,14 +31,14 @@
 
 ;; -- search --
 
-(defn -get-phone-number
+(defn- get-phone-number
   ""
   [{pc :phone_country_code pa :phone_area_code pn :phone_number}]
   (str/join "-" (remove str/blank? [pc pa pn])))
 
 ;; -- sort --
 
-(defn -get-value-score
+(defn- get-value-score
   "For seq of business_item maps, find highest value_score (as % int)."
   [biz-items]
   (let [scores (filter number? (map :value_score biz-items))]
@@ -46,10 +46,10 @@
 
 ;; -- filter --
 
-(defn -get-lat-lon-str
+(defn- get-lat-lon-str
   "From MongoMap, get two nums, in REVERSE ORDER, and create string.
    e.g. [10.3 40.1] => '10.3,40.1' "
-  ;; In MongoDB, the coords are stored backwards (i.e. first lon, then lat).
+  ;; In MongoDB, the coords are stored 'backwards' (i.e. first lon, then lat).
   [{coords :coordinates}]
   (if (empty? coords)
     nil
@@ -57,14 +57,14 @@
 
 ;; -- presentation --
 
-(defn -get-coords
+(defn- get-coords
   "From MongoMap, extract coords."
   [{coords :coordinates}]
   (if (empty? coords)
     nil
     {:lat (coords 1) :lon (coords 0)}))
 
-(defn -get-biz-hour-info
+(defn- get-biz-hour-info
   "From MongoMap's hours info for a single day, extract hours."
   [{d :wday c? :is_closed
     oh :open_hour om :open_minute
@@ -75,7 +75,7 @@
       {:hours {:open  {:hour oh :minute om}
                :close {:hour ch :minute cm}}})))
 
-(defn -get-address
+(defn- get-address
   ""
   [{a1 :address_1 a2 :address_2 city :city state :state zip :zip}]
   :address {:street (str/join ", " (remove str/blank? [a1 a2]))
@@ -94,15 +94,15 @@
   [{:keys [name permalink business-items] :as mg-map}]
   {;; search
    :name name
-   :phone_number (-get-phone-number mg-map)
+   :phone_number (get-phone-number mg-map)
    ;; filter
-   :latitude_longitude (-get-lat-lon-str mg-map)
+   :latitude_longitude (get-lat-lon-str mg-map)
    ;; sort
-   :value_score_int (-get-value-score business-items)
+   :value_score_int (get-value-score business-items)
    ;; presentation
-   :address (-get-address mg-map)
-   :coordinates (-get-coords mg-map)
-   :hours (map -get-biz-hour-info (:business_hours mg-map))
+   :address (get-address mg-map)
+   :coordinates (get-coords mg-map)
+   :hours (map get-biz-hour-info (:business_hours mg-map))
    :permalink permalink
    :yelp_star_rating (:yelp_star_rating mg-map)
    :yelp_review_count (:yelp_review_count mg-map)

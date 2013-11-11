@@ -2,6 +2,8 @@
   (:use [hiccup.core])
   (:require [searchzy.service.docs
              [util :as util]
+             [query :as query]
+             [paging :as paging]
              [geo :as geo]]))
 
 (defn show []
@@ -78,41 +80,13 @@
       
       [:h2 "Endpoint"]
       [:p "The path: " [:span.code "/v1/businesses"]]
-      [:p "It requires query string parameters to work correctly."]
+      [:p "It requires query-string parameters to work correctly."]
       
       
       [:h2 "Query String Parameters"]
-      
-      [:h3 "Query"]
-      [:ul
-       [:li "name: " [:span.code "query"]]
-       [:li "type: string"]
-       [:li "required"]
-       [:li "purpose: for searching against names of Businesses"]
-       [:li "interpretation:"
-        [:ul
-         [:li "expected to be complete words (not just prefixes)"]
-         [:li "treated as case-insensitive"]]]]
-      
-      [:h3 "Paging"]
-      [:ul
-       [:li "start index"
-        [:ul
-         [:li "name: " [:span.code "from"]]
-         [:li "type: integer"]
-         [:li "optional: defaults to " [:span.code "0"]]
-         [:li "notes:"
-          [:ul
-           [:li "indices start at " [:span.code "0"]]
-           [:li "If there are fewer than " [:span.code "from"]
-            " results, return none."]]]]]
-       [:li "number to include"
-        [:ul
-         [:li "name: " [:span.code "size"]]
-         [:li "type: integer"]
-         [:li "optional: defaults to " [:span.code "10"]]
-         [:li "note: If there are fewer than " [:span.code "size"]
-          " available, just return those."]]]]
+
+      (query/query "Businesses")
+      (paging/paging)
       
       [:h3 "Sort"]
       [:ul
