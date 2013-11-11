@@ -1,4 +1,5 @@
 (ns searchzy.service.handler
+  "Defines Compojure app.  Connects to ElasticSearch."
   (:use compojure.core)
   (:require [searchzy 
              [util :as util]
@@ -58,10 +59,10 @@
 
   (GET (v-path 1 "/businesses")
        [api_key query address lat lon miles sort from size]
-
        (if (not (valid-key? api_key))
+         ;; not authorized
          (bounce)
-
+         ;; authorized
          (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
                page-map {:from from, :size size}]
            (biz/validate-and-search query geo-map sort page-map))))
@@ -69,10 +70,10 @@
   ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
        [api_key item_id address lat lon miles from size]
-
        (if (not (valid-key? api_key))
+         ;; not authorized
          (bounce)
-
+         ;; authorized
          (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
                page-map {:from from, :size size}]
            (items/validate-and-search item_id geo-map page-map))))

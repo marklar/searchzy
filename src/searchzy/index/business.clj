@@ -118,15 +118,12 @@
 
 (defn add-to-idx
   "Given a business mongo-map, convert to es-map and add to index."
-  [mg-map]
-  (let [es-map (mk-es-map mg-map)
-        id     (str (:_id mg-map))]
-    (put id es-map)))
-
-(defn new-add-to-idx
-  [mg-map es-map]
-  (let [id (str (:_id mg-map))]
-    (put id es-map)))
+  ([mg-map] 
+     (let [es-map (mk-es-map mg-map)]
+       (add-to-idx mg-map es-map)))
+  ([mg-map es-map]
+     (let [id (str (:_id mg-map))]
+       (put id es-map))))
 
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))

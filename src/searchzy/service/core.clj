@@ -1,4 +1,5 @@
 (ns searchzy.service.core
+  "For running the service from the command line using 'lein run PORT'."
   (:gen-class)
   (:require [searchzy.service.handler :as handler]
             [ring.adapter.jetty :as jetty]))

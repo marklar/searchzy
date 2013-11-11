@@ -15,8 +15,8 @@
 
   ;; Save work: create a biz/es-map first and pass it in to both fns.
   (let [biz-es-map (biz/mk-es-map mg-map)]
-    (biz/new-add-to-idx mg-map biz-es-map)
-    (item/new-add-to-idx mg-map biz-es-map)))
+    (biz/add-to-idx mg-map biz-es-map)
+    (item/add-to-idx mg-map biz-es-map)))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB.

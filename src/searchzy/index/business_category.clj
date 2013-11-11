@@ -5,8 +5,6 @@
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
 
-;; TODO: merge this with item-category.
-
 (def idx-name (:index (:business_categories cfg/elastic-search-names)))
 (def mapping-name (:mapping (:business_categories cfg/elastic-search-names)))
 
@@ -15,7 +13,7 @@
    {:properties
     {:name {:type "string"}}}})
 
-(defn -add-to-idx
+(defn- add-to-idx
   "Given a BusinessCategory mongo-map, convert to es-map and add to index."
   [mg-map]
   (es-doc/put idx-name mapping-name
@@ -26,6 +24,6 @@
   "Fetch BusinessCategories from MongoDB & add them to index.  Return count."
   []
   (util/recreate-idx idx-name mapping-types)
-  (doseq-cnt -add-to-idx 10
+  (doseq-cnt add-to-idx 10
              (mg/fetch :business_categories
                        :where {:active_ind true})))

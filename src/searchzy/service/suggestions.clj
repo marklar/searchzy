@@ -1,4 +1,5 @@
 (ns searchzy.service.suggestions
+  "For suggestions searches."
   (:use [hiccup.core])
   (:require [searchzy.cfg :as cfg]
             [searchzy.service
