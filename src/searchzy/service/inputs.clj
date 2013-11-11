@@ -31,9 +31,9 @@
         lon   (str-to-val lon-str   nil)
         miles (str-to-val miles-str 4.0)]
     (let [res (geo/resolve-address lat lon address)]
-      (if res
+      (if (nil? res)
+        nil
         {:address {:input address
                    :resolved (:address res)}
          :coords (:coords res)
-         :miles miles}
-        nil))))
+         :miles miles}))))

@@ -3,10 +3,7 @@
 
 (defn get-geolocation
   "Given an address (e.g. '2491 Aztec Way, Palo Alto, CA 94303'),
-   return:
-     - success: a map with keys :lat, :lon
-     - failure: nil
-  "
+   return: {:address (resolved), :coords} || nil"
   [address]
   ;; -- Makes remote call. --
   ;; Google uses 'lng' instead of 'lon'.
@@ -18,14 +15,13 @@
                {:keys [lat lng]} (:location (:geometry result))]
            {:coords {:lat lat, :lon lng}
             :address resolved-address})
-         (catch Exception e
-           (do (println (str e))
-               nil))
+         (catch Exception e nil)
          (finally nil))))
     
 (defn resolve-address
-  "If lat,lon are good, just return as map.
-   Otherwise use address to look up geocoordinates (and return as map)."
+  "If lat,lon are good, just return those coords with no resolved address.
+   Otherwise use address to look up geocoordinates.
+   Returns: {:address (resolved), :coords} || nil"
   [lat lon address]
   (if (or (nil? lat) (nil? lon))
     (get-geolocation address)
