@@ -16,6 +16,12 @@
   [s]
   (contains? #{"true" "t" "1"} s))
 
+(defn mk-page-map
+  "From input info, create usable info."
+  [{:keys [from size]}]
+  {:from (str-to-val from 0)
+   :size (str-to-val size 10)})
+
 (defn mk-geo-map
   "Take input-geo-map: miles, address, lat, lon.
    If the input is valid, create a geo-map.
@@ -24,13 +30,10 @@
   (let [lat   (str-to-val lat-str   nil)
         lon   (str-to-val lon-str   nil)
         miles (str-to-val miles-str 4.0)]
-    (let [coords (geo/get-lat-lon lat lon address)]
-      (if coords
-        {:address address, :coords coords, :miles miles}
+    (let [res (geo/resolve-address lat lon address)]
+      (if res
+        {:address {:input address
+                   :resolved (:address res)}
+         :coords (:coords res)
+         :miles miles}
         nil))))
-
-(defn mk-page-map
-  "From input info, create usable info."
-  [{:keys [from size]}]
-  {:from (str-to-val from 0)
-   :size (str-to-val size 10)})

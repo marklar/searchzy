@@ -11,16 +11,23 @@
   ;; -- Makes remote call. --
   ;; Google uses 'lng' instead of 'lon'.
   ;; NB: We change it: :lng -> :lon.
-  (try
-    (let [{:keys [lat lng]}
-              (:location (:geometry (first (geo/geocode-address address))))]
-      {:lat lat, :lon lng})
-    nil))
+  (if (clojure.string/blank? address)
+    nil
+    (try (let [result (first (geo/geocode-address address))
+               resolved-address (:formatted-address result)
+               {:keys [lat lng]} (:location (:geometry result))]
+           {:coords {:lat lat, :lon lng}
+            :address resolved-address})
+         (catch Exception e
+           (do (println (str e))
+               nil))
+         (finally nil))))
     
-(defn get-lat-lon
+(defn resolve-address
   "If lat,lon are good, just return as map.
    Otherwise use address to look up geocoordinates (and return as map)."
   [lat lon address]
   (if (or (nil? lat) (nil? lon))
     (get-geolocation address)
-    {:lat lat :lon lon}))
+    {:coords {:lat lat, :lon lon}
+     :address nil}))
