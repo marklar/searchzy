@@ -1,7 +1,7 @@
 (ns searchzy.util
-  (:require [somnium.congomongo :as mg]
+  (:require [clojure.string :as str]
+            [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native :as es]))
-
 
 (defn doseq-cnt
   "Call function 'f' on each of 'seq',
@@ -15,7 +15,6 @@
         (println @cnt)))
     @cnt))
 
-
 ;; TODO: Move these to "connect" module?
 
 ;; -- elastic-search --
@@ -28,16 +27,27 @@
 
 ;; -- mongo --
 
+(defn- auth-str
+  [u p]
+  ;; (if u
+  ;;   (str u
+  ;;        ":"
+  ;;        (if (str/blank? p) "" (str ":" p))
+  ;;        "@")
+  ;;   ""))
+  (if (and u p)
+    (str u ":" p "@")
+    ""))
+
 (defn mk-conn-str
   [{:keys [db-name host port username password]}]
   (str "mongodb://"
-       (if (and username password)
-         (str username ":" password "@")
-         "")
+       (auth-str username password)
        host ":" port "/" db-name))
   
 (defn mongo-connect!
   "MongoDB connection."
   [mg-cfg]
+  (println "conn-str: " (mk-conn-str mg-cfg))
   (let [conn (mg/make-connection (mk-conn-str mg-cfg))]
     (mg/set-connection! conn)))
