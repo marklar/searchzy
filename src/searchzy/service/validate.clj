@@ -1,4 +1,4 @@
-(ns searchzy.service.business.validate
+(ns searchzy.service.validate
   (:require [clojure.string :as str]
             [searchzy.service.responses :as responses]))
 

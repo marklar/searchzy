@@ -4,11 +4,11 @@
             [searchzy.service
              [util :as util]
              [inputs :as inputs]
+             [validate :as validate]
              [geo :as geo]
              [responses :as responses]
              [query :as q]]
             [searchzy.service.business
-             [validate :as validate]
              [search :as biz-search]]
             [clojurewerkz.elastisch.native
              [document :as es-doc]]))
