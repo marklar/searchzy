@@ -64,7 +64,9 @@
       ;; Section
       [:h2 "Behavior"]
       [:h3 "Query"]
-      [:p "This is an auto-suggest query.  The final token of a user’s query is treated as a prefix.  For example, \"hai\" might be the beginning of the words \"hair\" or \"haircut\"."]
+      [:p "This is an auto-suggest query.  The final token of a user’s query "
+       "is treated as a prefix.  For example, \"hai\" might be the beginning "
+       "of the words \"hair\" or \"haircut\"."]
       
       [:p "The search services performs prefix queries against three domains:"]
       [:ul
@@ -107,7 +109,8 @@
        [:li "optional: defaults to " [:span.code "false"]]
        [:li "purpose:"
         [:ul
-         [:li "When " [:span.code "true"] ", outputs JSON with single attribute " [:span.code "html"] ", an HTML string ready to be injected into the DOM."]
+         [:li "When " [:span.code "true"] ", outputs JSON with single attribute "
+          [:span.code "html"] ", an HTML string ready to be injected into the DOM."]
          [:li "When " [:span.code "false"] ", outputs all data as JSON."]]]]
       
       [:h3 "Prefix Query"]
