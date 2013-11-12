@@ -15,15 +15,16 @@
      ;; not necessary to search for name.  just store it.
      :name {:type "string"}}}})
 
-(defn -add-to-idx
+(defn- add-to-idx
   "Given an ItemCategory mongo-map,
    get embedded :item maps.
    Convert each to es-map and add to index."
   [{items :items}]
-  (doseq [item items]
-    (es-doc/put idx-name mapping-name
-                (str (:_id item))
-                {:name (:name item)})))
+  (doseq [i items]
+    (if (:is_searchable_ind i)
+      (es-doc/put idx-name mapping-name
+                  (str (:_id i))
+                  {:name (:name i)}))))
 
 (defn mk-idx
   "Fetch ItemCategories from MongoDB.
@@ -32,5 +33,6 @@
    Return count (of ItemCategories)."
   []
   (util/recreate-idx idx-name mapping-types)
-  (doseq-cnt -add-to-idx 10
-             (mg/fetch :item_categories)))
+  (doseq-cnt add-to-idx 10
+             (mg/fetch :item_categories
+                       :where {:is_searchable_ind true})))

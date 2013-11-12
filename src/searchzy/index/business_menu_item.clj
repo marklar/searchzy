@@ -37,13 +37,13 @@
 (defn- mk-es-item-map
   "Given a MenuItem, create a MenuItem-specific es-map.
    Later we'll add in its Business info."
-  [{item_id :item_id :as item}]
-  (if (nil? item_id)
+  [item]
+  (if (nil? (:item_id item))
     nil
     (let [vsp (:value_score_picos item)]
       {:_id (:_id item)
        :name (:name item)
-       :item_id (str item_id)
+       :item_id (str (:item_id item))
        :price_micros (:price_micros item)
        :value_score_picos vsp})))
 

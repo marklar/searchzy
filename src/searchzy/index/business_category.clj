@@ -26,4 +26,4 @@
   (util/recreate-idx idx-name mapping-types)
   (doseq-cnt add-to-idx 10
              (mg/fetch :business_categories
-                       :where {:active_ind true})))
+                       :where {:is_searchable_ind true})))
