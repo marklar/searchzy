@@ -1,4 +1,4 @@
-(ns searchzy.service.business.core
+(ns searchzy.service.business
   (:require [searchzy.service
              [util :as util]
              [inputs :as inputs]
@@ -6,8 +6,58 @@
              [geo :as geo]
              [responses :as responses]
              [query :as q]]
-            [searchzy.service.business
-             [search :as search]]))
+            [searchzy.cfg :as cfg]
+            [clojurewerkz.elastisch.native
+             [document :as es-doc]]))
+
+;; -- search --
+
+(defn- mk-sort
+  "Create map for sorting results, depending on sort setting."
+  [by-value?]
+  (if (not by-value?)
+    {:_score :desc}
+    ;; (array-map :yelp_star_rating  :desc
+    ;;            :yelp_review_count :desc
+    ;;            :value_score_int   :desc
+    ;;            :_score            :desc)))
+    {:value_score_int :desc}))
+
+(defn- mk-function-score-query
+  "Return a 'function_score' query-map, for sorting by value_score_int."
+  [simple-query-map]
+  {:function_score
+   {:query simple-query-map
+    :boost_mode "replace"   ; Replace _score with the modified one.
+    :script_score {:script "_score + (doc['value_score_int'].value / 20)"}}
+   })
+
+(defn- mk-query
+  "Create map for querying -
+   EITHER: just with 'query' -OR- with a scoring fn for sorting."
+  [by-value? query query-type]
+  (let [simple-query-map
+        (if (= query-type :prefix)
+          (util/mk-suggestion-query query)
+          {query-type {:name {:query query
+                              :operator "and"}}})]
+    (if by-value?
+      simple-query-map
+      (mk-function-score-query simple-query-map))))
+
+(defn get-results
+  "Perform ES search, return results map.
+   If by-value?, change scoring function and sort by its result.
+   TYPES: string string float float float bool int int"
+  [query-str query-type geo-map sort page-map]
+  (let [by-value? (= 'value sort)
+        es-names (:businesses cfg/elastic-search-names)]
+    (:hits (es-doc/search (:index es-names) (:mapping es-names)
+                          :query  (mk-query by-value? query-str query-type)
+                          :filter (util/mk-geo-filter geo-map)
+                          :sort   (mk-sort by-value?)
+                          :from   (:from page-map)
+                          :size   (:size page-map)))))
 
 ;; -- create response --
 
@@ -31,14 +81,6 @@
      :coordinates cs
      :hours_today hours-today}))
 
-;;
-;; the aggregate info:
-;;   * latest closing time
-;;   * prices
-;;     - mean
-;;     - min
-;;     - max
-;;
 (defn- mk-response
   "From ES response, create service response."
   [es-results query-str geo-map sort pager]
@@ -54,18 +96,6 @@
                 :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
                            (:hits es-results))}})))
 
-;; -- do search --
-
-;; TODO: http://adambard.com/blog/acceptable-error-handling-in-clojure/
-;;
-;; return a tuple of value and error message
-;;
-;; (defn bind-error [f [val err]]
-;;   (if (nil? err)
-;;     (f val)
-;;     [nil err]))
-;;
-          
 (defn validate-and-search
   ""
   [input-query input-geo-map sort input-page-map]
