@@ -18,9 +18,11 @@
     (get num-2-hours day-of-week)))
 
 (defn get-day-of-week
+  "Return an int: [0..6]."
   []
-  (let [gc (GregorianCalendar.)]
-    (.get gc Calendar/DAY_OF_WEEK)))
+  (let [gc (GregorianCalendar)]
+    ;; In Java, days are numbered 1-7, so decrement.
+    (dec (.get gc Calendar/DAY_OF_WEEK))))
 
 ;; -- GEO-RELATED -- could be moved into searchzy.service.geo.
 
