@@ -96,6 +96,10 @@
                 :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
                            (:hits es-results))}})))
 
+;; With any of these, a prefix of '-' means "desc".
+(def VALID-SORTS
+  ['value 'lexical 'distance 'price])
+
 (defn validate-and-search
   ""
   [input-query input-geo-map sort input-page-map]
@@ -117,7 +121,7 @@
               
               ;; OK, do search.
               (let [page-map (inputs/mk-page-map input-page-map)
-                    es-results (search/get-results query-str :match
+                    es-results (get-results query-str :match
                                                    geo-map sort page-map)]
 
                 ;; Extract info from ES-results, create JSON response.
