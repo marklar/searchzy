@@ -91,19 +91,20 @@
 ;;    :unified_menu => :sections => :items
 (defn mk-es-map
   "Given a business mongo-map, create an ElasticSearch map."
-  [{:keys [name permalink business-items] :as mg-map}]
-  {;; search
-   :name name
+  [mg-map]
+  {:_id (:_id mg-map)
+   ;; search
+   :name (:name mg-map)
    :phone_number (get-phone-number mg-map)
    ;; filter
    :latitude_longitude (get-lat-lon-str mg-map)
    ;; sort
-   :value_score_int (get-value-score business-items)
+   :value_score_int (get-value-score (:business-items mg-map))
    ;; presentation
    :address (get-address mg-map)
    :coordinates (get-coords mg-map)
    :hours (map get-biz-hour-info (:business_hours mg-map))
-   :permalink permalink
+   :permalink (:permalink mg-map)
    :yelp_star_rating (:yelp_star_rating mg-map)
    :yelp_review_count (:yelp_review_count mg-map)
    :yelp_id (:yelp_id mg-map)
@@ -116,6 +117,8 @@
   ;; With es-doc/put (vs. es-doc/create), you supply the _id separately.
   (es-doc/put idx-name mapping-name id es-map))
 
+;; TODO: use multimethod here to distinguish between
+;; mg-map and es-map.  (How?  Add tag?)
 (defn add-to-idx
   "Given a business mongo-map, convert to es-map and add to index."
   ([mg-map] 
@@ -123,7 +126,7 @@
        (add-to-idx mg-map es-map)))
   ([mg-map es-map]
      (let [id (str (:_id mg-map))]
-       (put id es-map))))
+       (put id (dissoc es-map :_id)))))
 
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
