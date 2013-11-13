@@ -29,7 +29,10 @@
                       :hours_today hours-today
                       :distance_in_mi dist)]
     (assoc
-        (dissoc source-map :latitude_longitude :yelp_star_rating :yelp_review_count)
+        (dissoc source-map
+                :latitude_longitude
+                :yelp_star_rating
+                :yelp_review_count)
       :business new-biz)))
 
 (defn- mk-response

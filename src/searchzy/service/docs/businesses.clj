@@ -2,7 +2,6 @@
   (:use [hiccup.core])
   (:require [searchzy.service.docs
              [sorting :as sorting]
-             [filtering :as filtering]
              [hours :as hours]
              [util :as util]
              [query :as query]
