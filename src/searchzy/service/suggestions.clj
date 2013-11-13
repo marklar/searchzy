@@ -35,16 +35,15 @@
       [:ul.buinesss_categories
        (for [{id :_id {name :name} :_source} cat-hits]
          [:li.ac_biz_category {:id id}
-          [:a {:href "#", :data-biz-category name} name]])])
+          [:a {:href "#"} name]])])
     
-    ;; FIXME: This really should be .items, not .item_categories
     (if (not (empty? item-hits))
       [:h4.items "Services"])
     (if (not (empty? item-hits))
       [:ul.items
        (for [{id :_id {name :name} :_source} item-hits]
          [:li.ac_item {:id id}
-          [:a {:href "#", :data-item name} name]])])
+          [:a {:href "#"} name]])])
     
     (if (not (empty? biz-hits))
       [:h4.businesses "Businesses"])
