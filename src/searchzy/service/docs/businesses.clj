@@ -1,6 +1,9 @@
 (ns searchzy.service.docs.businesses
   (:use [hiccup.core])
   (:require [searchzy.service.docs
+             [sorting :as sorting]
+             [filtering :as filtering]
+             [hours :as hours]
              [util :as util]
              [query :as query]
              [paging :as paging]
@@ -58,11 +61,12 @@
       [:p "By geographical proximity to a geo-point."]
       
       [:h3 "Sorting"]
-      [:p "Two options:"]
+      [:p "Various options. By:"]
       [:ul
-       [:li "By ElasticSearch’s lexical sorting.   -OR-"]
-       [:li "FIXME: By \"value_score_int\", which is ElasticSearch’s score "
-        "PLUS the highest value of any of a Business’s BusinessItems."]]
+       [:li "ElasticSearch’s score   -OR-"]
+       [:li "Proximity   -OR-"]
+       [:li "FIXME: \"value_score_int\", which is ElasticSearch’s score "
+        "PLUS the highest value of any of a Business’s BusinessItems"]]
       
       [:h3 "Paging"]
       [:p "Only a subset of results is returned, based on provided offsets."]
@@ -86,15 +90,8 @@
       [:h2 "Query String Parameters"]
 
       (query/query "Businesses")
+      (sorting/businesses)
       (paging/paging)
-      
-      [:h3 "Sort"]
-      [:ul
-       [:li "name: " [:span.code "sort"]]
-       [:li "type: enum " [:span.code "[value, lexical]"]]
-       [:li "optional: defaults to " [:span.code "value"]]
-       [:li "validation: If a non-legal value for sort is provided, "
-        "the service will use the default (i.e. " [:span.code "value"] ")."]]
-      
+      (hours/filtering)
       (geo/geo-filter)
       ])))

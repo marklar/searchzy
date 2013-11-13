@@ -131,17 +131,19 @@
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
 
+(defn- mg-fetch []
+  (mg/fetch :businesses :where {:active_ind true}))
+
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
   []
   (recreate-idx)
-  (doseq-cnt add-to-idx 5000
-             (mg/fetch :businesses :where {:active_ind true})))
+  (doseq-cnt add-to-idx 5000 (mg-fetch)))
 
 
 ;; -- Just for testing --
 (defn -main [& args]
   (searchzy.util/mongo-connect! (:mongo-db (cfg/get-cfg)))
-  (doseq [doc (take 200 (mg/fetch :businesses :where {:active_ind true}))]
+  (doseq [doc (take 200 (mg-fetch))]
     (println doc)
     (println)))

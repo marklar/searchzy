@@ -1,8 +1,10 @@
 (ns searchzy.service.docs.business-menu-items
   (:use [hiccup.core])
   (:require [searchzy.service.docs
+             [sorting :as sorting]
              [util :as util]
              [query :as query]
+             [hours :as hours]
              [paging :as paging]
              [geo :as geo]]))
 
@@ -67,10 +69,18 @@
        "prices are for all MenuItems."]
       
       [:h3 "Filtering"]
-      [:p "Of Businesses, by geographical proximity to a geo-point."]
+      [:p "Of Businesses, by:"]
+      [:ul
+       [:li "Geographical proximity to a geo-point"]
+       [:li "Optionally: Time and date - whether open"]]
       
       [:h3 "Sorting"]
-      [:p "By value_score_picos of the MenuItem."]
+      [:p "Various options. By any of:"]
+      [:ul
+       [:li "Price"]
+       [:li "Value"]
+       [:li "Proximity"]
+       [:li "Score (ElasticSearch's)"]]
       
       [:h3 "Paging"]
       [:p "Only a subset of results is returned, based on provided offsets."]
@@ -82,6 +92,8 @@
       [:h2 "Query String Parameters"]
       
       (query/query "Businesses")
+      (sorting/biz-menu-items)
       (paging/paging)
+      (hours/filtering)
       (geo/geo-filter)
       ])))

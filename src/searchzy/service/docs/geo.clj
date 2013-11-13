@@ -1,38 +1,25 @@
 (ns searchzy.service.docs.geo
   (:use [hiccup.core]))
 
-
 (defn geo-filter []
   (html
-   [:h3 "Geographic Filter"]
+   [:h3 "Filtering: Geographic Distance"]
 
-   [:h4 "Distance"]
+   [:h4 "Distance (Radius)"]
    [:ul
     [:li "name: " [:span.code "miles"]]
     [:li "type: float"]
     [:li "optional: defaults to " [:span.code "4.0"]]
     [:li "purpose: Define the radius (in miles) for the proximity filter."]]
    
-   ;; [:h4 "Distances"]
-   ;; [:p "Define the radii (in miles) for the proximity filters."]
-   ;; [:ul
-   ;;  [:li "shorter distance"
-   ;;   [:ul
-   ;;    [:li "name: " [:span.code "min_radius"]]
-   ;;    [:li "type: float"]
-   ;;    [:li "default: 1.0  (miles)"]]]
-   ;;  [:li "longer distance"
-   ;;   [:ul
-   ;;    [:li "name: " [:span.code "max_radius"]]
-   ;;    [:li "type: float"]
-   ;;    [:li "default: 5.0  (miles)"]]]]
-   
    [:h4 "Location"]
    [:p "Filter results by proximity to this location."]
-   [:p "Required: either "
+   [:p [:span.i "Required"] ": either "
     [:span.code "address"]
     " -or- both "
     [:span.code "lat"] " and " [:span.code "lon"] "."]
+
+   ;; address
    [:ul
     [:li "address"
      [:ul
@@ -51,7 +38,8 @@
           " or "
           [:span.code "lon"]
           " is absent."]]]]]]]
-   
+
+   ;; lat, lon
    [:ul
     [:li "latitude AND longitude"
      [:ul

@@ -8,6 +8,7 @@
 (def style-str
   (str "body {font-family: Verdana}"
        ".code {font-family: \"Courier New\"; font-weight: bold}"
+       ".i  {font-style: italic}"
        "h2 {color: blue}"
        "h3 {color: green}"))
 

@@ -12,9 +12,9 @@
       [:li "optional: defaults to " [:span.code "0"]]
       [:li "notes:"
        [:ul
-        [:li "indices start at " [:span.code "0"]]
+        [:li "Indices start at " [:span.code "0"] "."]
         [:li "If there are fewer than " [:span.code "from"]
-         " results, return none."]]]]]
+         " results, return " [:span.code "[]"]"."]]]]]
     [:li "number to include"
      [:ul
       [:li "name: " [:span.code "size"]]

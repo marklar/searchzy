@@ -52,7 +52,8 @@
       [:p "When there's no error, the response code is " [:span.code "200"] "."]
 
       [:h3 "Errors"]
-      [:p "Try a malformed query, to see what an error looks like:"]
+      [:p "Try a malformed query (it's missing a " [:span.code "lon"]
+       "), to see what an error looks like:"]
       [:ul
        [:li [:a {:href url4} url4]]]
 
@@ -65,8 +66,8 @@
       [:h2 "Behavior"]
       [:h3 "Query"]
       [:p "This is an auto-suggest query.  The final token of a user’s query "
-       "is treated as a prefix.  For example, \"hai\" might be the beginning "
-       "of the words \"hair\" or \"haircut\"."]
+       "is treated as a prefix.  For example, " [:span.code "hai"] " might "
+       "be the beginning of the words \"hair\" or \"haircut\"."]
       
       [:p "The search services performs prefix queries against three domains:"]
       [:ul
@@ -75,7 +76,8 @@
        [:li "Business names - e.g. \"Cinderella Hair Castle\""]]
       
       [:h3 "Filtering"]
-      [:p "For Businesses, filtered by geographic proximity to the provided location."]
+      [:p "For Businesses, filtered by geographic proximity to the "
+       "provided location."]
       [:p "BusinessCategory names and Item names are not filtered."]
       
       [:h3 "Sorting"]
@@ -104,7 +106,7 @@
        [:li "name: " [:span.code "html"]]
        [:li "type: boolean"
         [:ul
-         [:li "true: any of " [:span.code "[true, t, 1]"]]
+         [:li "true: any of " [:span.code "{true, t, 1}"]]
          [:li "false: anything else"]]]
        [:li "optional: defaults to " [:span.code "false"]]
        [:li "purpose:"
