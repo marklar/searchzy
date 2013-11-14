@@ -9,7 +9,6 @@
              [geo :as geo]
              [responses :as responses]]
             [clojurewerkz.elastisch.native
-             [conversion :as cnv]
              [document :as es-doc]]))
 
 (defn- mk-one-hit
@@ -83,8 +82,8 @@
     (:hits
      (search-fn idx-name mapping-name
                 :query  {:field {:item_id item-id}}
-                :sort   (mk-sort sort-map geo-map)
                 :filter (util/mk-geo-filter geo-map)
+                :sort   (mk-sort sort-map geo-map)
                 :from   (:from page-map)
                 :size   (:size page-map)))))
 

@@ -10,11 +10,10 @@
              [businesses :as docs.biz]
              [business-menu-items :as docs.items]]
             [searchzy.service
+             [business :as biz]
              [responses :as responses]
              [suggestions :as sugg]
              [business-menu-items :as items]]
-            [searchzy.service.business
-             [core :as biz]]
             [compojure
              [handler :as handler]
              [route :as route]]))

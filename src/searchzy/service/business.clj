@@ -1,27 +1,29 @@
 (ns searchzy.service.business
-  (:require [searchzy.service
+  (:use [clojure.core.match :only (match)])
+  (:require [searchzy.cfg :as cfg]
+            [searchzy.service
+             [flurbl :as flurbl]
              [util :as util]
              [inputs :as inputs]
              [validate :as validate]
              [geo :as geo]
              [responses :as responses]
              [query :as q]]
-            [searchzy.cfg :as cfg]
             [clojurewerkz.elastisch.native
              [document :as es-doc]]))
 
 ;; -- search --
 
-(defn- mk-sort
-  "Create map for sorting results, depending on sort setting."
-  [by-value?]
-  (if (not by-value?)
-    {:_score :desc}
-    ;; (array-map :yelp_star_rating  :desc
-    ;;            :yelp_review_count :desc
-    ;;            :value_score_int   :desc
-    ;;            :_score            :desc)))
-    {:value_score_int :desc}))
+(def DEFAULT_SORT {:value_score_int :desc})
+
+(defn mk-sort
+  [sort-map geo-map]
+  (let [order (:order sort-map)]
+    (match (:attribute sort-map)
+           "value"    {:value_score_int order}
+           "distance" (flurbl/mk-geo-distance-sort-builder (:coords geo-map) order)
+           "score"    {:_score order}
+           :else      DEFAULT_SORT)))
 
 (defn- mk-function-score-query
   "Return a 'function_score' query-map, for sorting by value_score_int."
@@ -35,29 +37,31 @@
 (defn- mk-query
   "Create map for querying -
    EITHER: just with 'query' -OR- with a scoring fn for sorting."
-  [by-value? query query-type]
+  [query query-type sort-map]
   (let [simple-query-map
         (if (= query-type :prefix)
           (util/mk-suggestion-query query)
           {query-type {:name {:query query
                               :operator "and"}}})]
-    (if by-value?
+    (if (= "value" (:attribute sort-map))
       simple-query-map
       (mk-function-score-query simple-query-map))))
 
 (defn get-results
   "Perform ES search, return results map.
-   If by-value?, change scoring function and sort by its result.
-   TYPES: string string float float float bool int int"
-  [query-str query-type geo-map sort page-map]
-  (let [by-value? (= 'value sort)
+   If sort is by 'value', change scoring function and sort by its result."
+  [query-str query-type geo-map sort-map page-map]
+  (let [search-fn (if (= "distance" (:attribute sort-map))
+                    flurbl/distance-sort-search
+                    es-doc/search)
         es-names (:businesses cfg/elastic-search-names)]
-    (:hits (es-doc/search (:index es-names) (:mapping es-names)
-                          :query  (mk-query by-value? query-str query-type)
-                          :filter (util/mk-geo-filter geo-map)
-                          :sort   (mk-sort by-value?)
-                          :from   (:from page-map)
-                          :size   (:size page-map)))))
+    (:hits
+     (search-fn (:index es-names) (:mapping es-names)
+                :query  (mk-query query-str query-type sort-map)
+                :filter (util/mk-geo-filter geo-map)
+                :sort   (mk-sort sort-map geo-map)
+                :from   (:from page-map)
+                :size   (:size page-map)))))
 
 ;; -- create response --
 
@@ -83,12 +87,12 @@
 
 (defn- mk-response
   "From ES response, create service response."
-  [es-results query-str geo-map sort pager]
+  [es-results query-str geo-map sort-map pager]
   (let [day-of-week (util/get-day-of-week)]
     (responses/ok-json
      {:endpoint "/v1/businesses"
       :arguments {:query query-str
-                  :sort sort
+                  :sort sort-map
                   :paging pager
                   :geo_filter geo-map
                   :day_of_week day-of-week}
@@ -96,13 +100,11 @@
                 :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
                            (:hits es-results))}})))
 
-;; With any of these, a prefix of '-' means "desc".
-(def VALID-SORTS
-  ['value 'lexical 'distance 'price])
+(def sort-attributes #{"value" "distance" "score"})
 
 (defn validate-and-search
   ""
-  [input-query input-geo-map sort input-page-map]
+  [input-query input-geo-map sort-str input-page-map]
 
   ;; Validate query.
   (let [query-str (q/normalize input-query)]
@@ -114,15 +116,15 @@
         (if (nil? geo-map)
           (validate/response-bad-location input-geo-map)
           
-          ;; Validate sort - #{nil 'value 'lexical}.  Def: 'value.
-          (let [sort (inputs/str-to-val sort 'value)]
-            (if (not (validate/valid-sort? sort))
-              (validate/response-bad-sort sort)
-              
+          ;; Validate sort info.
+          (let [sort-map (flurbl/get-sort-map sort-str sort-attributes)]
+            (if (nil? sort-map)
+              (validate/response-bad-sort sort-str)
+
               ;; OK, do search.
               (let [page-map (inputs/mk-page-map input-page-map)
                     es-results (get-results query-str :match
-                                                   geo-map sort page-map)]
-
+                                            geo-map sort-map page-map)]
+                
                 ;; Extract info from ES-results, create JSON response.
-                (mk-response es-results query-str geo-map sort page-map)))))))))
+                (mk-response es-results query-str geo-map sort-map page-map)))))))))
