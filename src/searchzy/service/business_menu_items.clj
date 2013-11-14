@@ -1,13 +1,15 @@
 (ns searchzy.service.business-menu-items
-  (:import [java.util Calendar GregorianCalendar])
+  (:use [clojure.core.match :only (match)])
   (:require [searchzy.cfg :as cfg]
             [searchzy.service
+             [flurbl :as flurbl]
              [util :as util]
              [inputs :as inputs]
              [validate :as validate]
              [geo :as geo]
              [responses :as responses]]
             [clojurewerkz.elastisch.native
+             [conversion :as cnv]
              [document :as es-doc]]))
 
 (defn- mk-one-hit
@@ -37,7 +39,7 @@
 
 (defn- mk-response
   "From ES response, create service response."
-  [results metadata item-id geo-map page-map]
+  [results metadata item-id geo-map sort-map page-map]
   (let [day-of-week (util/get-day-of-week)
         resp-hits (map #(mk-one-hit % day-of-week (:coords geo-map))
                        (map :_source (:hits results)))]
@@ -45,6 +47,7 @@
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id
                   :geo_filter geo-map
+                  :sort sort-map
                   :paging page-map
                   :day_of_week day-of-week}
       :results {:count (:total results)
@@ -56,19 +59,34 @@
 (def idx-name (:index (:business_menu_items cfg/elastic-search-names)))
 (def mapping-name (:mapping (:business_menu_items cfg/elastic-search-names)))
 
+(def DEFAULT_SORT {:value_score_int :desc})
+
+(defn mk-sort
+  [sort-map geo-map]
+  (let [order (:order sort-map)]
+    (match (:attribute sort-map)
+           "value"    {:value_score_int order}
+           "distance" (flurbl/mk-geo-distance-sort-builder (:coords geo-map) order)
+           "price"    {:price_micros order}
+           :else      DEFAULT_SORT)))
+
+;; :sort   (array-map :yelp_star_rating  :desc
+;;                    :yelp_review_count :desc
+;;                    :value_score_picos :desc)
+
 (defn- get-results
   "Perform search against item_id."
-  [item-id geo-map page-map]
-  (:hits
-   (es-doc/search idx-name mapping-name
-                  :query  {:match {:item_id item-id}}
-                  ;; :sort   (array-map :yelp_star_rating  :desc
-                  ;;                    :yelp_review_count :desc
-                  ;;                    :value_score_picos :desc)
-                  :sort   {:value_score_picos :desc}
-                  :filter (util/mk-geo-filter geo-map)
-                  :from   (:from page-map)
-                  :size   (:size page-map))))
+  [item-id geo-map sort-map page-map]
+  (let [search-fn (if (= "distance" (:attribute sort-map))
+                    flurbl/distance-sort-search
+                    es-doc/search)]
+    (:hits
+     (search-fn idx-name mapping-name
+                :query  {:field {:item_id item-id}}
+                :sort   (mk-sort sort-map geo-map)
+                :filter (util/mk-geo-filter geo-map)
+                :from   (:from page-map)
+                :size   (:size page-map)))))
 
 (defn- compact [seq] (remove nil? seq))
 
@@ -118,9 +136,11 @@
   (let [new-item-hits (take size (drop from (:hits results)))]
     (assoc results :hits new-item-hits)))
 
+(def sort-attributes #{"price" "value" "distance"})
+
 (defn validate-and-search
   ""
-  [item-id input-geo-map input-page-map]
+  [item-id input-geo-map sort-str input-page-map]
 
   ;; Validate item-id.
   (if (clojure.string/blank? item-id)
@@ -130,19 +150,25 @@
     (let [geo-map (inputs/mk-geo-map input-geo-map)]
       (if (nil? geo-map)
         (validate/response-bad-location input-geo-map)
-          
-        (let [page-map (inputs/mk-page-map input-page-map)
 
-              ;; Do search, getting lots of (MAX_ITEMS) results.
-              big-item-res (get-results item-id geo-map
-                                        {:from 0, :size MAX_ITEMS})
+        ;; Validate sort info.
+        (let [sort-map (flurbl/get-sort-map sort-str sort-attributes)]
+          (if (nil? sort-map)
+            (validate/response-bad-sort sort-str)
 
-              ;; Gather metadata from the results returned.
-              metadata {:prices-micros (get-prices-micros big-item-res)
-                        :latest-close (get-latest-close big-item-res)}
-
-              ;; Create a restricted set of results to return to client.
-              item-res (restrict-hits-in-results big-item-res page-map)]
-            
-            ;; Extract info from ES-results, create JSON response.
-            (mk-response item-res metadata item-id geo-map page-map))))))
+            (let [page-map (inputs/mk-page-map input-page-map)
+                  
+                  ;; Do search, getting lots of (MAX_ITEMS) results.
+                  big-item-res (get-results item-id geo-map sort-map
+                                            {:from 0, :size MAX_ITEMS})
+                  
+                  ;; Gather metadata from the results returned.
+                  metadata {:prices-micros (get-prices-micros big-item-res)
+                            :latest-close (get-latest-close big-item-res)}
+                  
+                  ;; Create a restricted set of results to return to client.
+                  item-res (restrict-hits-in-results big-item-res page-map)]
+              
+              ;; Extract info from ES-results, create JSON response.
+              (mk-response item-res metadata item-id geo-map sort-map page-map)
+              )))))))

@@ -1,7 +1,7 @@
 (ns searchzy.service.docs.util)
 
-(def lat 40.7143528)
-(def lon -74.00597309999999)
+(def lat 40.714)
+(def lon -74.006)
 (def address "New%20York,%20NY")
 (def miles 2.5)
 

@@ -69,14 +69,14 @@
 
   ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
-       [api_key item_id address lat lon miles from size]
+       [api_key item_id address lat lon miles sort from size]
        (if (not (valid-key? api_key))
          ;; not authorized
          (bounce)
          ;; authorized
          (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
                page-map {:from from, :size size}]
-           (items/validate-and-search item_id geo-map page-map))))
+           (items/validate-and-search item_id geo-map sort page-map))))
 
   (GET (v-path 1 "/suggestions")
        [query address lat lon miles size html]

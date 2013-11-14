@@ -79,8 +79,7 @@
       [:ul
        [:li "Price"]
        [:li "Value"]
-       [:li "Proximity"]
-       [:li "Score (ElasticSearch's)"]]
+       [:li "Distance"]]
       
       [:h3 "Paging"]
       [:p "Only a subset of results is returned, based on provided offsets."]

@@ -38,7 +38,7 @@
 
 (defn response-bad-sort
   "The user has input an invalid 'sort' value, so return 404."
-  [sort]
+  [sort-str]
   (responses/error-json
-   {:error "Param 'sort' must be: 'value', 'lexical', or absent."
-    :sort sort}))
+   {:error "Invalid value for 'sort'."
+    :sort sort-str}))
