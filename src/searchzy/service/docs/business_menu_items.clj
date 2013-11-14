@@ -14,10 +14,12 @@
         from 0
         size 8
         url1 (util/mk-url path {:item_id item_id
+                                :sort "price"
                                 :address util/address
                                 :miles util/miles
                                 :from from :size size})
         url2 (util/mk-url path {:item_id item_id
+                                :sort "distance"
                                 :lat util/lat :lon util/lon})]
     (html
      [:head
@@ -37,12 +39,12 @@
        [:span.code "miles"] ", " [:span.code "from"]
        ", and " [:span.code "size"] ": "]
       [:ul
-       [:li [:a {:href url1} url1]]]
+       [:li [:a {:href url1} [:span.code url1] ]]]
       
       [:p "Using " [:span.code "lat"] " and " [:span.code "lon"]
        " instead of " [:span.code "address:"]]
       [:ul
-       [:li [:a {:href url2} url2]]]
+       [:li [:a {:href url2} [:span.code url2] ]]]
       
       [:h2 "Behavior"]
       

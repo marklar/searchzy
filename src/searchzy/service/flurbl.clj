@@ -20,6 +20,11 @@
 
 
 (defn ^SearchRequest ->search-request
+  "This is specifically for when 'sort' is an instance of SortBuilder.
+   cnv/set-sort assumes that 'sort' is either a String OR
+   a seq of [attribute order] pairs.  If it were changed to know about
+   '_geo_distance' hashes and create GeoDistanceSortBuilders from them,
+   "
   [index-name mapping-type {:keys [search-type search_type scroll routing
                                    preference
                                    query facets from size timeout filter
