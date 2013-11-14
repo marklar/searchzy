@@ -29,25 +29,19 @@
 
 (defn- auth-str
   [u p]
-  ;; (if u
-  ;;   (str u
-  ;;        ":"
-  ;;        (if (str/blank? p) "" (str ":" p))
-  ;;        "@")
-  ;;   ""))
   (if (and u p)
     (str u ":" p "@")
     ""))
 
 (defn mk-conn-str
-  [db-name {:keys [host port username password]}]
+  [{:keys [db-name host port username password]}]
   (str "mongodb://"
        (auth-str username password)
        host ":" port "/" db-name))
   
 (defn mongo-connect!
   "MongoDB connection."
-  [db-name mg-cfg]
-  (println "conn-str: " (mk-conn-str db-name mg-cfg))
-  (let [conn (mg/make-connection (mk-conn-str db-name mg-cfg))]
+  [mg-cfg]
+  (println "conn-str: " (mk-conn-str mg-cfg))
+  (let [conn (mg/make-connection (mk-conn-str mg-cfg))]
     (mg/set-connection! conn)))

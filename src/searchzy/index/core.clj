@@ -54,9 +54,8 @@
 (defn index-one
   [{:keys [idx-name f db]}]
   (println (str "indexing: " idx-name))
-  (let [c (:mongo-db (cfg/get-cfg))
-        db-name (get (:db-names c) db)]
-    (util/mongo-connect! db-name c)
+  (let [c (get (:mongo-db (cfg/get-cfg)) db)]
+    (util/mongo-connect! c)
     (let [cnt (f)]
       (println (str "indexed " cnt " " (str idx-name) " records."))
       cnt)))
