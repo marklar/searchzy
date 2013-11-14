@@ -7,14 +7,18 @@
 ;; If you'd like to use different ElasticSearch indices, just change these.
 ;; You'll have to re-index before you can search against them, obviously.
 (def elastic-search-names
-  {:businesses           {:index   "businesses"
+  {
+   ;; slow
+   :businesses           {:index   "businesses"
                           :mapping "business"}
+   :business_menu_items  {:index   "business_menu_items"
+                          :mapping "business_menu_item"}
+   ;; fast
    :business_categories  {:index   "business_categories"
                           :mapping "business_category"}
    :items                {:index   "items"
                           :mapping "item"}
-   :business_menu_items  {:index   "business_menu_items"
-                          :mapping "business_menu_item"}})
+   })
 
 ;;
 ;; Cluster name and transport node addresses can be retrieved
