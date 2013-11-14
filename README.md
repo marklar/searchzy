@@ -80,18 +80,31 @@ Its contents should look like this:
 
     api-key:
     mongo-db:
-        host: 127.0.0.1
-        port: 27017
-        username:
-        password:
-        db-name: centzy_web_production
+        main:
+            db-name: centzy_web_production
+            username:
+            password: 
+            host: 127.0.0.1
+            port: 27017
+        areas:
+            db-name: centzy_web_production_areas
+            username:
+            password: 
+            host: 127.0.0.1
+            port: 27017
+        businesses:
+            db-name: centzy_web_production_businesses
+            username:
+            password: 
+            host: 127.0.0.1
+            port: 27017
     elastic-search:
-        host: 127.0.0.1
+        cluster-name: elasticsearch
+        host: localhost
         port: 9300
-        cluster-name: elasticsearch_something
 
-Except that some of the values will need to add (e.g.: api-key) or
-change.
+Except that some of the values will need to be added (e.g.: api-key) or
+changed.
 
 In particular, you need to find out your ElasticSearch's cluster name.
 Retrieve it via ElasticSearch's REST API, thus:
@@ -112,7 +125,7 @@ To index, run this command:
 
     lein run -m searchzy.index.core
 
-Indexing currently takes just over 1 hour (on my MacBook Air laptop).
+Indexing currently takes about 1 hour (on my MacBook Air laptop).
 
 ### Service
 
