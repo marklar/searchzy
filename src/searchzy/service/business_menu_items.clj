@@ -42,8 +42,9 @@
   "From ES response, create service response."
   [results metadata item-id geo-map hours-map sort-map page-map]
   (let [day-of-week (util/get-day-of-week)
+        pageful   (take (:size page-map) (drop (:from page-map) results))
         resp-hits (map #(mk-one-hit % day-of-week (:coords geo-map))
-                       (map :_source (:hits results)))]
+                       (map :_source pageful))]
     (responses/ok-json
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id
@@ -52,7 +53,7 @@
                   :sort sort-map
                   :paging page-map
                   :day_of_week day-of-week}
-      :results {:count (:total results)
+      :results {:count (count results)
                 :prices_micros (:prices-micros metadata)
                 :latest_close (:latest-close metadata)
                 :hits resp-hits
@@ -86,25 +87,24 @@
   (let [search-fn (if (sort-by-distance? sort-map)
                     flurbl/distance-sort-search
                     es-doc/search)]
-    ;; (:hits (:hits
-    (:hits
-     (search-fn idx-name mapping-name
-                :query  {:field {:item_id item-id}}
-                :filter (util/mk-geo-filter geo-map)
-                :sort   (mk-sort sort-map geo-map)
-                :from   (:from page-map)
-                :size   (:size page-map)))))
+    (:hits (:hits
+            (search-fn idx-name mapping-name
+                       :query  {:field {:item_id item-id}}
+                       :filter (util/mk-geo-filter geo-map)
+                       :sort   (mk-sort sort-map geo-map)
+                       :from   (:from page-map)
+                       :size   (:size page-map))))))
 
 (def MAX_ITEMS 1000)
 
-(defn- restrict-hits-in-results
-  "Create a restricted set of results to return to client."
-  [results page-map]
-  (let [{:keys [from size]} page-map
-        new-item-hits (take size (drop from (:hits results)))]
-    (assoc results :hits new-item-hits)))
-
 (def sort-attributes #{"price" "value" "distance"})
+
+(defn- filter-by-hours
+  [biz-menu-items hours-map]
+  (if (nil? hours-map)
+    biz-menu-items
+    (filter #(util/open-at? hours-map (-> :_source :business :hours %))
+            biz-menu-items)))
 
 (defn validate-and-search
   ""
@@ -132,21 +132,18 @@
               (let [page-map (inputs/mk-page-map input-page-map)
                     
                     ;; Do search, getting lots of (MAX_ITEMS) results.
-                    ;; TODO: Return *only* the actual hits.
-                    big-item-res (get-results item-id geo-map
-                                              hours-map sort-map
-                                              {:from 0, :size MAX_ITEMS})
+                    ;; Return *only* the actual hits.
+                    es-items (get-results item-id geo-map
+                                          hours-map sort-map
+                                          {:from 0, :size MAX_ITEMS})
 
                     ;; Possible post-facto filter using hours-map.
-                    ;; TODO: Fix (:total results) - make it count of this!
-                    hours-filtered-res (util/filter-by-hours big-item-res hours-map)
+                    items (filter-by-hours es-items hours-map)
                     
                     ;; Gather metadata from the results returned.
-                    metadata (meta/get-metadata hours-filtered-res)
+                    metadata (meta/get-metadata items)]
                     
-                    ;; Create a restricted set of results to return to client.
-                    item-res (restrict-hits-in-results hours-filtered-res page-map)]
-                
                 ;; Extract info from ES-results, create JSON response.
-                (mk-response item-res metadata item-id geo-map hours-map sort-map page-map)
+                (mk-response items metadata
+                             item-id geo-map hours-map sort-map page-map)
                 ))))))))

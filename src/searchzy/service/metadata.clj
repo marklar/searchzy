@@ -1,12 +1,13 @@
-(ns searchzy.service.metadata   ;; for businesses
+(ns searchzy.service.metadata
+  "For BizMenuItems"
   (:require [searchzy.service
              [util :as util]]))
 
 (defn- compact [seq] (remove nil? seq))
 
 (defn- get-prices-micros
-  [{hits :hits}]
-  (let [prices (compact (map #(-> % :_source :price_micros) hits))
+  [biz-menu-items]
+  (let [prices (compact (map #(-> % :_source :price_micros) biz-menu-items))
         sum (apply + prices)
         cnt (count prices)]
     (if (= 0 cnt)
@@ -16,9 +17,9 @@
        :min  (apply min prices)})))
 
 (defn- get-all-hours-today
-  [hits]
+  [biz-menu-items]
   (let [day-of-week (util/get-day-of-week)
-        all-hours (compact (map #(-> % :_source :business :hours) hits))]
+        all-hours (compact (map #(-> % :_source :business :hours) biz-menu-items))]
     (compact (map #(util/get-hours-today % day-of-week) all-hours))))
 
 (def HOUR_MINS 60)
@@ -37,12 +38,12 @@
     (mins-to-hour max-minutes)))
 
 (defn- get-latest-close
-  "Given ES hits, return a single 'hour' (i.e. {:hour h, :minute m})."
-  [{hits :hits}]
-  (let [all-closing (map :close (get-all-hours-today hits))]
+  "Given biz-menu-items, return a single 'hour' (i.e. {:hour h, :minute m})."
+  [biz-menu-items]
+  (let [all-closing (map :close (get-all-hours-today biz-menu-items))]
     (get-latest-hour all-closing)))
 
 (defn get-metadata
-  [big-item-res]
-  {:prices-micros (get-prices-micros big-item-res)
-   :latest-close (get-latest-close big-item-res)})
+  [biz-menu-items]
+  {:prices-micros (get-prices-micros biz-menu-items)
+   :latest-close (get-latest-close biz-menu-items)})

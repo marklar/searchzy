@@ -89,21 +89,11 @@
       (and (= h1 h2)
            (or (= m1 m2) (op m1 m2)))))
 
-
-;; FIXME: make more generic!
-(defn- open-at?
+(defn open-at?
   "Time: 10:51.  Open: 8:30.  Close: 15:00.  --> true"
-  [hours-map biz-menu-item-result]
-  (let [biz-hours (:hours (:business (:_source biz-menu-item-result)))
-        hours-today (get-hours-today biz-hours (:wday hours-map))]
+  [hours-map biz-hours]
+  (let [hours-today (get-hours-today biz-hours (:wday hours-map))]
     (if (not (and hours-today (:open hours-today) (:close hours-today)))
       false
       (and (time-cmp-eq > hours-map (:open hours-today))
            (time-cmp-eq < hours-map (:close hours-today))))))
-
-(defn filter-by-hours
-  [results hours-map]
-  (let [new-hits (filter #(open-at? hours-map %) (:hits results))]
-    (assoc results
-      :hits new-hits
-      :total (count new-hits))))

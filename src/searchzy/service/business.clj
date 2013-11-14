@@ -55,13 +55,13 @@
                     flurbl/distance-sort-search
                     es-doc/search)
         es-names (:businesses cfg/elastic-search-names)]
-    (:hits
-     (search-fn (:index es-names) (:mapping es-names)
-                :query  (mk-query query-str query-type sort-map)
-                :filter (util/mk-geo-filter geo-map)
-                :sort   (mk-sort sort-map geo-map)
-                :from   (:from page-map)
-                :size   (:size page-map)))))
+    (:hits (:hits
+            (search-fn (:index es-names) (:mapping es-names)
+                       :query  (mk-query query-str query-type sort-map)
+                       :filter (util/mk-geo-filter geo-map)
+                       :sort   (mk-sort sort-map geo-map)
+                       :from   (:from page-map)
+                       :size   (:size page-map))))))
 
 ;; -- create response --
 
@@ -87,7 +87,7 @@
 
 (defn- mk-response
   "From ES response, create service response."
-  [es-results query-str geo-map sort-map pager]
+  [es-results query-str geo-map hours-map sort-map pager]
   (let [day-of-week (util/get-day-of-week)]
     (responses/ok-json
      {:endpoint "/v1/businesses"
@@ -95,12 +95,20 @@
                   :sort sort-map
                   :paging pager
                   :geo_filter geo-map
+                  :hours_filter hours-map
                   :day_of_week day-of-week}
-      :results {:count (:total es-results)
+      :results {:count (count es-results)
                 :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
-                           (:hits es-results))}})))
+                           es-results)}})))
 
 (def sort-attributes #{"value" "distance" "score"})
+
+(defn- filter-by-hours
+  [businesses hours-map]
+  (if (nil? hours-map)
+    businesses
+    (filter #(util/open-at? hours-map (-> :_source :hours %))
+            businesses)))
 
 (defn validate-and-search
   ""
@@ -121,10 +129,20 @@
             (if (nil? sort-map)
               (validate/response-bad-sort sort-str)
 
-              ;; OK, do search.
-              (let [page-map (inputs/mk-page-map input-page-map)
-                    es-results (get-results query-str :match
-                                            geo-map sort-map page-map)]
+              ;; Validate ??? hours.
+              (let [hours-map (inputs/get-hours-map input-hours-map)]
                 
-                ;; Extract info from ES-results, create JSON response.
-                (mk-response es-results query-str geo-map sort-map page-map)))))))))
+                ;; (if (nil? hours-map)
+                ;; (validate/response-bad-hours input-hours-map)
+
+                ;; OK, do search.
+                (let [_ (println hours-map)
+                      page-map (inputs/mk-page-map input-page-map)
+                      es-results (get-results query-str :match
+                                              geo-map sort-map page-map)
+                      ;; Possible post-facto filter using hours-map.
+                      results (filter-by-hours es-results hours-map)]
+
+                  ;; Extract info from ES-results, create JSON response.
+                  (mk-response results query-str
+                               geo-map hours-map sort-map page-map))))))))))
