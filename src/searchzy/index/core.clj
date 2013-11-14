@@ -1,5 +1,6 @@
 (ns searchzy.index.core
-  "For running the service from the command line using 'lein run -m searchzy.index.core'."
+  "For running the service from the command line using
+   'lein run -m searchzy.index.core'."
   (:gen-class)
   (:require [searchzy
              [util :as util]
@@ -39,46 +40,48 @@
 ;; On my laptop, MongoDB fetching isn't the bottleneck,
 ;; so it takes the same amount of time.
 ;; 
-(def idx-name-2-fn {
-                    ;; quick
-                    "Biz Categories" biz-cat/mk-idx
-                    "Items"          item/mk-idx
-                    ;; slow
-                    "Combined"       biz-combined/mk-idx
-                    ;; "Businesses"     biz/mk-idx
-                    ;; "Biz Menu Items" biz-menu-item/mk-idx
-                    })
+(def indices
+  [;; quick
+   {:idx-name "Biz Categories", :f biz-cat/mk-idx, :db :main}
+   {:idx-name "Items", :f item/mk-idx, :db :main}
+   ;; slow
+   {:idx-name "Combined", :f biz-combined/mk-idx, :db :businesses}
+   ;; OR, do each slow independently.
+   ;; {:idx-name "Businesses", :f biz/mk-idx, :db :businesses}
+   ;; {:idx-name "Biz Menu Items", :f biz-menu-item/mk-idx, :db :businesses}
+   ])
 
 (defn index-one
-  [[name f]]
-  (println (str "indexing: " name))
-  (let [cnt (f)]
-    (println (str "indexed " cnt " " (str name) " records."))
-    cnt))
+  [{:keys [idx-name f db]}]
+  (println (str "indexing: " idx-name))
+  (let [c (:mongo-db (cfg/get-cfg))
+        db-name (get (:db-names c) db)]
+    (util/mongo-connect! db-name c)
+    (let [cnt (f)]
+      (println (str "indexed " cnt " " (str idx-name) " records."))
+      cnt)))
 
 ;; -- public --
 
 (defn index-all
   "Serial index creation."
   []
-  (doseq [pair idx-name-2-fn]
-    (index-one pair)))
+  (doseq [idx indices]
+    (index-one idx)))
 
-(defn par-index-all
-  "Parallel indexing.
-   On my laptop, this uses way too much memory and crashes the JVM.
-   (Perhaps I just need to change the JVM's memory settings?)
-   On Big Iron, using this indexing method may well work find and be faster."
-  []
-  (let [agents (map agent idx-name-2-fn)]
-    (doseq [a agents] (send a index-one))
-    (apply await agents)
-    (println "done!")))
+;; (defn par-index-all
+;;   "Parallel indexing.
+;;    On my laptop, this uses way too much memory and crashes the JVM.
+;;    (Perhaps I just need to change the JVM's memory settings?)
+;;    On Big Iron, using this indexing method may well work find and be faster."
+;;   []
+;;   (let [agents (map agent idx-name-2-fn)]
+;;     (doseq [a agents] (send a index-one))
+;;     (apply await agents)
+;;     (println "done!")))
 
 ;; -- MAIN --
 (defn -main
   [& args]
   (util/es-connect! (:elastic-search (cfg/get-cfg)))
-  (util/mongo-connect! (:mongo-db (cfg/get-cfg)))
-  ;; (blow-away-everything) 
   (index-all))

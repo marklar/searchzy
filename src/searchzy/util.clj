@@ -40,14 +40,14 @@
     ""))
 
 (defn mk-conn-str
-  [{:keys [db-name host port username password]}]
+  [db-name {:keys [host port username password]}]
   (str "mongodb://"
        (auth-str username password)
        host ":" port "/" db-name))
   
 (defn mongo-connect!
   "MongoDB connection."
-  [mg-cfg]
-  (println "conn-str: " (mk-conn-str mg-cfg))
-  (let [conn (mg/make-connection (mk-conn-str mg-cfg))]
+  [db-name mg-cfg]
+  (println "conn-str: " (mk-conn-str db-name mg-cfg))
+  (let [conn (mg/make-connection (mk-conn-str db-name mg-cfg))]
     (mg/set-connection! conn)))
