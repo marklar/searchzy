@@ -18,6 +18,13 @@
 
 ;; -- Negative responses --
 
+(defn response-bad-hours
+  "The user has input invalid biz hours, so we return 404."
+  [input-hours-map]
+  (responses/error-json
+   {:error "Bobo biz-hours input."
+    :params input-hours-map}))
+
 (defn response-bad-query
   "The user has input an invalid query, so we return 404."
   [orig-query norm-query]

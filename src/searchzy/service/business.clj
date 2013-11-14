@@ -104,7 +104,7 @@
 
 (defn validate-and-search
   ""
-  [input-query input-geo-map sort-str input-page-map]
+  [input-query input-geo-map input-hours-map sort-str input-page-map]
 
   ;; Validate query.
   (let [query-str (q/normalize input-query)]

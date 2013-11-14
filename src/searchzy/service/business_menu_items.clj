@@ -2,6 +2,7 @@
   (:use [clojure.core.match :only (match)])
   (:require [searchzy.cfg :as cfg]
             [searchzy.service
+             [metadata :as meta]
              [flurbl :as flurbl]
              [util :as util]
              [inputs :as inputs]
@@ -16,8 +17,7 @@
    Add :distance_in_mi."
   [source-map day-of-week coords]
   (let [old-biz     (:business source-map)
-        hours       (:hours old-biz)
-        hours-today (util/get-hours-today hours day-of-week)
+        hours-today (util/get-hours-today (:hours old-biz) day-of-week)
         dist        (util/haversine (:coordinates old-biz) coords)
         new-biz     (assoc (dissoc old-biz
                                    :hours :latitude_longitude
@@ -36,9 +36,11 @@
                 :yelp_review_count)
       :business new-biz)))
 
+;; TODO: Add earliest_open.
+
 (defn- mk-response
   "From ES response, create service response."
-  [results metadata item-id geo-map sort-map page-map]
+  [results metadata item-id geo-map hours-map sort-map page-map]
   (let [day-of-week (util/get-day-of-week)
         resp-hits (map #(mk-one-hit % day-of-week (:coords geo-map))
                        (map :_source (:hits results)))]
@@ -46,6 +48,7 @@
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id
                   :geo_filter geo-map
+                  :hours_filter hours-map
                   :sort sort-map
                   :paging page-map
                   :day_of_week day-of-week}
@@ -73,12 +76,17 @@
 ;;                    :yelp_review_count :desc
 ;;                    :value_score_picos :desc)
 
+(defn- sort-by-distance?
+  [sort-map]
+  (= "distance" (:attribute sort-map)))
+
 (defn- get-results
   "Perform search against item_id."
-  [item-id geo-map sort-map page-map]
-  (let [search-fn (if (= "distance" (:attribute sort-map))
+  [item-id geo-map hours-map sort-map page-map]
+  (let [search-fn (if (sort-by-distance? sort-map)
                     flurbl/distance-sort-search
                     es-doc/search)]
+    ;; (:hits (:hits
     (:hits
      (search-fn idx-name mapping-name
                 :query  {:field {:item_id item-id}}
@@ -87,59 +95,20 @@
                 :from   (:from page-map)
                 :size   (:size page-map)))))
 
-(defn- compact [seq] (remove nil? seq))
-
-(defn- get-prices-micros
-  [{hits :hits}]
-  (let [prices (compact (map #(-> % :_source :price_micros) hits))
-        sum (apply + prices)
-        cnt (count prices)]
-    (if (= 0 cnt)
-      {:mean 0, :max 0, :min 0}
-      {:mean (/ sum cnt)
-       :max  (apply max prices)
-       :min  (apply min prices)})))
-
-(defn- get-all-hours-today
-  [hits]
-  (let [day-of-week (util/get-day-of-week)
-        all-hours (compact (map #(-> % :_source :business :hours) hits))]
-    (compact (map #(util/get-hours-today % day-of-week) all-hours))))
-
-(def HOUR_MINS 60)
-
-(defn- mins-to-hour
-  [minutes]
-  (let [m (mod minutes HOUR_MINS)]
-    {:hour   (/ (- minutes m) HOUR_MINS)
-     :minute m}))
-
-(defn- get-latest-hour
-  "Given [{:hour h :minute m}], return the latest one."
-  [hour-list]
-  (let [as-minutes (fn [{h :hour, m :minute}] (+ m (* HOUR_MINS h)))
-        max-minutes (apply max (cons 0 (map as-minutes hour-list)))]
-    (mins-to-hour max-minutes)))
-
-(defn- get-latest-close
-  "Given ES hits, return a single 'hour' (i.e. {:hour h, :minute m})."
-  [{hits :hits}]
-  (let [all-closing (map :close (get-all-hours-today hits))]
-    (get-latest-hour all-closing)))
-
 (def MAX_ITEMS 1000)
 
 (defn- restrict-hits-in-results
   "Create a restricted set of results to return to client."
-  [results {:keys [from size]}]
-  (let [new-item-hits (take size (drop from (:hits results)))]
+  [results page-map]
+  (let [{:keys [from size]} page-map
+        new-item-hits (take size (drop from (:hits results)))]
     (assoc results :hits new-item-hits)))
 
 (def sort-attributes #{"price" "value" "distance"})
 
 (defn validate-and-search
   ""
-  [item-id input-geo-map sort-str input-page-map]
+  [item-id input-geo-map input-hours-map sort-str input-page-map]
 
   ;; Validate item-id.
   (if (clojure.string/blank? item-id)
@@ -155,19 +124,29 @@
           (if (nil? sort-map)
             (validate/response-bad-sort sort-str)
 
-            (let [page-map (inputs/mk-page-map input-page-map)
-                  
-                  ;; Do search, getting lots of (MAX_ITEMS) results.
-                  big-item-res (get-results item-id geo-map sort-map
-                                            {:from 0, :size MAX_ITEMS})
-                  
-                  ;; Gather metadata from the results returned.
-                  metadata {:prices-micros (get-prices-micros big-item-res)
-                            :latest-close (get-latest-close big-item-res)}
-                  
-                  ;; Create a restricted set of results to return to client.
-                  item-res (restrict-hits-in-results big-item-res page-map)]
-              
-              ;; Extract info from ES-results, create JSON response.
-              (mk-response item-res metadata item-id geo-map sort-map page-map)
-              )))))))
+            ;; Validate ??? hours.
+            (let [hours-map (inputs/get-hours-map input-hours-map)]
+              ;; (if (nil? hours-map)
+              ;; (validate/response-bad-hours input-hours-map)
+
+              (let [page-map (inputs/mk-page-map input-page-map)
+                    
+                    ;; Do search, getting lots of (MAX_ITEMS) results.
+                    ;; TODO: Return *only* the actual hits.
+                    big-item-res (get-results item-id geo-map
+                                              hours-map sort-map
+                                              {:from 0, :size MAX_ITEMS})
+
+                    ;; Possible post-facto filter using hours-map.
+                    ;; TODO: Fix (:total results) - make it count of this!
+                    hours-filtered-res (util/filter-by-hours big-item-res hours-map)
+                    
+                    ;; Gather metadata from the results returned.
+                    metadata (meta/get-metadata hours-filtered-res)
+                    
+                    ;; Create a restricted set of results to return to client.
+                    item-res (restrict-hits-in-results hours-filtered-res page-map)]
+                
+                ;; Extract info from ES-results, create JSON response.
+                (mk-response item-res metadata item-id geo-map hours-map sort-map page-map)
+                ))))))))
