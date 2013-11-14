@@ -68,16 +68,16 @@
   (doseq [idx indices]
     (index-one idx)))
 
-;; (defn par-index-all
-;;   "Parallel indexing.
-;;    On my laptop, this uses way too much memory and crashes the JVM.
-;;    (Perhaps I just need to change the JVM's memory settings?)
-;;    On Big Iron, using this indexing method may well work find and be faster."
-;;   []
-;;   (let [agents (map agent idx-name-2-fn)]
-;;     (doseq [a agents] (send a index-one))
-;;     (apply await agents)
-;;     (println "done!")))
+(defn par-index-all
+  "Parallel indexing.  (Not for use with 'Combined' - no advantage.)
+   On my laptop, this uses way too much memory and crashes the JVM.
+   (Perhaps I just need to change the JVM's memory settings?)
+   On Big Iron, using this indexing method may well work find and be faster."
+  []
+  (let [agents (map agent indices)]
+    (doseq [a agents] (send a index-one))
+    (apply await agents)
+    (println "done!")))
 
 ;; -- MAIN --
 (defn -main

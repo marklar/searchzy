@@ -29,25 +29,25 @@
 ;;
 
 (def default-cfg
-  {:api-key        nil
+  {:api-key nil
    :elastic-search {:cluster-name "elasticsearch_markwong-vanharen"
                     :host "127.0.0.1"
                     :port 9300}
-   :mongo-db {:main {:db-name "centzy_web_production"
-                     :username nil
-                     :password nil
-                     :host "127.0.0.1"
-                     :port 27017}
-              :areas {:db-name "centzy_web_production_areas"
-                      :username nil
-                      :password nil
-                      :host "127.0.0.1"
-                      :port 27017}
-              :businesses {:db-name "centzy_web_production_businesses"
-                           :username nil
-                           :password nil
-                           :host "127.0.0.1"
-                           :port 27017}}})
+   :mongo-db {:main        {:db-name "centzy_web_production"
+                            :username nil
+                            :password nil
+                            :host "127.0.0.1"
+                            :port 27017}
+              :areas       {:db-name "centzy_web_production_areas"
+                            :username nil
+                            :password nil
+                            :host "127.0.0.1"
+                            :port 27017}
+              :businesses  {:db-name "centzy_web_production"
+                            :username nil
+                            :password nil
+                            :host "127.0.0.1"
+                            :port 27017}}})
 
 (def cfg (atom nil))
 
