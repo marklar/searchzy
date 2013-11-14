@@ -2,6 +2,7 @@
   (:use [hiccup.core])
   (:require [searchzy.service.docs
              [sorting :as sorting]
+             [api-key :as api-key]
              [util :as util]
              [query :as query]
              [hours :as hours]
@@ -91,7 +92,8 @@
       [:p "It requires query-string parameters to work correctly."]
       
       [:h2 "Query String Parameters"]
-      
+
+      (api-key/api-key)
       (query/query "Businesses")
       (sorting/biz-menu-items)
       (paging/paging)

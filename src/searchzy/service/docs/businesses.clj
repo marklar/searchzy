@@ -3,6 +3,7 @@
   (:require [searchzy.service.docs
              [sorting :as sorting]
              [hours :as hours]
+             [api-key :as api-key]
              [util :as util]
              [query :as query]
              [paging :as paging]
@@ -89,6 +90,7 @@
       
       [:h2 "Query String Parameters"]
 
+      (api-key/api-key)
       (query/query "Businesses")
       (sorting/businesses)
       (paging/paging)
