@@ -33,8 +33,7 @@
     (let [res (geo/resolve-address lat lon address)]
       (if (nil? res)
         nil
-        {:address {:input address
-                   :resolved (:address res)}
+        {:address {:input address, :resolved (:address res)}
          :coords (:coords res)
          :miles miles}))))
 

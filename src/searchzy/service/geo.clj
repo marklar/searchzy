@@ -13,8 +13,10 @@
     (try (let [result (first (geo/geocode-address address))
                resolved-address (:formatted-address result)
                {:keys [lat lng]} (:location (:geometry result))]
-           {:coords {:lat lat, :lon lng}
-            :address resolved-address})
+           (if (nil? resolved-address)
+             nil
+             {:coords {:lat lat, :lon lng}
+              :address resolved-address}))
          (catch Exception e nil)
          (finally nil))))
     
