@@ -55,13 +55,38 @@
                     flurbl/distance-sort-search
                     es-doc/search)
         es-names (:businesses cfg/elastic-search-names)]
-    (:hits (:hits
-            (search-fn (:index es-names) (:mapping es-names)
-                       :query  (mk-query query-str query-type sort-map)
-                       :filter (util/mk-geo-filter geo-map)
-                       :sort   (mk-sort sort-map geo-map)
-                       :from   (:from page-map)
-                       :size   (:size page-map))))))
+    (:hits
+     (search-fn (:index es-names) (:mapping es-names)
+                :query  (mk-query query-str query-type sort-map)
+                :filter (util/mk-geo-filter geo-map)
+                :sort   (mk-sort sort-map geo-map)
+                :from   (:from page-map)
+                :size   (:size page-map)))))
+
+(def MAX_ITEMS 1000)
+
+(defn- filter-by-hours
+  [businesses hours-map]
+  (if (nil? hours-map)
+    businesses
+    (filter #(util/open-at? hours-map (-> % :_source :hours))
+            businesses)))
+
+(defn get-open-results
+  "Returns hits plus total."
+  [query-str geo-map hours-map sort-map page-map]
+  (if (nil? hours-map)
+
+    ;; We don't need to post-filter results.
+    (get-results query-str :match geo-map sort-map page-map)
+
+    ;; First get lots.  Then post-filter.
+    (let [es-results (get-results query-str :match geo-map sort-map
+                                  {:from 0, :size MAX_ITEMS})
+          open-hits (filter-by-hours (:hits es-results) hours-map)]
+      {:total (count open-hits)
+       :hits open-hits})))
+
 
 ;; -- create response --
 
@@ -77,7 +102,7 @@
                            yid :yelp_id
                            p :permalink} :_source}]
   (let [dist (util/haversine cs coords)
-        hours-today (util/get-hours-today hs day-of-week)]
+        hours-today (util/get-hours-for-day hs day-of-week)]
     {:_id id :name n :address a :permalink p
      :yelp {:id yid, :star_rating ysr, :review_count yrc}
      :phone_number phone_number
@@ -87,28 +112,22 @@
 
 (defn- mk-response
   "From ES response, create service response."
-  [es-results query-str geo-map hours-map sort-map pager]
-  (let [day-of-week (util/get-day-of-week)]
+  [es-results query-str geo-map hours-map sort-map page-map]
+  (let [day-of-week (util/get-day-of-week)
+        pageful (take (:size page-map) (drop (:from page-map) (:hits es-results)))]
     (responses/ok-json
      {:endpoint "/v1/businesses"
       :arguments {:query query-str
                   :sort sort-map
-                  :paging pager
+                  :paging page-map
                   :geo_filter geo-map
                   :hours_filter hours-map
                   :day_of_week day-of-week}
-      :results {:count (count es-results)
+      :results {:count (:total es-results)
                 :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
-                           es-results)}})))
+                           pageful)}})))
 
 (def sort-attributes #{"value" "distance" "score"})
-
-(defn- filter-by-hours
-  [businesses hours-map]
-  (if (nil? hours-map)
-    businesses
-    (filter #(util/open-at? hours-map (-> :_source :hours %))
-            businesses)))
 
 (defn validate-and-search
   ""
@@ -136,12 +155,9 @@
                 ;; (validate/response-bad-hours input-hours-map)
 
                 ;; OK, do search.
-                (let [_ (println hours-map)
-                      page-map (inputs/mk-page-map input-page-map)
-                      es-results (get-results query-str :match
-                                              geo-map sort-map page-map)
-                      ;; Possible post-facto filter using hours-map.
-                      results (filter-by-hours es-results hours-map)]
+                (let [page-map (inputs/mk-page-map input-page-map)
+                      results (get-open-results query-str geo-map hours-map
+                                                sort-map page-map)]
 
                   ;; Extract info from ES-results, create JSON response.
                   (mk-response results query-str

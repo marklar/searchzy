@@ -20,7 +20,7 @@
   [biz-menu-items]
   (let [day-of-week (util/get-day-of-week)
         all-hours (compact (map #(-> % :_source :business :hours) biz-menu-items))]
-    (compact (map #(util/get-hours-today % day-of-week) all-hours))))
+    (compact (map #(util/get-hours-for-day % day-of-week) all-hours))))
 
 (def HOUR_MINS 60)
 

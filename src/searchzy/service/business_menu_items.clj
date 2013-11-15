@@ -17,7 +17,7 @@
    Add :distance_in_mi."
   [source-map day-of-week coords]
   (let [old-biz     (:business source-map)
-        hours-today (util/get-hours-today (:hours old-biz) day-of-week)
+        hours-today (util/get-hours-for-day (:hours old-biz) day-of-week)
         dist        (util/haversine (:coordinates old-biz) coords)
         new-biz     (assoc (dissoc old-biz
                                    :hours :latitude_longitude
@@ -81,9 +81,9 @@
   [sort-map]
   (= "distance" (:attribute sort-map)))
 
-(defn- get-results
+(defn- get-items
   "Perform search against item_id."
-  [item-id geo-map hours-map sort-map page-map]
+  [item-id geo-map sort-map page-map]
   (let [search-fn (if (sort-by-distance? sort-map)
                     flurbl/distance-sort-search
                     es-doc/search)]
@@ -95,16 +95,15 @@
                        :from   (:from page-map)
                        :size   (:size page-map))))))
 
-(def MAX_ITEMS 1000)
-
-(def sort-attributes #{"price" "value" "distance"})
-
 (defn- filter-by-hours
   [biz-menu-items hours-map]
   (if (nil? hours-map)
     biz-menu-items
-    (filter #(util/open-at? hours-map (-> :_source :business :hours %))
+    (filter #(util/open-at? hours-map (-> % :_source :business :hours))
             biz-menu-items)))
+
+(def MAX_ITEMS 1000)
+(def sort-attributes #{"price" "value" "distance"})
 
 (defn validate-and-search
   ""
@@ -133,9 +132,9 @@
                     
                     ;; Do search, getting lots of (MAX_ITEMS) results.
                     ;; Return *only* the actual hits.
-                    es-items (get-results item-id geo-map
-                                          hours-map sort-map
-                                          {:from 0, :size MAX_ITEMS})
+                    ;; But we lose the actual number of results!
+                    es-items (get-items item-id geo-map sort-map
+                                        {:from 0, :size MAX_ITEMS})
 
                     ;; Possible post-facto filter using hours-map.
                     items (filter-by-hours es-items hours-map)
