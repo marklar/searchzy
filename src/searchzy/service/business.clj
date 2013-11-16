@@ -5,17 +5,13 @@
              [flurbl :as flurbl]
              [util :as util]
              [inputs :as inputs]
-             [validate :as validate]
-             [geo :as geo]
-             [responses :as responses]
-             [query :as q]]
+             [responses :as responses]]
             [clojurewerkz.elastisch.native
              [document :as es-doc]]))
 
 ;; -- search --
 
 (def DEFAULT_SORT {:value_score_int :desc})
-
 (defn mk-sort
   [sort-map geo-map]
   (let [order (:order sort-map)]
@@ -47,7 +43,7 @@
       simple-query-map
       (mk-function-score-query simple-query-map))))
 
-(defn get-results
+(defn es-search
   "Perform ES search, return results map.
    If sort is by 'value', change scoring function and sort by its result."
   [query-str query-type geo-map sort-map page-map]
@@ -63,102 +59,87 @@
                 :from   (:from page-map)
                 :size   (:size page-map)))))
 
-(def MAX_ITEMS 1000)
-
 (defn- filter-by-hours
-  [businesses hours-map]
-  (if (nil? hours-map)
+  [hours-map businesses]
+  (if (= {} hours-map)
     businesses
     (filter #(util/open-at? hours-map (-> % :_source :hours))
             businesses)))
 
-(defn get-open-results
-  "Returns hits plus total."
-  [query-str geo-map hours-map sort-map page-map]
-  (if (nil? hours-map)
-
+(def MAX_ITEMS 1000)
+(defn get-results
+  "Returns hits -plus- total."
+  [{:keys [query geo-map hours-map sort-map page-map]}]
+  (if (nil? (:wday hours-map))
     ;; We don't need to post-filter results.
-    (get-results query-str :match geo-map sort-map page-map)
+    ;; So we have ES do the paging for us.
+    (es-search query :match geo-map sort-map page-map)
 
-    ;; First get lots.  Then post-filter.
-    (let [es-results (get-results query-str :match geo-map sort-map
+    ;; We DO need to post-filter.
+    ;; But first let's get lots...
+    (let [{hits :hits} (es-search query :match geo-map sort-map
                                   {:from 0, :size MAX_ITEMS})
-          open-hits (filter-by-hours (:hits es-results) hours-map)]
+          ;; ...then post-filter...
+          open-hits (filter-by-hours hours-map hits)
+          ;; ...and then do our own paging.
+          pageful (take (:size page-map)
+                        (drop (:from page-map) open-hits))]
       {:total (count open-hits)
-       :hits open-hits})))
+       :hits pageful})))
 
 
 ;; -- create response --
 
 (defn- mk-response-hit
   "From ES hit, make service hit."
-  [coords day-of-week {id :_id
-                          {n :name a :address
-                           phone_number :phone_number
-                           cs :coordinates
-                           hs :hours
-                           ysr :yelp_star_rating
-                           yrc :yelp_review_count
-                           yid :yelp_id
-                           p :permalink} :_source}]
-  (let [dist (util/haversine cs coords)
-        hours-today (util/get-hours-for-day hs day-of-week)]
-    {:_id id :name n :address a :permalink p
-     :yelp {:id yid, :star_rating ysr, :review_count yrc}
-     :phone_number phone_number
-     :distance_in_mi dist
-     :coordinates cs
-     :hours_today hours-today}))
+  [coords day-of-week biz]
+  (let [{id :_id {n :name a :address
+                  phone_number :phone_number
+                  cs :coordinates
+                  hs :hours
+                  p :permalink
+                  yid :yelp_id
+                  ysr :yelp_star_rating
+                  yrc :yelp_review_count} :_source} biz]
+    (let [dist (util/haversine cs coords)
+          hours-today (util/get-hours-for-day hs day-of-week)]
+      {:_id id :name n :address a :permalink p
+       :yelp {:id yid, :star_rating ysr, :review_count yrc}
+       :phone_number phone_number
+       :distance_in_mi dist
+       :coordinates cs
+       :hours_today hours-today})))
 
 (defn- mk-response
-  "From ES response, create service response."
-  [es-results query-str geo-map hours-map sort-map page-map]
-  (let [day-of-week (util/get-day-of-week)
-        pageful (take (:size page-map) (drop (:from page-map) (:hits es-results)))]
+  "From ES results, create service response.
+   We've already done paging; no need to do so now."
+  [es-results {:keys [query geo-map hours-map sort-map page-map]}]
+  (let [day-of-week (or (:wday hours-map) (util/get-day-of-week))]
     (responses/ok-json
-     {:endpoint "/v1/businesses"
-      :arguments {:query query-str
+     {:endpoint "/v1/businesses"   ; TODO: pass this in
+      :arguments {:query query
+                  :geo_filter geo-map
+                  :hours_filter (if (= {} hours-map) nil hours-map)
                   :sort sort-map
                   :paging page-map
-                  :geo_filter geo-map
-                  :hours_filter hours-map
                   :day_of_week day-of-week}
       :results {:count (:total es-results)
                 :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
-                           pageful)}})))
+                           (:hits es-results))}})))
 
-(def sort-attributes #{"value" "distance" "score"})
+(def sort-attrs #{"value" "distance" "score"})
 
 (defn validate-and-search
-  ""
-  [input-query input-geo-map input-hours-map sort-str input-page-map]
-
-  ;; Validate query.
-  (let [query-str (q/normalize input-query)]
-    (if (clojure.string/blank? query-str)
-      (validate/response-bad-query input-query query-str)
-      
-      ;; Validate location info.
-      (let [geo-map (inputs/mk-geo-map input-geo-map)]
-        (if (nil? geo-map)
-          (validate/response-bad-location input-geo-map)
-          
-          ;; Validate sort info.
-          (let [sort-map (flurbl/get-sort-map sort-str sort-attributes)]
-            (if (nil? sort-map)
-              (validate/response-bad-sort sort-str)
-
-              ;; Validate ??? hours.
-              (let [hours-map (inputs/get-hours-map input-hours-map)]
-                
-                ;; (if (nil? hours-map)
-                ;; (validate/response-bad-hours input-hours-map)
-
-                ;; OK, do search.
-                (let [page-map (inputs/mk-page-map input-page-map)
-                      results (get-open-results query-str geo-map hours-map
-                                                sort-map page-map)]
-
-                  ;; Extract info from ES-results, create JSON response.
-                  (mk-response results query-str
-                               geo-map hours-map sort-map page-map))))))))))
+  "input-args: query-string params, aggregated into sub-hashmaps based on meaning.
+   1. Validate args and convert them into needed values for searching.
+   2. Perform ES search.
+   3. Create proper JSON response."
+  [input-args]
+  (let [[valid-args err] (inputs/business-clean-input input-args sort-attrs)]
+    (if err
+      ;; Validation error.
+      (responses/error-json err)
+      ;; Do ES search.
+      (let [results (get-results valid-args)]
+        ;; Create JSON response.
+        (mk-response results valid-args)))))

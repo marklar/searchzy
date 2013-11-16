@@ -49,8 +49,6 @@
                             :host "127.0.0.1"
                             :port 27017}}})
 
-(def cfg (atom nil))
-
 ;; -- yaml config --
 
 ;; FIXME -- Currently, it just looks in whatever the *current* directory is.
@@ -75,7 +73,7 @@
       (println "No configuration file found.  Using default config settings.")
       default-cfg)))
 
+(def cfg)
 (defn get-cfg []
-  (if (nil? @cfg)
-    (reset! cfg (load-cfg cfg-file-name)))
-  @cfg)
+  (defonce cfg (load-cfg cfg-file-name))
+  cfg)

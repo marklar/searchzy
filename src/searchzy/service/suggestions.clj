@@ -5,7 +5,6 @@
             [searchzy.service
              [util :as util]
              [inputs :as inputs]
-             [validate :as validate]
              [geo :as geo]
              [responses :as responses]
              [business :as biz]
@@ -120,28 +119,18 @@
       - businesses (w/ filtering)
       - business_categories
       - items"
-  [input-query input-geo-map input-page-map input-html]
-
-  ;; Validate query.
-  (let [query (q/normalize input-query)]
-    (if (clojure.string/blank? query)
-      (validate/response-bad-query input-query query)
-      
-      ;; Validate location info.
-      (let [geo-map (inputs/mk-geo-map input-geo-map)]
-        (if (nil? geo-map)
-          (validate/response-bad-location input-geo-map)
-          
-          ;; OK, do searches.
-          (let [page-map (inputs/mk-page-map input-page-map)
-                html? (inputs/true-str? input-html)
-                biz-results  (biz/get-results query :prefix
-                                              geo-map
-                                              nil  ; -sort-
-                                              page-map)
-                cat-results  (get-results :business_categories query page-map)
-                item-results (get-results :items query page-map)]
-
-            (responses/ok-json
-             (mk-response biz-results cat-results item-results
-                          query geo-map page-map html?))))))))
+  [input-args]
+  (let [[valid-args err] (inputs/suggestion-clean-input input-args)]
+    (if err
+      ;; Validation error.
+      (responses/error-json err)
+      ;; Do ES searches.
+      (let [{:keys [query geo-map page-map html]} valid-args
+            biz-results  (biz/es-search query :prefix geo-map nil ; -sort-
+                                        page-map)
+            cat-results  (get-results :business_categories query page-map)
+            item-results (get-results :items query page-map)]
+        ;; Create JSON response.
+        (responses/ok-json
+         (mk-response biz-results cat-results item-results
+                      query geo-map page-map html))))))

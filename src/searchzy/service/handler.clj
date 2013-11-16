@@ -31,14 +31,6 @@
    ;; because I don't want to deal with authentication headers.
    (responses/forbidden-json {:error "Not authorized."})))
 
-
-;; (defn- mk-input-maps
-;;   [address lat lon miles wday hour minute from size]
-;;   [geo-map   {:address address, :lat lat, :lon lon, :miles miles}
-;;    hours-map {:wday wday, :hour hour, :minute minute}
-;;    page-map  {:from from, :size size}])
-
-
 (def current-version "v1")
 (defn v-path
   "Create path by appending version number."
@@ -66,16 +58,17 @@
        (docs.items/show))
 
   (GET (v-path 1 "/businesses")
-       ;; hours = 3-15:30
        [api_key query address lat lon miles hours wday hour minute sort from size]
        (if (not (valid-key? api_key))
          ;; not authorized
          (bounce)
          ;; authorized
-         (let [geo-map   {:address address, :lat lat, :lon lon, :miles miles}
-               hours-map {:hours hours, :wday wday, :hour hour, :minute minute}
-               page-map  {:from from, :size size}]
-           (biz/validate-and-search query geo-map hours-map sort page-map))))
+         (biz/validate-and-search
+          {:query query
+           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+           :hours-map {:hours hours, :wday wday, :hour hour, :minute minute}
+           :sort sort
+           :page-map {:from from, :size size}})))
 
   ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
@@ -84,18 +77,21 @@
          ;; not authorized
          (bounce)
          ;; authorized
-         (let [geo-map   {:address address, :lat lat, :lon lon, :miles miles}
-               hours-map {:hours hours, :wday wday, :hour hour, :minute minute}
-               page-map  {:from from, :size size}]
-           (items/validate-and-search item_id geo-map hours-map sort page-map))))
+         (items/validate-and-search
+          {:item-id item_id
+           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+           :hours-map {:hours hours, :wday wday, :hour hour, :minute minute}
+           :sort sort
+           :page-map {:from from, :size size}})))
 
   (GET (v-path 1 "/suggestions")
        [query address lat lon miles size html]
-
-       (let [geo-map  {:address address, :lat lat, :lon lon, :miles miles}
-             page-map {:from "0", :size size}]
-         (responses/json-p-ify
-          (sugg/validate-and-search query geo-map page-map html))))
+       (responses/json-p-ify
+        (sugg/validate-and-search 
+         {:query query
+          :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+          :page-map {:from "0", :size size}
+          :html html})))
 
   (route/resources "/")
   (route/not-found "Not Found"))
