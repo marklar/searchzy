@@ -40,7 +40,8 @@
   "From ES response, create service response.
    We haven't done paging yet (because we needed metadata),
    so we need to do paging here."
-  [results metadata {:keys [item-id geo-map hours-map sort-map page-map]}]
+  [results metadata {:keys [item-id geo-map hours-map
+                            utc-offset-map sort-map page-map]}]
   (let [day-of-week (or (:wday hours-map) (util/get-day-of-week))
         pageful     (take (:size page-map) (drop (:from page-map) results))
         resp-hits   (map #(mk-one-hit % day-of-week (:coords geo-map))
@@ -50,6 +51,7 @@
       :arguments {:item_id item-id
                   :geo_filter geo-map
                   :hours_filter hours-map
+                  :utc_offset utc-offset-map
                   :sort sort-map
                   :paging page-map
                   :day_of_week day-of-week}
