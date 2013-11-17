@@ -42,10 +42,10 @@
 ;; 
 (def indices
   [;; quick
-   {:idx-name "Biz Categories", :f biz-cat/mk-idx, :db :main}
-   {:idx-name "Items", :f item/mk-idx, :db :main}
+   {:idx-name "Biz Categories", :f biz-cat/mk-idx,      :db :main}
+   {:idx-name "Items",          :f item/mk-idx,         :db :main}
    ;; slow
-   {:idx-name "Combined", :f biz-combined/mk-idx, :db :businesses}
+   {:idx-name "Combined",       :f biz-combined/mk-idx, :db :businesses}
    ;; OR, do each slow independently.
    ;; {:idx-name "Businesses", :f biz/mk-idx, :db :businesses}
    ;; {:idx-name "Biz Menu Items", :f biz-menu-item/mk-idx, :db :businesses}
