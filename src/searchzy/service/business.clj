@@ -113,13 +113,14 @@
 (defn- mk-response
   "From ES results, create service response.
    We've already done paging; no need to do so now."
-  [es-results {:keys [query geo-map hours-map sort-map page-map]}]
+  [es-results {:keys [query geo-map hours-map utc-offset-map sort-map page-map]}]
   (let [day-of-week (or (:wday hours-map) (util/get-day-of-week))]
     (responses/ok-json
      {:endpoint "/v1/businesses"   ; TODO: pass this in
       :arguments {:query query
                   :geo_filter geo-map
                   :hours_filter hours-map
+                  :utc_offset utc-offset-map
                   :sort sort-map
                   :paging page-map
                   :day_of_week day-of-week}

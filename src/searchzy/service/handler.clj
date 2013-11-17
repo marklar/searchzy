@@ -58,7 +58,7 @@
        (docs.items/show))
 
   (GET (v-path 1 "/businesses")
-       [api_key query address lat lon miles hours sort from size]
+       [api_key query address lat lon miles hours utc_offset sort from size]
        (if (not (valid-key? api_key))
          ;; not authorized
          (bounce)
@@ -67,12 +67,13 @@
           {:query query
            :geo-map {:address address, :lat lat, :lon lon, :miles miles}
            :hours hours
+           :utc-offset utc_offset
            :sort sort
            :page-map {:from from, :size size}})))
 
   ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
-       [api_key item_id address lat lon miles hours sort from size]
+       [api_key item_id address lat lon miles hours utc_offset sort from size]
        (if (not (valid-key? api_key))
          ;; not authorized
          (bounce)
@@ -81,6 +82,7 @@
           {:item-id item_id
            :geo-map {:address address, :lat lat, :lon lon, :miles miles}
            :hours hours
+           :utc-offset utc_offset
            :sort sort
            :page-map {:from from, :size size}})))
 

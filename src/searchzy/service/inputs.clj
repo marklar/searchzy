@@ -142,6 +142,30 @@
    (fn [i o] {:param :item_id  ; underbar
               :message "Param 'item_id' must have non-empty value."})))
 
+(defn get-utc-offset-map
+  " '-12'   => {:hour -12, :minute  0}
+    '+1'    => {:hour   1, :minute  0}
+    '+5:45' => {:hour   5, :minute 45}"
+  [offset-str]
+  (if (clojure.string/blank? offset-str)
+    ;; Use default value.
+    (array-map :hours -5 :minutes 0)  ;; NY
+    ;; Parse.
+    (try
+      (let [[_ h _ m]   (re-find #"^([-+]?\d+)(:(\d*))?$" offset-str)
+            h-sans-plus (clojure.string/replace-first h "+" "")]
+        {:hours   (Integer. h-sans-plus)
+         :minutes (if (clojure.string/blank? m) 0 (Integer. m))})
+      (catch Exception e nil))))
+
+(def clean-utc-offset
+  (clean/mk-cleaner
+   :utc-offset :utc-offset-map
+   get-utc-offset-map
+   (fn [i o] {:param :utc-offset
+              :message "'utc_offset' should have values like '-5' or '+5:45'."
+              :args i})))
+
 (defn business-clean-input
   "Validate each argument group in turn.
    Gather up any validation errors as you go."
@@ -150,6 +174,7 @@
                    clean-query
                    clean-geo-map
                    clean-hours
+                   clean-utc-offset
                    (clean-sort sort-attrs)
                    clean-page-map))
 
@@ -161,6 +186,7 @@
                    clean-item-id
                    clean-geo-map
                    clean-hours
+                   clean-utc-offset
                    (clean-sort sort-attrs)
                    clean-page-map))
 
