@@ -17,9 +17,8 @@
        :min  (apply min prices)})))
 
 (defn- get-all-hours-today
-  [biz-menu-items]
-  (let [day-of-week (util/get-day-of-week)
-        all-hours (compact (map #(-> % :_source :business :hours) biz-menu-items))]
+  [biz-menu-items day-of-week]
+  (let [all-hours (compact (map #(-> % :_source :business :hours) biz-menu-items))]
     (compact (map #(util/get-hours-for-day % day-of-week) all-hours))))
 
 (def HOUR_MINS 60)
@@ -39,11 +38,12 @@
 
 (defn- get-latest-close
   "Given biz-menu-items, return a single 'hour' (i.e. {:hour h, :minute m})."
-  [biz-menu-items]
-  (let [all-closing (map :close (get-all-hours-today biz-menu-items))]
+  [biz-menu-items day-of-week]
+  (let [all-closing (map :close (get-all-hours-today biz-menu-items day-of-week))]
     (get-latest-hour all-closing)))
 
 (defn get-metadata
-  [biz-menu-items]
-  {:prices-micros (get-prices-micros biz-menu-items)
-   :latest-close (get-latest-close biz-menu-items)})
+  [biz-menu-items {:keys [hours-map utc-offset-map]}]
+  (let [day-of-week (util/get-day-of-week hours-map utc-offset-map)]
+    {:prices-micros (get-prices-micros biz-menu-items)
+     :latest-close (get-latest-close biz-menu-items day-of-week)}))

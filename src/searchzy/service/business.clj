@@ -114,7 +114,7 @@
   "From ES results, create service response.
    We've already done paging; no need to do so now."
   [es-results {:keys [query geo-map hours-map utc-offset-map sort-map page-map]}]
-  (let [day-of-week (or (:wday hours-map) (util/get-day-of-week))]
+  (let [day-of-week (util/get-day-of-week hours-map utc-offset-map)]
     (responses/ok-json
      {:endpoint "/v1/businesses"   ; TODO: pass this in
       :arguments {:query query

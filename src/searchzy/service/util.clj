@@ -1,5 +1,5 @@
 (ns searchzy.service.util
-  (:import [java.util Calendar GregorianCalendar]))
+  (:import [java.util Calendar GregorianCalendar TimeZone]))
 
 ;; -- GEO-RELATED -- could be moved into searchzy.service.geo.
 
@@ -74,12 +74,35 @@
         num-2-hours (apply hash-map (flatten alist))]
     (get num-2-hours day-of-week)))
 
+(defn- two-digit-str
+  "0 =>  '00'
+   15 => '15' "
+  [int]
+  (let [s (str int)]
+    (if (< (count s) 2)
+      (str "0" s)
+      s)))
+
+(defn- mk-tz-str
+  [{:keys [hours minutes]}]
+  (str "GMT" (if (< hours 0) "" "+")
+       (two-digit-str hours) ":"
+       (two-digit-str minutes)))
+
+(defn- mk-tz
+  [utc-offset-map]
+  (TimeZone/getTimeZone (mk-tz-str utc-offset-map)))
+
 (defn get-day-of-week
   "Return an int: [0..6]."
-  []
-  (let [gc (GregorianCalendar.)]
-    ;; In Java, days are numbered 1-7, so decrement.
-    (dec (.get gc Calendar/DAY_OF_WEEK))))
+  [hours-map utc-offset-map]
+  (if (:wday hours-map)
+    (:wday hours-map)
+    (let [tz  (mk-tz utc-offset-map)
+          cal (doto (GregorianCalendar.) (.setTimeZone tz))
+          java-num (.get cal Calendar/DAY_OF_WEEK)]
+      ;; In Java, days are numbered 1-7, so decrement.
+      (dec java-num))))
 
 (defn- time-cmp-eq
   [op

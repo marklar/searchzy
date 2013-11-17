@@ -152,7 +152,7 @@
     (array-map :hours -5 :minutes 0)  ;; NY
     ;; Parse.
     (try
-      (let [[_ h _ m]   (re-find #"^([-+]?\d+)(:(\d*))?$" offset-str)
+      (let [[_ h _ m]   (re-find #"^\s*([-+]?\d+)(:(\d*))?$" offset-str)
             h-sans-plus (clojure.string/replace-first h "+" "")]
         {:hours   (Integer. h-sans-plus)
          :minutes (if (clojure.string/blank? m) 0 (Integer. m))})

@@ -36,13 +36,15 @@
 
 ;; TODO: Add earliest_open.
 
+;; UTC offset.  For determining what day today is.
+
 (defn- mk-response
   "From ES response, create service response.
    We haven't done paging yet (because we needed metadata),
    so we need to do paging here."
   [results metadata {:keys [item-id geo-map hours-map
                             utc-offset-map sort-map page-map]}]
-  (let [day-of-week (or (:wday hours-map) (util/get-day-of-week))
+  (let [day-of-week (util/get-day-of-week hours-map utc-offset-map)
         pageful     (take (:size page-map) (drop (:from page-map) results))
         resp-hits   (map #(mk-one-hit % day-of-week (:coords geo-map))
                          (map :_source pageful))]
@@ -109,9 +111,10 @@
   [{:keys [item-id geo-map hours-map sort-map]}]
   ;; Do search, getting lots of (MAX_ITEMS) results.
   ;; Return *only* the actual hits, losing the actual number of results!
-  (let [{is :hits} (es-search item-id geo-map sort-map {:from 0, :size MAX_ITEMS})]
+  (let [{items :hits} (es-search item-id geo-map sort-map
+                                 {:from 0, :size MAX_ITEMS})]
     ;; Possible post-facto filter using hours-map.
-    (filter-by-hours hours-map is)))
+    (filter-by-hours hours-map items)))
   
 
 (def sort-attrs #{"price" "value" "distance"})
@@ -125,6 +128,6 @@
       ;; Do ES search.
       (let [items (get-all-open-items valid-args)
             ;; Gather metadata from the results returned.
-            metadata (meta/get-metadata items)]
+            metadata (meta/get-metadata items valid-args)]
         ;; Create JSON response.
         (mk-response items metadata valid-args)))))
