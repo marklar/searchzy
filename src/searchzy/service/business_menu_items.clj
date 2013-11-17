@@ -49,7 +49,7 @@
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id
                   :geo_filter geo-map
-                  :hours_filter (if (= {} hours-map) nil hours-map)
+                  :hours_filter hours-map
                   :sort sort-map
                   :paging page-map
                   :day_of_week day-of-week}
@@ -116,10 +116,10 @@
 (defn validate-and-search
   ""
   [input-args]
-  (let [[valid-args err] (inputs/biz-menu-item-clean-input input-args sort-attrs)]
-    (if err
+  (let [[valid-args errs] (inputs/biz-menu-item-clean-input input-args sort-attrs)]
+    (if (seq errs)
       ;; Validation error.
-      (responses/error-json err)
+      (responses/error-json {:errors errs})
       ;; Do ES search.
       (let [items (get-all-open-items valid-args)
             ;; Gather metadata from the results returned.

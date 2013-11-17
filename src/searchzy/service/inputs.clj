@@ -1,6 +1,7 @@
 (ns searchzy.service.inputs
   (:require [clojure.string :as str]
             [searchzy.service
+             [clean :as clean]
              [flurbl :as flurbl]
              [geo :as geo]
              [query :as q]]))
@@ -16,7 +17,7 @@
     (or (read-string str) default)))
 
 (defn true-str?
-  "Convert string (e.g. from cmd-line or http params) to bool."
+  "Convert string (e.g. from cmd-line or http args) to bool."
   [s]
   (contains? #{"true" "t" "1"} s))
 
@@ -43,162 +44,132 @@
 
 ;; ---
 
-(defn- get-day-hour-minute
-  [input-map]
-  (let [hours-str (:hours input-map)]
-    (if (not (clojure.string/blank? hours-str))
-      ;; from combo-string
-      (clojure.string/split hours-str #"[^\d]")
-      ;; from separate strings
-      (let [{:keys [wday hour minute]} input-map]
-        [wday hour minute]))))
+(defn- mk-hours-map
+  "At this point, arg should never be blank.
+   In other words, we're attempting to filter.
+   Return either:
+      {:wday, :hour, :minute} -OR-
+      nil (error)."
+  [non-blank-hours-str]
+  (let [strs (clojure.string/split non-blank-hours-str #"[^\d]")]
+    (if (or (< (count strs) 3)
+            (some clojure.string/blank? strs))
+      ;; Error!
+      nil
+      (try
+        (let [[d h m] (map #(Integer. %) strs)]
+          ;; TODO: validate:
+          ;;   wday:   [0..6]
+          ;;   hour:   [0..23]
+          ;;   minute: [0..59]
+          {:wday d, :hour h, :minute m})
+        (catch Exception e
+          ;; Error!
+          nil)))))
 
 (defn get-hours-map
-  ;; FIXME
   "If {}, that's not an error, that just means we don't filter!"
-  [input-map]
-  (let [strs (get-day-hour-minute input-map)]
-    (if (not (and (= 3 (count strs))
-                  (not-any? clojure.string/blank? strs)))
-      {}
-      ;; TODO:
-      ;; try / catch, in case (Integer.) doesn't work.
-      ;; validate:
-      ;;   wday:   [0..6]
-      ;;   hour:   [0..23]
-      ;;   minute: [0..59]
-      {:wday   (Integer. (get strs 0))
-       :hour   (Integer. (get strs 1))
-       :minute (Integer. (get strs 2))
-       })))
-
+  [hours-str]
+  (if (clojure.string/blank? hours-str)
+    ;; Not an Error.  Just no filtering.
+    {}
+    ;; Trying to filter.  May or may not be Error.
+    (mk-hours-map hours-str)))
 
 ;; ---
 
-;;
-;; Validation.
-;; Pass all the args which need validation through a series of validation fns.
-;; Validate each in turn, passing state as you go.
-;; If you encounter a problem, either:
-;;   -- continue, adding it to the state's aggregate collection of problems.
-;;   -> short-circuit, returning the problem in the state.
-;; When done, check the state.  If a problem, return it.  If not, continue.
-;; 
-
-(defn mk-cleaner
-  "Higher-order fn which creates 'clean-' fns.
-   Params:
-     - oldput-key : name (Keyword) of the input arg group we wish to 'clean'
-     - input-key  : name (Keyword) of the arg group to use in output
-     - munge-fn   : fn :: input -> desired-output (of the arg group)
-                    Upon validation error, must return nil.
-     - error-fn   : fn :: (input, output) -> error-hashmap
-
-   The created fn takes the hashmap of all args,
-   attempts to 'munge' the desired subset,
-   and returns either:
-       [value nil] - upon success
-       [nil error] - upon failure
-  "
-  [input-key output-key munge-fn error-fn]
-  (fn [args]
-    (let [i (get args input-key)
-          o (munge-fn i)]
-      (if (nil? o)
-        [nil
-         (error-fn i o)]
-        [(-> args (dissoc input-key) (assoc output-key o))
-         nil]))))
+(defn get-query
+  [q]
+  (let [s (q/normalize q)]
+    (if (clojure.string/blank? s) nil s)))
 
 (def clean-query
-  (mk-cleaner :query :query
-              (fn [i]
-                (let [o (q/normalize i)]
-                  (if (clojure.string/blank? o) nil o)))
-              (fn [i o] {:error (str "Param 'query' must be non-empty "
-                                     "after normalization.")
-                         :params {:original-query i
-                                  :normalized-query o}})))
+  (clean/mk-cleaner
+   :query :query
+   get-query
+   (fn [i o] {:param :query
+              :message (str "Param 'query' must be non-empty "
+                            "after normalization.")
+              :args {:original-query i
+                     :normalized-query o}})))
 
 (def clean-geo-map
-  (mk-cleaner :geo-map :geo-map
-              mk-geo-map
-              (fn [i o] {:error (str "Must provide: (valid 'address' OR "
-                                     "('lat' AND 'lon')).")
-                         :params i})))
+  (clean/mk-cleaner
+   :geo-map :geo-map
+   mk-geo-map
+   (fn [i o] {:message (str "Must provide: (valid 'address' OR "
+                            "('lat' AND 'lon')).")
+              :args i})))
 
-(def clean-hours-map
-  (mk-cleaner :hours-map :hours-map
-              get-hours-map
-              (fn [i o] {:error "Some problem with the hours."
-                         :params i})))
+(def clean-hours
+  (clean/mk-cleaner
+   :hours :hours-map
+   get-hours-map
+   (fn [i o] {:param :hours
+              :message "Some problem with the hours."
+              :args i})))
 
 (def clean-page-map
-  (mk-cleaner :page-map :page-map
-              mk-page-map
-              (fn [i o] {:error "Some problem with the paging info."
-                         :params i})))
+  (clean/mk-cleaner
+   :page-map :page-map
+   mk-page-map
+   (fn [i o] {:params [:from :size]
+              :message "Some problem with the paging info."
+              :args i})))
 
 (def clean-html
-  (mk-cleaner :html :html
-              true-str?        ;; always produces t/f, never error (nil)
-              (fn [i o] nil))) ;; no-op
+  (clean/mk-cleaner
+   :html :html
+   true-str?    ;; always produces t/f, never error (nil)
+   (fn [i o]))) ;; no-op
 
-(defn mk-sort-cleaner
+(defn clean-sort
   [attrs-set]
-  (mk-cleaner :sort :sort-map
-              #(flurbl/get-sort-map % attrs-set)
-              (fn [i o] {:error "Invalid value for 'sort'."
-                         :params i})))
+  (clean/mk-cleaner
+   :sort :sort-map
+   #(flurbl/get-sort-map % attrs-set)
+   (fn [i o]
+     (let [opts (flatten (map (fn [o] [o (str "-" o)]) attrs-set))]
+       {:param :sort
+        :message "Invalid value for param 'sort'."
+        :args i
+        :options opts}))))
 
-(defn bind-err
-  [f [val err]]
-  (if (nil? err)
-    (f val)
-    [nil err]))
-  
-(defmacro err->>
-  "For syntactic convenience.
-   Macro fns take their arguments _un_evaluated.
-  "
-  [val & fns]
-  (let [fns (for [f fns] `(bind-err ~f))]
-    `(->> [~val nil]
-          ~@fns)))
+(def clean-item-id
+  (clean/mk-cleaner
+   :item-id :item-id
+   (fn [s] (if (clojure.string/blank? s) nil s))
+   (fn [i o] {:param :item_id  ; underbar
+              :message "Param 'item_id' must have non-empty value."})))
 
 (defn business-clean-input
   "Validate each argument group in turn.
-   If find validation error, short-circuit and return the error."
+   Gather up any validation errors as you go."
   [args sort-attrs]
-  (err->> args
-          clean-query
-          clean-geo-map
-          clean-hours-map
-          (mk-sort-cleaner sort-attrs)
-          clean-page-map))
-
-
-;; clean-item-id
-;; (if (clojure.string/blank? item-id)
-;;   (responses/error-json {:error "Param 'item_id' must be non-empty."})
+  (clean/gather->> args
+                   clean-query
+                   clean-geo-map
+                   clean-hours
+                   (clean-sort sort-attrs)
+                   clean-page-map))
 
 (defn biz-menu-item-clean-input
   "Validate each argument group in turn.
-   If find validation error, short-circuit and return the error."
+   Gather up any validation errors as you go."
   [args sort-attrs]
-  (err->> args
-          ;; TODO: add clean-item-id
-          ;; clean-item-id
-          clean-geo-map
-          clean-hours-map
-          (mk-sort-cleaner sort-attrs)
-          clean-page-map))
+  (clean/gather->> args
+                   clean-item-id
+                   clean-geo-map
+                   clean-hours
+                   (clean-sort sort-attrs)
+                   clean-page-map))
 
 (defn suggestion-clean-input
+  "Validate each argument group in turn.
+   Gather up any validation errors as you go."
   [args]
-  (err->> args
-          clean-query
-          clean-html
-          clean-geo-map
-          clean-page-map))
-          
+  (clean/gather->> args
+                   clean-query
+                   clean-html
+                   clean-geo-map
+                   clean-page-map))

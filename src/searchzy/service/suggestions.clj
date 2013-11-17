@@ -120,10 +120,10 @@
       - business_categories
       - items"
   [input-args]
-  (let [[valid-args err] (inputs/suggestion-clean-input input-args)]
-    (if err
+  (let [[valid-args errs] (inputs/suggestion-clean-input input-args)]
+    (if (seq errs)
       ;; Validation error.
-      (responses/error-json err)
+      (responses/error-json {:errors errs})
       ;; Do ES searches.
       (let [{:keys [query geo-map page-map html]} valid-args
             biz-results  (biz/es-search query :prefix geo-map nil ; -sort-

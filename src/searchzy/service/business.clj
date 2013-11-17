@@ -119,7 +119,7 @@
      {:endpoint "/v1/businesses"   ; TODO: pass this in
       :arguments {:query query
                   :geo_filter geo-map
-                  :hours_filter (if (= {} hours-map) nil hours-map)
+                  :hours_filter hours-map
                   :sort sort-map
                   :paging page-map
                   :day_of_week day-of-week}
@@ -135,10 +135,10 @@
    2. Perform ES search.
    3. Create proper JSON response."
   [input-args]
-  (let [[valid-args err] (inputs/business-clean-input input-args sort-attrs)]
-    (if err
+  (let [[valid-args errs] (inputs/business-clean-input input-args sort-attrs)]
+    (if (seq errs)
       ;; Validation error.
-      (responses/error-json err)
+      (responses/error-json {:errors errs})
       ;; Do ES search.
       (let [results (get-results valid-args)]
         ;; Create JSON response.
