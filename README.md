@@ -79,6 +79,9 @@ Don't forget the leading period.
 Its contents should look like this:
 
     api-key:
+    geocoding:
+        provider: bing  # default: google
+        bing-api-key: 
     mongo-db:
         main:
             db-name: centzy_web_production
@@ -106,8 +109,14 @@ Its contents should look like this:
 Except that some of the values will need to be added (e.g.: api-key) or
 changed.
 
-In particular, you need to find out your ElasticSearch's cluster name.
-Retrieve it via ElasticSearch's REST API, thus:
+For example, if you choose 'bing' as the geocoding provider, you must
+provide a bing-api-key, or you'll get an Exception at start-up time.
+If you don't specify a geocoding provider, it defaults to 'google',
+which doesn't require an API key.  (But you should use 'bing', as it
+has a much higher query limit.)
+
+Also, you need to find out your ElasticSearch's cluster name. Retrieve
+it via ElasticSearch's REST API, thus:
 
     > curl http://localhost.com:9200/_cluster/nodes
     {"ok":true,"cluster_name":"elasticsearch_something","nodes":...}}

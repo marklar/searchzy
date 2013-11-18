@@ -30,6 +30,8 @@
 
 (def default-cfg
   {:api-key nil
+   :geocoding {:provider "bing"  ;; google
+               :bing-api-key nil}
    :elastic-search {:cluster-name "elasticsearch_markwong-vanharen"
                     :host "127.0.0.1"
                     :port 9300}
