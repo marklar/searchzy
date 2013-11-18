@@ -11,13 +11,21 @@
 
 ;; -- search --
 
-(def DEFAULT_SORT {:value_score_int :desc})
+(defn value-sort
+  [order]
+  (array-map :yelp_star_rating  order
+             :yelp_review_count order
+             :value_score_int order))
+
+(def DEFAULT_SORT (value-sort :desc))
+
 (defn mk-sort
   [sort-map geo-map]
   (let [order (:order sort-map)]
     (match (:attribute sort-map)
-           "value"    {:value_score_int order}
-           "distance" (flurbl/mk-geo-distance-sort-builder (:coords geo-map) order)
+           "value"    (value-sort order)
+           "distance" (flurbl/mk-geo-distance-sort-builder
+                       (:coords geo-map) order)
            "score"    {:_score order}
            :else      DEFAULT_SORT)))
 
