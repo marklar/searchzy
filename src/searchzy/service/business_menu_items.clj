@@ -68,8 +68,9 @@
   [order]
   (array-map :yelp_star_rating  order
              :yelp_review_count order
+             :price_micros      (if (= order :asc) :desc :asc)
              :value_score_picos order
-             :value_score_int order))
+             :value_score_int   order))
 
 (def DEFAULT_SORT (value-sort :desc))
 
