@@ -135,5 +135,5 @@
   (let [hours-today (get-hours-for-day biz-hours (:wday hours-map))]
     (if (not (valid-hours? hours-today))
       false
-      (and (time-cmp >= hours-map (:open hours-today))
+      (and (time-cmp >= hours-map (:open  hours-today))
            (time-cmp <  hours-map (:close hours-today))))))
