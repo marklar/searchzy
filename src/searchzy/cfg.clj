@@ -68,7 +68,7 @@
   [file-name]
   (if (.exists (as-file file-name))
     (do
-      (println "Reading in configuration from file: " file-name)
+      (println "Reading in configuration from file:" file-name)
       (let [yaml-str (slurp file-name)]
         (yaml/parse-string yaml-str)))
     (do

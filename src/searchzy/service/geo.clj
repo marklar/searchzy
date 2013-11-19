@@ -1,12 +1,13 @@
 (ns searchzy.service.geo
   (:use [clojure.core.match :only (match)])
   (:require [clojure.string :as str]
+            [clojure.core.cache :as cache]
             [searchzy.cfg :as cfg]
             [geocoder
              [google :as goog]
              [bing :as bing]]))     ;; #{bing geonames google}
 
-(defn get-bing-geolocation
+(defn- bing-geolocate
   "Given an address (e.g. '2491 Aztec Way, Palo Alto, CA 94303'),
    return: {:address (resolved), :coords} || nil"
   [api-key]
@@ -27,7 +28,7 @@
           (catch Exception e (do (println (str e))
                                  nil)))))))
 
-(defn get-goog-geolocation
+(defn- goog-geolocate
   "Given an address (e.g. '2491 Aztec Way, Palo Alto, CA 94303'),
    return: {:address (resolved), :coords} || nil"
   [address]
@@ -58,23 +59,59 @@
     (catch Exception e (do (println (str e))
                            "google"))))
 
-;; or -bing-
-(def get-geolocation
+;; Function.  Which implementation depends on config.
+(def geolocate
   (let [config (cfg/get-cfg)
         provider (get-provider config)]
     (match provider
-           "google" get-goog-geolocation
-           "bing"   (get-bing-geolocation (-> config :geocoding :bing-api-key))
+           "google" goog-geolocate
+           "bing"   (bing-geolocate (-> config :geocoding :bing-api-key))
            :else    (throw (Exception.
                             (str "Invalid geocoding provider in CFG: "
                                  provider))))))
+
+(def C (atom (cache/lru-cache-factory {} :threshold (Math/pow 2 16))))
+
+(defn- canonicalize-address
+  "Lowercase.  Remove punctuation.  Scrunch whitespace."
+  [s]
+  (str/join " " (-> s
+                    str/lower-case
+                    ;; replace commas with spaces
+                    (str/replace #"," " ")
+                    ;; remove all other punctuation
+                    (str/replace #"\p{P}" "")
+                    ;; scrunch whitespace
+                    str/trim
+                    (str/split #"\s+"))))
+
+(defn- from-cache
+  "If get from cache, notify cache that we've used it and return value.
+   If failed, return nil."
+  [addr]
+  (if-let [loc (cache/lookup @C addr)]
+    (do (swap! C #(cache/hit % addr))
+        loc)
+    nil))
+
+(defn- lookup
+  "Perform geo lookup.  Success: add to cache.  Failure: return nil."
+  [addr]
+  (if-let [loc (get-geolocation addr)]
+    (do (swap! C #(cache/miss % addr loc))
+        loc)
+    nil))
     
 (defn resolve-address
   "If lat,lon are good, just return those coords with no resolved address.
    Otherwise use address to look up geocoordinates.
    Returns: {:address (resolved), :coords} || nil"
   [lat lon address]
-  (if (or (nil? lat) (nil? lon))
-    (get-geolocation address)
+  (if (not (or (nil? lat) (nil? lon)))
+    ;; No need to lookup.
     {:coords {:lat lat, :lon lon}
-     :address nil}))
+     :address nil}
+    ;; Try cache, then lookup if necessary.
+    (let [a (canonicalize-address address)]
+      (or (from-cache a)
+          (lookup a)))))
