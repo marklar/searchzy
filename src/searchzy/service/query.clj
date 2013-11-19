@@ -20,12 +20,13 @@
   (.replaceAll s pattern-str " "))
 
 (defn- count-char
-  "Return number of characters 'ch' in string 's'."
+  "Return count of character 'ch' in string 's'."
   [ch s]
   (count (filter #(= ch %) s)))
 
 (defn- escape-double-quotes
   [s]
+  ;; Why not just include '"' among the 'special-chars' above?
   (.replaceAll s "(.*)\"(.*)" "$1\\\\\"$2"))
 
 (defn- escape-odd-double-quotes
