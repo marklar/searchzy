@@ -130,11 +130,22 @@ transport.)
 
 ### Indexing
 
-To index, run this command:
+To index *all* domains, run this command:
 
     lein run -m searchzy.index.core
 
-Indexing currently takes about 1 hour (on my MacBook Air laptop).
+Indexing currently all domains takes about 1 hour (on my MacBook Air
+laptop).
+
+To index just a subset of the domains, specify which.  For example:
+
+    lein run -m searchzy.index.core --domains "items biz-categories"
+
+This is the complete set of options: {biz-categories, items,
+businesses, biz-menu-items}.  For more information:
+
+    lein run -m searchzy.index.core --help
+
 
 ### Service
 

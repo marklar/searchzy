@@ -6,6 +6,7 @@
   (:require [searchzy
              [util :as util]
              [cfg :as cfg]]
+            [clojure.string :as str]
             [clojurewerkz.elastisch.native.index :as es-idx]
             [searchzy.index
              [biz-combined :as biz-combined]
@@ -72,8 +73,9 @@
 
 (defn- index-all
   "Serial index creation."
-  [domains]
-  (let [names (if (= (first domains) "all")
+  [domains-str]
+  (let [domains (str/split (str/trim domains-str) #"\s*,?\s")
+        names (if (= domains ["all"])
                 [:biz-categories :items :combined]
                 (map keyword domains))]
     (doseq [n names]
@@ -96,22 +98,19 @@
 
   (let [[args-map args-vec doc-str]
         (cli args
-             (str "Searchzy Indexer.  For extracting MongoDB data and "
-                  "indexing with ElasticSearch.  See .config.yaml for details.")
+             (str "\nSearchzy Indexer.\n"
+                  "For extracting MongoDB data and "
+                  "indexing with ElasticSearch.\n\n"
+                  "Indexible domains: {biz-categories, items, "
+                  "businesses, biz-menu-items}.")
+             ["-h" "--help" "Displays this help text and exits." :flag true]
              ["-d" "--domains" (str "The domains to index. "
-                                    "If multiple, ENCLOSE IN QUOTES. "
-                                    "Options: "
-                                    "all || "
-                                    "subset: {"
-                                    "biz-categories, "
-                                    "items, "
-                                    "businesses, "
-                                    "biz-menu-items}")
-              :parse-fn #(clojure.string/split % #"\s+")
+                                    "If multiple, ENCLOSE IN QUOTES.")
+              ;; :parse-fn #(clojure.string/split % #"\s+")
               :default "all"])]
-    (println doc-str)
-    (println (:domains args-map))
-    
-    (util/es-connect! (:elastic-search (cfg/get-cfg)))
-    (index-all (:domains args-map))))
+    (if (:help args-map)
+      (println doc-str)
+      (do
+        (util/es-connect! (:elastic-search (cfg/get-cfg)))
+        (index-all (:domains args-map))))))
 
