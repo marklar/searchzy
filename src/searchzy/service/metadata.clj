@@ -29,11 +29,16 @@
     {:hour   (/ (- minutes m) HOUR_MINS)
      :minute m}))
 
+(defn time-to-mins
+  [{h :hour, m :minute}]
+  (try
+    (+ (* h 60) m)
+    (catch Exception e 0)))
+
 (defn- get-latest-hour
   "Given [{:hour h :minute m}], return the latest one."
   [hour-list]
-  (let [as-minutes (fn [{h :hour, m :minute}] (+ m (* HOUR_MINS h)))
-        max-minutes (apply max (cons 0 (map as-minutes hour-list)))]
+  (let [max-minutes (apply max (cons 0 (map time-to-mins hour-list)))]
     (mins-to-hour max-minutes)))
 
 (defn- get-latest-close
