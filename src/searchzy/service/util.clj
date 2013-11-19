@@ -111,13 +111,13 @@
         ;; In Calendar class, days are numbered 1-7, so decrement.
         (dec cal-num))))
 
-(defn- time-cmp-eq
-  [op
-   {h1 :hour, m1 :minute}
-   {h2 :hour, m2 :minute}]
-  (or (op h1 h2)
-      (and (= h1 h2)
-           (or (= m1 m2) (op m1 m2)))))
+(defn time-to-mins
+  [{h :hour, m :minute}]
+  (+ (* h 60) m))
+
+(defn time-cmp
+  [op t1 t2]
+  (op (time-to-mins t1) (time-to-mins t2)))
 
 (defn valid-hours?
   [hours]
@@ -128,10 +128,12 @@
        (:hour c) (:minute c))))
 
 (defn open-at?
-  "Time: 10:51.  Open: 8:30.  Close: 15:00.  --> true"
+  "Open: 8:30.  Close: 15:00.
+     Time: 10:51 => true
+     Time: 15:00 => false"
   [hours-map biz-hours]
   (let [hours-today (get-hours-for-day biz-hours (:wday hours-map))]
     (if (not (valid-hours? hours-today))
       false
-      (and (time-cmp-eq > hours-map (:open hours-today))
-           (time-cmp-eq < hours-map (:close hours-today))))))
+      (and (time-cmp >= hours-map (:open hours-today))
+           (time-cmp <  hours-map (:close hours-today))))))
