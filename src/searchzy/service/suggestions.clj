@@ -7,8 +7,7 @@
              [inputs :as inputs]
              [geo :as geo]
              [responses :as responses]
-             [business :as biz]
-             [query :as q]]
+             [business :as biz]]
             [clojurewerkz.elastisch.native
              [document :as es-doc]]))
 
