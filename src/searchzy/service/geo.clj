@@ -97,7 +97,7 @@
 (defn- lookup
   "Perform geo lookup.  Success: add to cache.  Failure: return nil."
   [addr]
-  (if-let [loc (get-geolocation addr)]
+  (if-let [loc (geolocate addr)]
     (do (swap! C #(cache/miss % addr loc))
         loc)
     nil))
