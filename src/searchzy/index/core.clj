@@ -2,6 +2,7 @@
   "For running the service from the command line using
    'lein run -m searchzy.index.core'."
   (:gen-class)
+  (:use [clojure.tools.cli :only [cli]])
   (:require [searchzy
              [util :as util]
              [cfg :as cfg]]
@@ -41,46 +42,76 @@
 ;; so it takes the same amount of time.
 ;; 
 (def indices
-  [;; quick
-   {:idx-name "Biz Categories", :f biz-cat/mk-idx,      :db :main}
-   {:idx-name "Items",          :f item/mk-idx,         :db :main}
+  {;; quick
+   :biz-categories {:f biz-cat/mk-idx,       :db :main}
+   :items          {:f item/mk-idx,          :db :main}
    ;; slow
-   {:idx-name "Combined",       :f biz-combined/mk-idx, :db :businesses}
+   :combined       {:f biz-combined/mk-idx,  :db :businesses}
    ;; OR, do each slow independently.
-   ;; {:idx-name "Businesses", :f biz/mk-idx, :db :businesses}
-   ;; {:idx-name "Biz Menu Items", :f biz-menu-item/mk-idx, :db :businesses}
-   ])
+   :businesses     {:f biz/mk-idx,           :db :businesses}
+   :biz-menu-items {:f biz-menu-item/mk-idx, :db :businesses}
+   })
 
-(defn index-one
-  [{:keys [idx-name f db]}]
-  (println (str "indexing: " idx-name))
-  (let [c (get (:mongo-db (cfg/get-cfg)) db)]
-    (util/mongo-connect! c)
-    (let [cnt (f)]
-      (println (str "indexed " cnt " " (str idx-name) " records."))
-      cnt)))
+(defn- index-one
+  [name]
+  (let [idx (get indices name)]
+    (if (nil? idx)
+      ;; domain doesn't exist
+      (println (str ">>> Invalid domain name: " name ". SKIPPING. <<<"))
+      ;; okay
+      (let [f   (:f idx)
+            db  (:db idx)]
+        (println (str "indexing: " name))
+        (let [c (get (:mongo-db (cfg/get-cfg)) db)]
+          (util/mongo-connect! c)
+          (let [cnt (f)]
+            (println (str "indexed " cnt " " (str name) " records."))
+            cnt))))))
 
 ;; -- public --
 
-(defn index-all
+(defn- index-all
   "Serial index creation."
-  []
-  (doseq [idx indices]
-    (index-one idx)))
+  [domains]
+  (let [names (if (= (first domains) "all")
+                [:biz-categories :items :combined]
+                (map keyword domains))]
+    (doseq [n names]
+      (index-one n))))
 
-(defn par-index-all
-  "Parallel indexing.  (Not for use with 'Combined' - no advantage.)
-   On my laptop, this uses way too much memory and crashes the JVM.
-   (Perhaps I just need to change the JVM's memory settings?)
-   On Big Iron, using this indexing method may well work find and be faster."
-  []
-  (let [agents (map agent indices)]
-    (doseq [a agents] (send a index-one))
-    (apply await agents)
-    (println "done!")))
+;; (defn par-index-all
+;;   "Parallel indexing.  (Not for use with 'Combined' - no advantage.)
+;;    On my laptop, this uses way too much memory and crashes the JVM.
+;;    (Perhaps I just need to change the JVM's memory settings?)
+;;    On Big Iron, using this indexing method may well work fine and be faster."
+;;   []
+;;   (let [agents (map agent indices)]
+;;     (doseq [a agents] (send a index-one))
+;;     (apply await agents)
+;;     (println "done!")))
 
 ;; -- MAIN --
 (defn -main
   [& args]
-  (util/es-connect! (:elastic-search (cfg/get-cfg)))
-  (index-all))
+
+  (let [[args-map args-vec doc-str]
+        (cli args
+             (str "Searchzy Indexer.  For extracting MongoDB data and "
+                  "indexing with ElasticSearch.  See .config.yaml for details.")
+             ["-d" "--domains" (str "The domains to index. "
+                                    "If multiple, ENCLOSE IN QUOTES. "
+                                    "Options: "
+                                    "all || "
+                                    "subset: {"
+                                    "biz-categories, "
+                                    "items, "
+                                    "businesses, "
+                                    "biz-menu-items}")
+              :parse-fn #(clojure.string/split % #"\s+")
+              :default "all"])]
+    (println doc-str)
+    (println (:domains args-map))
+    
+    (util/es-connect! (:elastic-search (cfg/get-cfg)))
+    (index-all (:domains args-map))))
+

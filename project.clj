@@ -5,6 +5,7 @@
                  [org.clojure/data.json "0.2.3"]
                  [org.clojure/core.match "0.2.0"]
                  [org.clojure/core.cache "0.6.3"]
+                 [org.clojure/tools.cli "0.2.4"]
                  [clj-yaml "0.4.0"]
                  [compojure "1.1.5"]
                  [ring/ring-jetty-adapter "1.2.1"]
