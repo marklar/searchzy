@@ -122,16 +122,17 @@
   "From ES results, create service response.
    We've already done paging; no need to do so now."
   [es-results {:keys [query geo-map hours-map utc-offset-map sort-map page-map]}]
-  (let [day-of-week (util/get-day-of-week hours-map utc-offset-map)]
+  (let [rails-time-zone (some #(-> % :_source :rails_time_zone) (:hits es-results))
+        day-of-week (util/get-day-of-week hours-map rails-time-zone utc-offset-map)]
     (responses/ok-json
      {:endpoint "/v1/businesses"   ; TODO: pass this in
       :arguments {:query query
                   :geo_filter geo-map
                   :hours_filter hours-map
                   :utc_offset utc-offset-map
+                  :day_of_week day-of-week
                   :sort sort-map
-                  :paging page-map
-                  :day_of_week day-of-week}
+                  :paging page-map}
       :results {:count (:total es-results)
                 :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
                            (:hits es-results))}})))

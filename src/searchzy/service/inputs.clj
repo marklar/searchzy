@@ -148,8 +148,8 @@
     '+5:45' => {:hour   5, :minute 45}"
   [offset-str]
   (if (clojure.string/blank? offset-str)
-    ;; Use default value.
-    (array-map :hours -5 :minutes 0)  ;; NY
+    ;; {} means empty optional.
+    {}
     ;; Parse.
     (try
       (let [[_ h _ m]   (re-find #"^\s*([-+]?\d+)(:(\d*))?$" offset-str)

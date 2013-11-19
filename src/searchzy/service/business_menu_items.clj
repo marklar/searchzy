@@ -19,6 +19,7 @@
         dist        (util/haversine (:coordinates old-biz) coords)
         new-biz     (assoc (dissoc old-biz
                                    :hours :latitude_longitude
+                                   :rails_time_zone
                                    :yelp_star_rating
                                    :yelp_review_count
                                    :yelp_id)
@@ -36,16 +37,13 @@
 
 ;; TODO: Add earliest_open.
 
-;; UTC offset.  For determining what day today is.
-
 (defn- mk-response
   "From ES response, create service response.
    We haven't done paging yet (because we needed metadata),
    so we need to do paging here."
-  [results metadata {:keys [item-id geo-map hours-map
-                            utc-offset-map sort-map page-map]}]
-  (let [day-of-week (util/get-day-of-week hours-map utc-offset-map)
-        pageful     (take (:size page-map) (drop (:from page-map) results))
+  [results metadata day-of-week {:keys [item-id geo-map hours-map
+                                        utc-offset-map sort-map page-map]}]
+  (let [pageful     (take (:size page-map) (drop (:from page-map) results))
         resp-hits   (map #(mk-one-hit % day-of-week (:coords geo-map))
                          (map :_source pageful))]
     (responses/ok-json
@@ -54,9 +52,9 @@
                   :geo_filter geo-map
                   :hours_filter hours-map
                   :utc_offset utc-offset-map
+                  :day_of_week day-of-week
                   :sort sort-map
-                  :paging page-map
-                  :day_of_week day-of-week}
+                  :paging page-map}
       :results {:count (count results)
                 :prices_micros (:prices-micros metadata)
                 :latest_close (:latest-close metadata)
@@ -131,7 +129,11 @@
       (responses/error-json {:errors errs})
       ;; Do ES search.
       (let [items (get-all-open-items valid-args)
+            day-of-week (util/get-day-of-week
+                         (:hours-map valid-args)
+                         (some #(-> % :_source :business :rails_time_zone) items)
+                         (:utc-offset-map valid-args))
             ;; Gather metadata from the results returned.
-            metadata (meta/get-metadata items valid-args)]
+            metadata (meta/get-metadata items day-of-week)]
         ;; Create JSON response.
-        (mk-response items metadata valid-args)))))
+        (mk-response items metadata day-of-week valid-args)))))

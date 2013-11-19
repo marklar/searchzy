@@ -1,5 +1,6 @@
 (ns searchzy.service.util
-  (:import [java.util Calendar GregorianCalendar TimeZone]))
+  (:import [java.util Calendar GregorianCalendar TimeZone])
+  (:require [searchzy.service [tz :as tz]]))
 
 ;; -- GEO-RELATED -- could be moved into searchzy.service.geo.
 
@@ -84,25 +85,31 @@
       s)))
 
 (defn- mk-tz-str
-  [{:keys [hours minutes]}]
-  (str "GMT" (if (< hours 0) "" "+")
-       (two-digit-str hours) ":"
-       (two-digit-str minutes)))
+  [utc-offset-map]
+  (if (nil? utc-offset-map)
+    nil
+    (let [{:keys [hours minutes]} utc-offset-map]
+      (str "GMT" (if (< hours 0) "" "+")
+           (two-digit-str hours) ":"
+           (two-digit-str minutes)))))
 
 (defn- mk-tz
-  [utc-offset-map]
-  (TimeZone/getTimeZone (mk-tz-str utc-offset-map)))
+  [rails-time-zone utc-offset-map]
+  (TimeZone/getTimeZone (or (get tz/rails-tz-2-tz-info rails-time-zone)
+                            (mk-tz-str utc-offset-map)
+                            ;; use default time zone
+                            (mk-tz-str {:hours -5, :minutes 0}))))
 
 (defn get-day-of-week
   "Return an int: [0..6]."
-  [hours-map utc-offset-map]
+  [hours-map rails-time-zone utc-offset-map]
   (if (:wday hours-map)
     (:wday hours-map)
-    (let [tz  (mk-tz utc-offset-map)
-          cal (doto (GregorianCalendar.) (.setTimeZone tz))
-          java-num (.get cal Calendar/DAY_OF_WEEK)]
-      ;; In Java, days are numbered 1-7, so decrement.
-      (dec java-num))))
+    (let [tz      (mk-tz rails-time-zone utc-offset-map)
+          cal     (doto (GregorianCalendar.) (.setTimeZone tz))
+          cal-num (.get cal Calendar/DAY_OF_WEEK)]
+        ;; In Calendar class, days are numbered 1-7, so decrement.
+        (dec cal-num))))
 
 (defn- time-cmp-eq
   [op

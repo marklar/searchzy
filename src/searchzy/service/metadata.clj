@@ -43,7 +43,6 @@
     (get-latest-hour all-closing)))
 
 (defn get-metadata
-  [biz-menu-items {:keys [hours-map utc-offset-map]}]
-  (let [day-of-week (util/get-day-of-week hours-map utc-offset-map)]
-    {:prices-micros (get-prices-micros biz-menu-items)
-     :latest-close (get-latest-close biz-menu-items day-of-week)}))
+  [biz-menu-items day-of-week]
+  {:prices-micros (get-prices-micros biz-menu-items)
+   :latest-close (get-latest-close biz-menu-items day-of-week)})
