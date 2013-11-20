@@ -93,12 +93,14 @@
            (two-digit-str hours) ":"
            (two-digit-str minutes)))))
 
+;; New York City
+(def DEFAULT-OFFSET {:hours -5, :minutes 0})
+
 (defn- mk-tz
   [rails-time-zone utc-offset-map]
   (TimeZone/getTimeZone (or (get tz/rails-tz-2-tz-info rails-time-zone)
                             (mk-tz-str utc-offset-map)
-                            ;; use default time zone
-                            (mk-tz-str {:hours -5, :minutes 0}))))
+                            (mk-tz-str DEFAULT-OFFSET))))
 
 (defn get-day-of-week
   "Return an int: [0..6]."
@@ -113,7 +115,9 @@
 
 (defn time-to-mins
   [{h :hour, m :minute}]
-  (+ (* h 60) m))
+  (try
+    (+ m (* h 60))
+    (catch Exception e 0)))
 
 (defn time-cmp
   [op t1 t2]

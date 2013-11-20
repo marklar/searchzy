@@ -2,6 +2,7 @@
   (:use [clojure.core.match :only (match)])
   (:require [searchzy.cfg :as cfg]
             [searchzy.service
+             [value :as value]
              [metadata :as meta]
              [flurbl :as flurbl]
              [util :as util]
@@ -13,27 +14,29 @@
 (defn- mk-one-hit
   "Replace :hours with :hours_today, using :day_of_week.
    Add :distance_in_mi."
-  [source-map day-of-week coords]
-  (let [old-biz     (:business source-map)
+  [result day-of-week coords]
+  (let [source-map  (:_source result)
+        old-biz     (:business source-map)
         hours-today (util/get-hours-for-day (:hours old-biz) day-of-week)
         dist        (util/haversine (:coordinates old-biz) coords)
-        new-biz     (assoc (dissoc old-biz
-                                   :hours :latitude_longitude
-                                   :rails_time_zone
-                                   :yelp_star_rating
-                                   :yelp_review_count
-                                   :yelp_id)
-                      :yelp {:id (:yelp_id old-biz)
-                             :star_rating (:yelp_star_rating old-biz)
-                             :review_count (:yelp_review_count old-biz)}
-                      :hours_today hours-today
-                      :distance_in_mi dist)]
-    (assoc
-        (dissoc source-map
-                :latitude_longitude
+        new-biz     (-> old-biz
+                        (dissoc :hours :latitude_longitude
+                                :rails_time_zone
+                                :yelp_star_rating
+                                :yelp_review_count
+                                :yelp_id)
+                        (assoc 
+                            :yelp {:id (:yelp_id old-biz)
+                                   :star_rating (:yelp_star_rating old-biz)
+                                   :review_count (:yelp_review_count old-biz)}
+                            :hours_today hours-today
+                            :distance_in_mi dist))]
+    (-> source-map
+        (assoc :business new-biz
+               :awesomeness (:awesomeness result))
+        (dissoc :latitude_longitude
                 :yelp_star_rating
-                :yelp_review_count)
-      :business new-biz)))
+                :yelp_review_count))))
 
 ;; TODO: Add earliest_open.
 
@@ -43,9 +46,8 @@
    so we need to do paging here."
   [results metadata day-of-week {:keys [item-id geo-map hours-map
                                         utc-offset-map sort-map page-map]}]
-  (let [pageful     (take (:size page-map) (drop (:from page-map) results))
-        resp-hits   (map #(mk-one-hit % day-of-week (:coords geo-map))
-                         (map :_source pageful))]
+  (let [pageful   (take (:size page-map) (drop (:from page-map) results))
+        resp-hits (map #(mk-one-hit % day-of-week (:coords geo-map)) pageful)]
     (responses/ok-json
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id
@@ -102,23 +104,34 @@
                 :from   (:from page-map)
                 :size   (:size page-map)))))
 
-(defn- filter-by-hours
-  [hours-map biz-menu-items]
+(defn- maybe-filter-by-hours
+  [biz-menu-items hours-map]
   (if (= {} hours-map)
     biz-menu-items
     (filter #(util/open-at? hours-map (-> % :_source :business :hours))
             biz-menu-items)))
 
+(defn- maybe-value-sort
+  [items sort-map]
+  (if (not= "value" (:attribute sort-map))
+    items
+    (let [sorted (value/score-and-sort items)]
+      (if (= :desc (:order sort-map))
+        sorted
+        (reverse sorted)))))
+
 (def MAX_ITEMS 1000)
-(defn get-all-open-items
+(defn- get-all-open-items
   [{:keys [item-id geo-map hours-map sort-map]}]
   ;; Do search, getting lots of (MAX_ITEMS) results.
   ;; Return *only* the actual hits, losing the actual number of results!
   (let [{items :hits} (es-search item-id geo-map sort-map
                                  {:from 0, :size MAX_ITEMS})]
-    ;; Possible post-facto filter using hours-map.
-    (filter-by-hours hours-map items)))
-  
+    (-> items
+        ;; in-process filtering
+        (maybe-filter-by-hours hours-map)
+        ;; in-process sorting
+        (maybe-value-sort sort-map))))
 
 (def sort-attrs #{"price" "value" "distance"})
 (defn validate-and-search
