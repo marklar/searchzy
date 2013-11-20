@@ -67,6 +67,8 @@
 (def mapping-name (:mapping (:business_menu_items cfg/elastic-search-names)))
 
 (defn value-sort
+  "We don't really use this anymore.
+   Instead, we post-process the results we get back from an 'over-search'."
   [order]
   (array-map :yelp_star_rating  order
              :yelp_review_count order

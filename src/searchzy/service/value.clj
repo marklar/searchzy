@@ -18,7 +18,7 @@
         c (:yelp_review_count (:_source item))
         rate-key  :tweaked-rating
         count-key :tweaked-count]
-    (if (= c 0)
+    (if (or (nil? c) (= c 0))
       (assoc item rate-key 3.0 count-key 1)
       (if (or (nil? r) (< r 3.0))
         (assoc item rate-key (or r 0.0) count-key (* -1 c))
