@@ -86,7 +86,7 @@
 
 (defn- mk-tz-str
   [utc-offset-map]
-  (if (nil? utc-offset-map)
+  (if (empty? utc-offset-map)
     nil
     (let [{:keys [hours minutes]} utc-offset-map]
       (str "GMT" (if (< hours 0) "" "+")

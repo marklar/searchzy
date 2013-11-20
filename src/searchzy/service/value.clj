@@ -127,4 +127,3 @@
                          add-price-norm
                          add-score)]
     (sort score-and-count-gt scored-items)))
-        
