@@ -26,40 +26,26 @@
 
 ;;--------
 
-(defn get-ranks
-  "[3 2 4 1] => [1 4 6 10]
-   Each is the previous plus the new n."
-  [cardinalities]
-  (reverse
-   (drop 1
-         (reduce (fn [res n] (cons (+ n (first res)) res))
-                 '(1) cardinalities))))
-
-(defn grouped-by-sort-val
-  "Given items each with val-attr, return ordered seq of groups."
-  [items val-attr cmp]
-  (map second (sort cmp (group-by val-attr items))))
-
 (defn add-rank
   "Add 'rank-attr' attribute to each item, based on its 'val-attr'.
    'cmp' affects sort (i.e. either '<' [asc] or '>' [desc])."
-  [items val-attr cmp rank-attr]
-  (let [sorted-item-groups (grouped-by-sort-val items val-attr cmp)
-        cardinalities      (map #(count %) sorted-item-groups)
-        ranks              (get-ranks cardinalities)
-        rank-2-group       (map vector ranks sorted-item-groups)]
-    (flatten
-     (map (fn [[r group]] (map #(assoc % rank-attr r) group))
-          rank-2-group))))
+  [maps val-attr cmp rank-attr]
+  (let [[_ _ _ ranked]
+        (reduce (fn [[prev-r next-r prev-v res] m]
+                  (let [val (get m val-attr)]
+                    (if (= val prev-v)
+                      [prev-r (inc next-r) val
+                       (cons (assoc m rank-attr prev-r) res)]
+                      [next-r (inc next-r) val
+                       (cons (assoc m rank-attr next-r) res)])))
+                [0 1 nil ()]
+                (sort-by val-attr cmp maps))]
+    (reverse ranked)))
 
 (defn add-norm-to-ranked-items
   [ranked-items max-rank rank-key norm-key]
-  (map #(assoc % norm-key (/ (get % rank-key) max-rank))
-       ranked-items))
-
-(defn remove-rank
-  [items rank-key]
-  (map #(dissoc % rank-key) items))
+  (let [norm (fn [i] (/ (get i rank-key) max-rank))]
+    (map #(assoc % norm-key (norm %)) ranked-items))
 
 (defn add-norm
   "rank-attr: #{:tweaked-count :tweaked-rating :price_micros}
@@ -67,12 +53,11 @@
    Adds normed score (e.g. :tweaked-count-norm) to each item."
   [items cmp rank-attr]
   (let [rank-key     (join-keys rank-attr :rank)
-        norm-key     (join-keys rank-attr :norm)
-        normed-items (-> items
-                         (add-rank rank-attr cmp rank-key)
-                         (add-norm-to-ranked-items (count items)
-                                                   rank-key norm-key))]
-    (remove-rank normed-items rank-key)))
+        norm-key     (join-keys rank-attr :norm)]
+    (-> items
+        (add-rank rank-attr cmp rank-key)
+        (add-norm-to-ranked-items (count items)
+                                  rank-key norm-key))))
 
 (defn first-gt [[a _] [b _]] (> a b))
 (defn first-lt [[a _] [b _]] (< a b))
