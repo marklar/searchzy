@@ -36,20 +36,18 @@
   "val-attr: #{:tweaked-count :tweaked-rating :price_micros}
    cmp: affects sort.  < (asc), > (desc)
    Adds norm (e.g. :tweaked-count-norm) to each item."
-  [maps val-attr cmp]
-  (let [norm-key (join-keys val-attr :norm)
-        max-rank (count maps)
-        add-norm (fn [m r] (assoc m norm-key (/ r max-rank)))
+  [items val-attr cmp]
+  (let [norm-key  (join-keys val-attr :norm)
+        max-rank  (count items)
+        normalize (fn [m r] (assoc m norm-key (/ r max-rank)))
         [_ _ _ normed]
-        (reduce (fn [[prev-r prev-v next-r res] m]
-                  (let [val (get m val-attr)]
-                    (if (= val prev-v)
-                      [prev-r val (inc next-r)
-                       (cons (add-norm m prev-r) res)]
-                      [next-r val (inc next-r)
-                       (cons (add-norm m next-r) res)])))
+        (reduce (fn [[prev-rank prev-val next-rank res] item]
+                  (let [val  (get item val-attr)
+                        rank (if (= val prev-val) prev-rank next-rank)]
+                    [rank val (inc next-rank)
+                     (cons (normalize item rank) res)]))
                 [0 nil 1 ()]
-                (sort-by val-attr cmp maps))]
+                (sort-by val-attr cmp items))]
     (reverse normed)))
 
 ;; Rating/Reviews Factor
