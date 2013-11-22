@@ -24,11 +24,15 @@
         (add item (or r 0.0) (* -1 c))
         (add item (or r 0.0) c)))))
 
+;;
+;; If we wish to change the way we compute the norm for prices,
+;; we can't use Integer/MAX_VALUE.  But what to use instead?
+;;
 (defn price-tweak
   "Ensure that price isn't null.  Add :tweaked-price."
   [item]
   (assoc item :tweaked-price
-    (or (:price_micros item) Integer/MAX_VALUE)))
+         (or (:price_micros (:_source item)) Integer/MAX_VALUE)))
         
 ;;--------
 
@@ -63,10 +67,21 @@
 ;;   Rank Price by descending order (i.e., highest number ranked 1)
 ;;   Take ranking for Price and divide by max rank for that bucket
 ;;   Apply weight to score
-(defn add-price-norm
+(defn add-price-rank-norm
   [items]
   (-> (map price-tweak items)
       (add-norm :tweaked-price >)))
+
+(defn add-price-val-norm
+  "Create price norm based not on rank but on actual price.
+   If the item's price is nil, use (* 1.1 max-price)."
+  [items]
+  (let [get-p     #(:price_micros (:_source %))
+        max-price (apply max (remove nil? (map get-p items)))
+        nil-price (* 1.1 max-price)]
+    (map #(let [p (or (get-p %) nil-price)]
+            (assoc % :tweaked-price-norm (/ 1.0 (/ p max-price))))
+         items)))
 
 (defn add-score-to-item
   [item]
@@ -96,6 +111,7 @@
   [items]
   (let [scored-items (-> items
                          add-yelp-norms
-                         add-price-norm
+                         ;; add-price-val-norm
+                         add-price-rank-norm
                          add-score)]
     (sort score-and-count-gt scored-items)))

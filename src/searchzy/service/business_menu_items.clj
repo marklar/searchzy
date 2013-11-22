@@ -63,7 +63,7 @@
                 :hits resp-hits
                 }})))
 
-(def idx-name (:index (:business_menu_items cfg/elastic-search-names)))
+(def idx-name     (:index   (:business_menu_items cfg/elastic-search-names)))
 (def mapping-name (:mapping (:business_menu_items cfg/elastic-search-names)))
 
 (defn value-sort
