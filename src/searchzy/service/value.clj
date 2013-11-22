@@ -29,10 +29,10 @@
 ;; we can't use Integer/MAX_VALUE.  But what to use instead?
 ;;
 (defn price-tweak
-  "Ensure that price isn't null.  Add :tweaked-price."
+  "Ensure that price isn't nil.  Add :tweaked-price."
   [item]
-  (assoc item :tweaked-price
-         (or (:price_micros (:_source item)) Integer/MAX_VALUE)))
+  (assoc item :tweaked-price (or (:price_micros (:_source item))
+                                 Integer/MAX_VALUE)))
         
 ;;--------
 
@@ -80,7 +80,7 @@
         max-price (apply max (remove nil? (map get-p items)))
         nil-price (* 1.1 max-price)]
     (map #(let [p (or (get-p %) nil-price)]
-            (assoc % :tweaked-price-norm (/ 1.0 (/ p max-price))))
+            (assoc % :tweaked-price-norm (- 1.0 (/ p max-price))))
          items)))
 
 (defn add-score-to-item
