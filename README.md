@@ -78,33 +78,35 @@ Don't forget the leading period.
 
 Its contents should look like this:
 
-    api-key:
-    geocoding:
-        provider: bing  # default: google
-        bing-api-key: 
-    mongo-db:
-        main:
-            db-name: centzy_web_production
-            username:
-            password: 
-            host: 127.0.0.1
-            port: 27017
-        areas:
-            db-name: centzy_web_production_areas
-            username:
-            password: 
-            host: 127.0.0.1
-            port: 27017
-        businesses:
-            db-name: centzy_web_production_businesses
-            username:
-            password: 
-            host: 127.0.0.1
-            port: 27017
-    elastic-search:
-        cluster-name: elasticsearch
-        host: localhost
-        port: 9300
+```YAML
+api-key:
+geocoding:
+    provider: bing  # default: google
+    bing-api-key: 
+mongo-db:
+    main:
+        db-name: centzy_web_production
+        username:
+        password: 
+        host: 127.0.0.1
+        port: 27017
+    areas:
+        db-name: centzy_web_production_areas
+        username:
+        password: 
+        host: 127.0.0.1
+        port: 27017
+    businesses:
+        db-name: centzy_web_production_businesses
+        username:
+        password: 
+        host: 127.0.0.1
+        port: 27017
+elastic-search:
+    cluster-name: elasticsearch
+    host: localhost
+    port: 9300
+```
 
 Except that some of the values will need to be added (e.g.: api-key) or
 changed.
@@ -118,8 +120,10 @@ has a much higher query limit.)
 Also, you need to find out your ElasticSearch's cluster name. Retrieve
 it via ElasticSearch's REST API, thus:
 
-    > curl http://localhost.com:9200/_cluster/nodes
-    {"ok":true,"cluster_name":"elasticsearch_something","nodes":...}}
+```
+> curl http://localhost.com:9200/_cluster/nodes
+{"ok":true,"cluster_name":"elasticsearch_something","nodes":...}}
+```
 
 You won't likely need to change the ports.  (27017 is the standard
 MongoDB port, and 9300 is the standard port for ElasticSearch's binary
@@ -132,20 +136,25 @@ transport.)
 
 To index *all* domains, run this command:
 
-    lein run -m searchzy.index.core
+```
+lein run -m searchzy.index.core
+```
 
 Indexing currently all domains takes about 1 hour (on my MacBook Air
 laptop).
 
 To index just a subset of the domains, specify which.  For example:
 
-    lein run -m searchzy.index.core --domains "items biz-categories"
+```
+lein run -m searchzy.index.core --domains "items biz-categories"
+```
 
 This is the complete set of options: {biz-categories, items,
 businesses, biz-menu-items}.  For more information:
 
-    lein run -m searchzy.index.core --help
-
+```
+lein run -m searchzy.index.core --help
+```
 
 ### Service
 
@@ -157,7 +166,9 @@ In dev mode, any Clojure code you modify gets automatically reloaded
 with each server request.  This is very convenient for interactive
 development.
 
-    lein ring server
+```
+lein ring server
+```
 
 #### Production mode
 
@@ -167,39 +178,49 @@ launched.
 There are two ways to run in prod mode.  The first requires that you
 have leiningen installed whenever you want to start the server.
 
-    lein run <PORT>
+```
+lein run <PORT>
+```
 
 The second way allows you to create an 'uberjar' using leiningen:
 
-    lein uberjar
+```
+lein uberjar
+```
 
 and from that point forward just running the AOT-compiled Java bytecode
 directly:
 
-    java -jar target/searchzy-0.1.0-SNAPSHOT-standalone.jar <PORT>
-
+```
+java -jar target/searchzy-0.1.0-SNAPSHOT-standalone.jar <PORT>
+```
 
 ## <a name="deploy"></a>Deploying
 
 To deploy Searchzy to production machines, you will need two create
 these two files:
 
-    .config.yaml
-    searchzy-0.1.0-SNAPSHOT-standalone.jar
+```
+.config.yaml
+searchzy-0.1.0-SNAPSHOT-standalone.jar
+```
 
 To create .config.yaml, see [configuration][2].
 
 To create the uberjar, run:
 
-    lein uberjar
+```
+lein uberjar
+```
 
 Once you have those two files, you must scp them to your production
 machine.
 
 Finally, from the same directory, start the server:
 
-    java -jar searchzy-0.1.0-SNAPSHOT-standalone.jar <PORT>
-
+```
+java -jar searchzy-0.1.0-SNAPSHOT-standalone.jar <PORT>
+```
 
 ## License
 
