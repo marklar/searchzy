@@ -37,19 +37,20 @@ Bundler and Rake all in one.  It's a tool for managing your project's
 dependencies (including Clojure itself), running your code, producing
 binary deliverables, and much more.
 
-### "checkout" Copy of Elastisch
+
+### marklar/elastisch
 
 For its native client communication with ElasticSearch, Searchzy uses
-a modified version of a Clojure library called Elastisch, which we
-have to make available to this project.
+a modified version of a Clojure library called Elastisch.  We have to
+make this modified version of Elastisch available to this project.
 
 Normally, you don't have to concern yourself with code dependencies,
-as Leiningen handles fetching and installing them for you. But this
-case is peculiar, because we needed to make an enhancement to
-Elastisch, so we forked the main repo, added our enhancement, and made
-a pull request. Until such time as the maintainers of Elastisch
-incorporate our enhancement, we need to use our own version of the
-repository. Doing so requires doing this:
+as Leiningen fetches and installs them for you. But because we needed
+to make an enhancement to Elastisch which is not yet incorporated into
+the official repo, we need to use our own.  (A pull request has
+already been made; awaiting response.)
+
+Using our version of Elastisch requires doing this:
 
 ```
 mkdir checkouts
@@ -58,9 +59,9 @@ git clone https://github.com/marklar/elastisch
 cd ..
 ```
 
-Leiningen always looks for a `checkouts` directory. If there is one,
-it will use the libraries it finds there rather than their remote
-(i.e. in some Maven repository) counterparts.
+The reason this works... Leiningen always looks for a `checkouts`
+directory, and if it encounters one, it will use the libraries it
+finds there rather than their remote counterparts.
 
 
 ### ElasticSearch
