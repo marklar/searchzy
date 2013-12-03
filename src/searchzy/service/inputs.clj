@@ -1,8 +1,8 @@
 (ns searchzy.service.inputs
+  (:use [clojure.core.match :only (match)])
   (:require [clojure.string :as str]
             [searchzy.service
              [clean :as clean]
-             [flurbl :as flurbl]
              [geo :as geo]
              [query :as q]]))
 
@@ -29,18 +29,30 @@
 
 (defn mk-geo-map
   "Take input-geo-map: miles, address, lat, lon.
+   >> Also optional max_miles. <<
    If the input is valid, create a geo-map.
    If not, return nil."
   [{address :address, lat-str :lat, lon-str :lon, miles-str :miles}]
-  (let [lat   (str-to-val lat-str   nil)
-        lon   (str-to-val lon-str   nil)
-        miles (str-to-val miles-str 4.0)]
+  (let [lat       (str-to-val lat-str       nil)
+        lon       (str-to-val lon-str       nil)
+        miles     (str-to-val miles-str     4.0)]
     (let [res (geo/resolve-address lat lon address)]
       (if (nil? res)
         nil
         {:address {:input address, :resolved (:address res)}
          :coords (:coords res)
          :miles miles}))))
+
+(defn get-collar-map
+  "If {}, not err, just no collar."
+  [{max-miles-str :max-miles min-results-str :min-results}]
+  (let [miles (str-to-val max-miles-str   nil)
+        num   (str-to-val min-results-str nil)]
+    (match [miles num]
+           [nil nil] {}   ;; opting out
+           [nil _  ] nil  ;; error
+           [_   nil] nil  ;; error
+           :else {:max-miles miles, :min-results num})))
 
 ;; ---
 
@@ -123,11 +135,28 @@
    true-str?    ;; always produces t/f, never error (nil)
    (fn [i o]))) ;; no-op
 
+(defn- get-order-and-attr
+  [sort-str]
+  (if (clojure.string/blank? sort-str)
+    [:desc "value"]
+    (let [s (clojure.string/trim sort-str)]
+      (if (= \- (first s))
+        [:desc, (apply str (rest s))]
+        [:asc,  s]))))
+
+(defn- get-sort-map
+  "If a non-legal value is supplied, return nil (== error)."
+  [sort-str valid-attributes]
+  (let [[order attr] (get-order-and-attr sort-str)]
+    (if (contains? valid-attributes attr)
+      {:attribute attr, :order order}
+      nil)))
+
 (defn clean-sort
   [attrs-set]
   (clean/mk-cleaner
    :sort :sort-map
-   #(flurbl/get-sort-map % attrs-set)
+   #(get-sort-map % attrs-set)
    (fn [i o]
      (let [opts (flatten (map (fn [o] [o (str "-" o)]) attrs-set))]
        {:param :sort
@@ -166,6 +195,15 @@
               :message "'utc_offset' should have values like '-5' or '+5:45'."
               :args i})))
 
+(def clean-collar-map
+  (clean/mk-cleaner
+   :collar-map :collar-map
+   get-collar-map
+   (fn [i o] {:params [:max_miles, :min_results]
+              :message "Something wrong with your 'collar'."
+              :args i})))
+   
+
 (defn business-clean-input
   "Validate each argument group in turn.
    Gather up any validation errors as you go."
@@ -185,6 +223,7 @@
   (clean/gather->> args
                    clean-item-id
                    clean-geo-map
+                   clean-collar-map
                    clean-hours
                    clean-utc-offset
                    (clean-sort sort-attrs)

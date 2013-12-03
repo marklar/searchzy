@@ -13,7 +13,8 @@
              [business :as biz]
              [responses :as responses]
              [suggestions :as sugg]
-             [business-menu-items :as items]]
+             ;; [business-menu-items :as items]]
+             [bmi :as items]]
             [compojure
              [handler :as handler]
              [route :as route]]))
@@ -73,7 +74,8 @@
 
   ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
-       [api_key item_id address lat lon miles hours utc_offset sort from size]
+       [api_key item_id address lat lon miles max_miles min_results
+        hours utc_offset sort from size]
        (if (not (valid-key? api_key))
          ;; not authorized
          (bounce)
@@ -81,6 +83,7 @@
          (items/validate-and-search
           {:item-id item_id
            :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+           :collar-map {:max-miles max_miles, :min-results min_results}
            :hours hours
            :utc-offset utc_offset
            :sort sort

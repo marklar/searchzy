@@ -37,6 +37,31 @@ Bundler and Rake all in one.  It's a tool for managing your project's
 dependencies (including Clojure itself), running your code, producing
 binary deliverables, and much more.
 
+### "checkout" Copy of Elastisch
+
+For its native client communication with ElasticSearch, Searchzy uses
+a modified version of a Clojure library called Elastisch, which we
+have to make available to this project.
+
+Normally, you don't have to concern yourself with code dependencies,
+as Leiningen handles fetching and installing them for you. But this
+case is peculiar, because we needed to make an enhancement to
+Elastisch, so we forked the main repo, added our enhancement, and made
+a pull request. Until such time as the maintainers of Elastisch
+incorporate our enhancement, we need to use our own version of the
+repository. Doing so requires doing this:
+
+```
+mkdir checkouts
+cd checkouts
+git clone https://github.com/marklar/elastisch
+cd ..
+```
+
+Leiningen always looks for a `checkouts` directory. If there is one,
+it will use the libraries it finds there rather than their remote
+(i.e. in some Maven repository) counterparts.
+
 
 ### ElasticSearch
 
@@ -78,7 +103,7 @@ Don't forget the leading period.
 
 Its contents should look like this:
 
-```YAML
+```yaml
 api-key:
 geocoding:
     provider: bing  # default: google

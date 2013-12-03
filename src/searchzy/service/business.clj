@@ -55,17 +55,14 @@
   "Perform ES search, return results map.
    If sort is by 'value', change scoring function and sort by its result."
   [query-str query-type geo-map sort-map page-map]
-  (let [search-fn (if (= "distance" (:attribute sort-map))
-                    flurbl/distance-sort-search
-                    es-doc/search)
-        es-names (:businesses cfg/elastic-search-names)]
+  (let [es-names (:businesses cfg/elastic-search-names)]
     (:hits
-     (search-fn (:index es-names) (:mapping es-names)
-                :query  (mk-query query-str query-type sort-map)
-                :filter (util/mk-geo-filter geo-map)
-                :sort   (mk-sort sort-map geo-map)
-                :from   (:from page-map)
-                :size   (:size page-map)))))
+     (es-doc/search (:index es-names) (:mapping es-names)
+                    :query  (mk-query query-str query-type sort-map)
+                    :filter (util/mk-geo-filter geo-map)
+                    :sort   (mk-sort sort-map geo-map)
+                    :from   (:from page-map)
+                    :size   (:size page-map)))))
 
 (defn- filter-by-hours
   [hours-map businesses]

@@ -6,12 +6,16 @@
                  [org.clojure/core.match "0.2.0"]
                  [org.clojure/core.cache "0.6.3"]
                  [org.clojure/tools.cli "0.2.4"]
+                 [camel-snake-kebab "0.1.2"]
                  [clj-yaml "0.4.0"]
                  [compojure "1.1.5"]
                  [ring/ring-jetty-adapter "1.2.1"]
                  [hiccup "1.0.4"]
                  [congomongo "0.4.1"]
-                 [clojurewerkz/elastisch "1.2.0"]
+                 ;;
+                 ;; But we actually need our LOCAL version in checkouts!
+                 [clojurewerkz/elastisch "1.3.0-beta5"]
+                 ;;
                  [geocoder-clj "0.2.3"]]
 
   ;; INDEX: "lein run -m searchy.index.core
