@@ -47,8 +47,11 @@ make this modified version of Elastisch available to this project.
 Normally, you don't have to concern yourself with code dependencies,
 as Leiningen fetches and installs them for you. But because we needed
 to make an enhancement to Elastisch which is not yet incorporated into
-the official repo, we need to use our own.  (A pull request has
-already been made; awaiting response.)
+the official repo, we need to use our own.
+
+(A [pull request][10] has already been made.  Awaiting response.)
+
+[10]: https://github.com/clojurewerkz/elastisch/pull/49
 
 Using our version of Elastisch requires doing this:
 
