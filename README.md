@@ -56,6 +56,7 @@ the official repo, we need to use our own.
 Using our version of Elastisch requires doing this:
 
 ```
+# from 'searchzy' root directory...
 mkdir checkouts
 cd checkouts
 git clone https://github.com/marklar/elastisch
