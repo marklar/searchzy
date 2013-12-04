@@ -9,7 +9,7 @@
             [searchzy.service
              [value :as value]
              [metadata :as meta]
-             [flurbl :as flurbl]
+             [geo-sort :as geo-sort]
              [util :as util]
              [inputs :as inputs]
              [responses :as responses]]
@@ -81,7 +81,7 @@
    (es-doc/search idx-name mapping-name
                   :query  {:field {:item_id item-id}}
                   :filter (util/mk-geo-filter geo-map)
-                  :sort   (flurbl/mk-geo-distance-sort-builder
+                  :sort   (geo-sort/mk-geo-distance-sort-builder
                            (:coords geo-map) :asc)
                   :from   (:from page-map)
                   :size   (:size page-map))))

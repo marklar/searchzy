@@ -5,7 +5,6 @@
             [searchzy.service
              [util :as util]
              [inputs :as inputs]
-             [geo :as geo]
              [responses :as responses]
              [business :as biz]]
             [clojurewerkz.elastisch.native

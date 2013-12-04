@@ -2,7 +2,7 @@
   (:use [clojure.core.match :only (match)])
   (:require [searchzy.cfg :as cfg]
             [searchzy.service
-             [flurbl :as flurbl]
+             [geo-sort :as geo-sort]
              [util :as util]
              [inputs :as inputs]
              [responses :as responses]]
@@ -24,7 +24,7 @@
   (let [order (:order sort-map)]
     (match (:attribute sort-map)
            "value"    (value-sort order)
-           "distance" (flurbl/mk-geo-distance-sort-builder
+           "distance" (geo-sort/mk-geo-distance-sort-builder
                        (:coords geo-map) order)
            "score"    {:_score order}
            :else      DEFAULT_SORT)))

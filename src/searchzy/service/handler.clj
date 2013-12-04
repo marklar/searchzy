@@ -80,7 +80,7 @@
          ;; not authorized
          (bounce)
          ;; authorized
-         (let [search-fn (if (clojure.string/blank? min_results)
+         (let [search-fn (if (not (clojure.string/blank? min_results))
                            bmi/validate-and-search
                            items/validate-and-search)]
            (search-fn

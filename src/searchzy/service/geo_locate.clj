@@ -1,4 +1,4 @@
-(ns searchzy.service.geo
+(ns searchzy.service.geo-locate
   (:use [clojure.core.match :only (match)])
   (:require [clojure.string :as str]
             [clojure.core.cache :as cache]

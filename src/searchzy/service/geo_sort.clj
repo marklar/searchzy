@@ -1,4 +1,4 @@
-(ns searchzy.service.flurbl
+(ns searchzy.service.geo-sort
   "Code taken from Elastisch and modified to allow a GeoDistanceSortBuilder."
   (:import [org.elasticsearch.search.sort GeoDistanceSortBuilder SortOrder]
            [org.elasticsearch.common.unit DistanceUnit]))

@@ -3,7 +3,7 @@
   (:require [clojure.string :as str]
             [searchzy.service
              [clean :as clean]
-             [geo :as geo]
+             [geo-locate :as geo-locate]
              [query :as q]]))
 
 
@@ -36,7 +36,7 @@
   (let [lat       (str-to-val lat-str       nil)
         lon       (str-to-val lon-str       nil)
         miles     (str-to-val miles-str     4.0)]
-    (let [res (geo/resolve-address lat lon address)]
+    (let [res (geo-locate/resolve-address lat lon address)]
       (if (nil? res)
         nil
         {:address {:input address, :resolved (:address res)}
