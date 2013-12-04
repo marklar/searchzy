@@ -13,8 +13,8 @@
              [business :as biz]
              [responses :as responses]
              [suggestions :as sugg]
-             ;; [business-menu-items :as items]]
-             [bmi :as items]]
+             [business-menu-items :as items]
+             [bmi :as bmi]]
             [compojure
              [handler :as handler]
              [route :as route]]))
@@ -80,14 +80,17 @@
          ;; not authorized
          (bounce)
          ;; authorized
-         (items/validate-and-search
-          {:item-id item_id
-           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
-           :collar-map {:max-miles max_miles, :min-results min_results}
-           :hours hours
-           :utc-offset utc_offset
-           :sort sort
-           :page-map {:from from, :size size}})))
+         (let [search-fn (if (clojure.string/blank? min_results)
+                           bmi/validate-and-search
+                           items/validate-and-search)]
+           (search-fn
+            {:item-id item_id
+             :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+             :collar-map {:max-miles max_miles, :min-results min_results}
+             :hours hours
+             :utc-offset utc_offset
+             :sort sort
+             :page-map {:from from, :size size}}))))
 
   (GET (v-path 1 "/suggestions")
        [query address lat lon miles size html]

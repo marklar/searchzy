@@ -1,4 +1,8 @@
 (ns searchzy.service.bmi
+  "A new version of business-menu-items which employs a 'collar'.
+   That is, it always performs sort-by-distance searches,
+   and then it 'takes' from them until satisfying 'min_results'.
+   or simply running out."
   (:use [clojure.core.match :only (match)]
         [camel-snake-kebab])
   (:require [searchzy.cfg :as cfg]
