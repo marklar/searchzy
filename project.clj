@@ -12,10 +12,7 @@
                  [ring/ring-jetty-adapter "1.2.1"]
                  [hiccup "1.0.4"]
                  [congomongo "0.4.1"]
-                 ;;
-                 ;; But we actually need our LOCAL version in checkouts!
                  [clojurewerkz/elastisch "1.3.0-beta5"]
-                 ;;
                  [geocoder-clj "0.2.3"]]
 
   ;; INDEX: "lein run -m searchy.index.core

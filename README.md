@@ -49,7 +49,8 @@ as Leiningen fetches and installs them for you. But because we needed
 to make an enhancement to Elastisch which is not yet incorporated into
 the official repo, we need to use our own.
 
-(A [pull request][10] has already been made.  Awaiting response.)
+(Our [pull request][10] has already been accepted.  Now merely
+awaiting the re-packaging of clojurewerkz/elastisch to Clojars.)
 
 [10]: https://github.com/clojurewerkz/elastisch/pull/49
 
@@ -61,12 +62,12 @@ mkdir checkouts
 cd checkouts
 git clone https://github.com/marklar/elastisch
 cd ..
+lein clean
 ```
 
 The reason this works... Leiningen always looks for a `checkouts`
 directory, and if it encounters one, it will use the libraries it
 finds there rather than their remote counterparts.
-
 
 ### ElasticSearch
 
