@@ -129,22 +129,24 @@
      (let [id (str (:_id mg-map))]
        (put id (dissoc es-map :_id)))))
 
-(defn recreate-idx []
-  (util/recreate-idx idx-name mapping-types))
+(defn- mg-fetch
+  [& {:keys [limit]}]
+  (maybe-take limit (mg/fetch :businesses :where {:active_ind true})))
 
-(defn- mg-fetch []
-  (mg/fetch :businesses :where {:active_ind true}))
+(defn recreate-idx
+  []
+  (util/recreate-idx idx-name mapping-types))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
-  []
+  [& {:keys [limit]}]
   (recreate-idx)
-  (doseq-cnt add-to-idx 5000 (mg-fetch)))
+  (doseq-cnt add-to-idx 5000 (mg-fetch :limit limit)))
 
 
 ;; -- Just for testing --
 (defn -main [& args]
-  (searchzy.util/mongo-connect! (:mongo-db (cfg/get-cfg)))
+  (mongo-connect! (:mongo-db (cfg/get-cfg)))
   (doseq [doc (take 200 (mg-fetch))]
     (println doc)
     (println)))

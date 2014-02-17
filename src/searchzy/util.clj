@@ -3,6 +3,12 @@
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native :as es]))
 
+(defn maybe-take
+  [limit seq]
+  (if (nil? limit)
+    seq
+    (take limit seq)))
+
 (defn doseq-cnt
   "Call function 'f' on each of 'seq',
    printing count out after each 'num' items."

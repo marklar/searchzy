@@ -18,14 +18,17 @@
     (biz/add-to-idx mg-map biz-es-map)
     (item/add-to-idx mg-map biz-es-map)))
 
+(defn- mg-fetch
+  [& {:keys [limit]}]
+  (maybe-take limit (mg/fetch :businesses :where {:active_ind true})))
+
 (defn mk-idx
   "Fetch Businesses from MongoDB.
    Use each to add to both indices:
      - businesses
      - business_menu_items
    Return count (of Businesses)."
-  []
+  [& {:keys [limit]}]
   (biz/recreate-idx)
   (item/recreate-idx)
-  (doseq-cnt add-to-idx 5000
-             (mg/fetch :businesses :where {:active_ind true})))
+  (doseq-cnt add-to-idx 5000 (mg-fetch :limit limit)))

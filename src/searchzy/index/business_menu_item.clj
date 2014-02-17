@@ -90,11 +90,14 @@
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
 
+(defn- mg-fetch
+  [& {:keys [limit]}]
+  (maybe-take limit (mg/fetch :businesses :where {:active_ind true})))
+
 (defn mk-idx
   "Fetch Businesses from MongoDB.
-   Add it (and its embedded BusinessUnifiedMenuItems) to the index.
+   Add each (and its embedded BusinessUnifiedMenuItems) to the index.
    Return count (of Businesses)."
-  []
+  [& {:keys [limit]}]
   (recreate-idx)
-  (doseq-cnt add-to-idx 5000
-             (mg/fetch :businesses :where {:active_ind true})))
+  (doseq-cnt add-to-idx 5000 (mg-fetch :limit limit)))

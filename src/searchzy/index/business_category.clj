@@ -23,7 +23,17 @@
               (str (:_id mg-map))
               (dissoc mg-map :_id)))
 
+(defn- recreate-idx
+  []
+  (util/recreate-idx idx-name mapping-types))
+
+(defn- mg-fetch
+  [& {:keys [limit]}]
+  (maybe-take limit (mg/fetch :business_categories
+                              :where {:is_searchable_ind true})))
+
 (defn mk-idx
+  [& {:keys [limit]}]
   "Fetch BusinessCategories from MongoDB.
    Add them to ES index.
    Return count.
@@ -32,8 +42,5 @@
      - a particular MongoDB collection,
      - ElasticSearch
   "
-  []
-  (util/recreate-idx idx-name mapping-types)
-  (doseq-cnt add-to-idx 10
-             (mg/fetch :business_categories
-                       :where {:is_searchable_ind true})))
+  (recreate-idx)
+  (doseq-cnt add-to-idx 10 (mg-fetch :limit limit)))
