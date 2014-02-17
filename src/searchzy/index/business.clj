@@ -147,6 +147,6 @@
 ;; -- Just for testing --
 (defn -main [& args]
   (mongo-connect! (:mongo-db (cfg/get-cfg)))
-  (doseq [doc (take 200 (mg-fetch))]
+  (doseq [doc (mg-fetch :limit 200)]
     (println doc)
     (println)))
