@@ -6,7 +6,7 @@
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
 
-(def idx-name (:index (:businesses cfg/elastic-search-names)))
+(def idx-name     (:index   (:businesses cfg/elastic-search-names)))
 (def mapping-name (:mapping (:businesses cfg/elastic-search-names)))
 
 (def mapping-types
@@ -78,10 +78,10 @@
 (defn- get-address
   ""
   [{a1 :address_1 a2 :address_2 city :city state :state zip :zip}]
-  :address {:street (str/join ", " (remove str/blank? [a1 a2]))
-            :city city
-            :state state
-            :zip zip})
+  {:street (str/join ", " (remove str/blank? [a1 a2]))
+   :city city
+   :state state
+   :zip zip})
 
 ;; -- search document --
 
