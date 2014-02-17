@@ -28,7 +28,7 @@
   (map (fn [k m] (:index m)) cfg/elastic-search-names))
 
 (defn- blow-away-everything []
-  ;;(mg/drop-database! "centzy_web_production")
+  ;; (mg/drop-database! "centzy_web_production")
   (doseq [n (get-idx-names)]
     (rm-index n)))
 
@@ -48,7 +48,7 @@
    :items          {:f item/mk-idx,          :db :main}
    ;; slow
    :combined       {:f biz-combined/mk-idx,  :db :businesses}
-   ;; OR, do each slow independently.
+   ;; OR, do each 'slow' independently.
    :businesses     {:f biz/mk-idx,           :db :businesses}
    :biz-menu-items {:f biz-menu-item/mk-idx, :db :businesses}
    })
@@ -71,10 +71,18 @@
 
 ;; -- public --
 
+(defn- words
+  "Given string of space- (and possibly comma-) separated values,
+   return an iSeq of 'words'."
+  [s]
+  (-> s
+      str/trim
+      (str/split #"\s*,?\s")))
+
 (defn- index-all
   "Serial index creation."
   [domains-str]
-  (let [domains (str/split (str/trim domains-str) #"\s*,?\s")
+  (let [domains (words domains-str)
         names (if (= domains ["all"])
                 [:biz-categories :items :combined]
                 (map keyword domains))]
@@ -113,4 +121,3 @@
       (do
         (util/es-connect! (:elastic-search (cfg/get-cfg)))
         (index-all (:domains args-map))))))
-
