@@ -1,10 +1,13 @@
 # Searchzy
 
-Searchzy is Centzy's search service.  It employs ElasticSearch under
-the hood.
+Searchzy is Locality's search service.  It is a Locality-specific
+wrapper around ElasticSearch.
 
-Searchzy is implemented in Clojure, to take advantage of native
-transport between the JVM processes.
+Searchzy is implemented in Clojure, for speed.  ElasticSearch, which
+runs on the JVM, supports both a REST API and a native-transport API,
+the latter being much faster.  Since Clojure runs on the JVM, it may
+take advantage of native transport.
+
 
 ## Contents
 
@@ -32,52 +35,37 @@ You will need [Leiningen][5] 1.7.0 or above installed.
 
 [5]: https://github.com/technomancy/leiningen
 
-Leiningen is magic.  Leiningen is your best friend.  It's like RVM and
-Bundler and Rake all in one.  It's a tool for managing your project's
-dependencies (including Clojure itself), running your code, producing
-binary deliverables, and much more.
+What is Leiningen?  Leiningen is magic.  Leiningen is your best
+friend.  It's like RVM and Bundler and Rake all in one.  It's a tool
+for managing your project's dependencies (including Clojure itself),
+running your code, producing binary deliverables, and much more.
 
 
 ### marklar/elastisch
 
-For its native client communication with ElasticSearch, Searchzy uses
-a modified version of a Clojure library called Elastisch.  We have to
-make this modified version of Elastisch available to this project.
+It used to be necessary to use [our fork of Elastisch][10], but no
+longer, as our enhancements have been integrated into the main repo.
 
-Normally, you don't have to concern yourself with code dependencies,
-as Leiningen fetches and installs them for you. But because we needed
-to make an enhancement to Elastisch which is not yet incorporated into
-the official repo, we need to use our own.
+[10]: https://github.com/marklar/elastisch
 
-(Our [pull request][10] has already been accepted.  Now merely
-awaiting the re-packaging of clojurewerkz/elastisch to Clojars.)
-
-[10]: https://github.com/clojurewerkz/elastisch/pull/49
-
-Using our version of Elastisch requires doing this:
+If you have a 'checkouts' directory (for using our fork), please
+remove it:
 
 ```
-# from 'searchzy' root directory:
-mkdir checkouts
-cd checkouts
-git clone https://github.com/marklar/elastisch
-cd ..
-lein clean
+# from 'searchy' root directory:
+> rm -rf checkouts
 ```
 
-The reason this works... Leiningen always looks for a `checkouts`
-directory, and if it encounters one, it will use the libraries it
-finds there rather than their remote counterparts.
 
 ### ElasticSearch
 
-Searchzy is not itself a search engine.  Instead, Searchzy knows all
-about Centzy data, how to add that data into a search engine, and to
-query against it.  The search engine it uses under the hood is
-ElasticSearch.
+Searchzy is not itself a search engine.  ElasticSearch is the search
+engine, and Searchzy is a Locality-specific wrapper around it.
+Searchzy knows all about Locality information, how to add that
+information into a search engine, and to query against it.
 
 In order to use Searchzy, either during indexing or at query time, you
-will need ElasticSearch installed and running.
+need ElasticSearch installed and running.
 
 Once ElasticSearch is installed, run it thus:
 
@@ -88,8 +76,8 @@ leave that for the "Configuration" section below.
 
 ### MongoDB
 
-The data over which Searchzy searches comes from MongoDB.  At indexing
-time, you must have MongoDB running.
+The information over which Searchzy searches comes from MongoDB.  At
+indexing time, you must have MongoDB running.
 
 To run MongoDB:
 
@@ -143,10 +131,10 @@ Except that some of the values will need to be added (e.g.: api-key) or
 changed.
 
 For example, if you choose 'bing' as the geocoding provider, you must
-provide a bing-api-key, or you'll get an Exception at start-up time.
-If you don't specify a geocoding provider, it defaults to 'google',
-which doesn't require an API key.  (But you should use 'bing', as it
-has a much higher query limit.)
+provide a value for 'bing-api-key', or you'll get an Exception at
+start-up time.  If you don't specify a geocoding provider, it defaults
+to 'google', which does not require an API key.  (But you should use
+'bing', as it has a much higher query limit.)
 
 Also, you need to find out your ElasticSearch's cluster name. Retrieve
 it via ElasticSearch's REST API, thus:
@@ -156,9 +144,9 @@ it via ElasticSearch's REST API, thus:
 {"ok":true,"cluster_name":"elasticsearch_something","nodes":...}}
 ```
 
-You won't likely need to change the ports.  (27017 is the standard
-MongoDB port, and 9300 is the standard port for ElasticSearch's binary
-transport.)
+You won't likely need to change the ports from the ones above.  (27017
+is the standard MongoDB port, and 9300 is the standard port for
+ElasticSearch's binary transport.)
 
 
 ## <a name="run"></a>Running
@@ -167,25 +155,19 @@ transport.)
 
 To index *all* domains, run this command:
 
-```
-lein run -m searchzy.index.core
-```
+    > lein run -m searchzy.index.core
 
 Indexing currently all domains takes about 1 hour (on my MacBook Air
 laptop).
 
 To index just a subset of the domains, specify which.  For example:
 
-```
-lein run -m searchzy.index.core --domains "items biz-categories"
-```
+    > lein run -m searchzy.index.core --domains "items biz-categories"
 
 This is the complete set of options: {biz-categories, items,
 businesses, biz-menu-items}.  For more information:
 
-```
-lein run -m searchzy.index.core --help
-```
+    > lein run -m searchzy.index.core --help
 
 ### Service
 
@@ -197,9 +179,7 @@ In dev mode, any Clojure code you modify gets automatically reloaded
 with each server request.  This is very convenient for interactive
 development.
 
-```
-lein ring server
-```
+    > lein ring server
 
 #### Production mode
 
@@ -209,22 +189,16 @@ launched.
 There are two ways to run in prod mode.  The first requires that you
 have leiningen installed whenever you want to start the server.
 
-```
-lein run <PORT>
-```
+    > lein run <PORT>
 
 The second way allows you to create an 'uberjar' using leiningen:
 
-```
-lein uberjar
-```
+    > lein uberjar
 
 and from that point forward just running the AOT-compiled Java bytecode
 directly:
 
-```
-java -jar target/searchzy-0.1.0-SNAPSHOT-standalone.jar <PORT>
-```
+    > java -jar target/searchzy-0.1.0-SNAPSHOT-standalone.jar <PORT>
 
 ## <a name="deploy"></a>Deploying
 
@@ -240,19 +214,15 @@ To create .config.yaml, see [configuration][2].
 
 To create the uberjar, run:
 
-```
-lein uberjar
-```
+    > lein uberjar
 
 Once you have those two files, you must scp them to your production
 machine.
 
 Finally, from the same directory, start the server:
 
-```
-java -jar searchzy-0.1.0-SNAPSHOT-standalone.jar <PORT>
-```
+    > java -jar searchzy-0.1.0-SNAPSHOT-standalone.jar <PORT>
 
 ## License
 
-Copyright © 2013 Centzy
+Copyright © 2013-2014 Locality
