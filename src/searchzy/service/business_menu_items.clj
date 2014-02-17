@@ -32,11 +32,11 @@
                             :hours_today hours-today
                             :distance_in_mi dist))]
     (-> source-map
-        (assoc :business new-biz
-               :awesomeness (:awesomeness result))
         (dissoc :latitude_longitude
                 :yelp_star_rating
-                :yelp_review_count))))
+                :yelp_review_count)
+        (assoc :business new-biz
+               :awesomeness (:awesomeness result)))))
 
 ;; TODO: Add earliest_open.
 
