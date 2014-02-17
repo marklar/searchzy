@@ -73,7 +73,10 @@
   ;; It's necessary to look at each entry's :wday.
   (let [alist       (day-hour-maps-to-alist hours)
         num-2-hours (apply hash-map (flatten alist))]
-    (get num-2-hours day-of-week)))
+    (let [res (get num-2-hours day-of-week)]
+      (if (nil? res)
+        {:open {}, :close {}}
+        res))))
 
 (defn- two-digit-str
   "0 =>  '00'

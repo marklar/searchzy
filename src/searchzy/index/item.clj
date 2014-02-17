@@ -5,7 +5,7 @@
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
 
-(def idx-name (:index (:items cfg/elastic-search-names)))
+(def idx-name     (:index   (:items cfg/elastic-search-names)))
 (def mapping-name (:mapping (:items cfg/elastic-search-names)))
 
 (def mapping-types
@@ -26,13 +26,20 @@
                   (str (:_id i))
                   {:name (:name i)}))))
 
+(defn recreate-idx
+  []
+  (util/recreate-idx idx-name mapping-types))
+
+(defn- mg-fetch
+  [& {:keys [limit]}]
+  (maybe-take limit (mg/fetch :item_categories
+                              :where {:is_searchable_ind true})))
+
 (defn mk-idx
   "Fetch ItemCategories from MongoDB.
-   For each, get embedded :items.
-   For each item, add to index.
+   For each ItemCategory, get embedded :items.
+   For each Item, add to index.
    Return count (of ItemCategories)."
-  []
-  (util/recreate-idx idx-name mapping-types)
-  (doseq-cnt add-to-idx 10
-             (mg/fetch :item_categories
-                       :where {:is_searchable_ind true})))
+  [& {:keys [limit]}]
+  (recreate-idx)
+  (doseq-cnt add-to-idx 10 (mg-fetch :limit limit)))

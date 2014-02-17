@@ -3,6 +3,12 @@
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native :as es]))
 
+(defn maybe-take
+  [limit seq]
+  (if (nil? limit)
+    seq
+    (take limit seq)))
+
 (defn doseq-cnt
   "Call function 'f' on each of 'seq',
    printing count out after each 'num' items."
@@ -40,7 +46,9 @@
        host ":" port "/" db-name))
   
 (defn mongo-connect!
-  "MongoDB connection."
+  "Sets 'current' MongoDB connection.
+   i.e. Changes the state of the world.
+   TODO: Do this more functionally?"
   [mg-cfg]
   (println "conn-str: " (mk-conn-str mg-cfg))
   (let [conn (mg/make-connection (mk-conn-str mg-cfg))]
