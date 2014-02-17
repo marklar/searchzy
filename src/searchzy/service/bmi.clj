@@ -17,13 +17,15 @@
              [document :as es-doc]]))
 
 (defn- mk-one-hit
-  "Replace :hours with :hours_today, using :day_of_week."
+  "Replace :hours with :hours_today, using :day_of_week.
+   Add in Yelp data."
   [result day-of-week coords]
   (let [source-map  (:_source result)
         old-biz     (:business source-map)
         hours-today (util/get-hours-for-day (:hours old-biz) day-of-week)
         new-biz     (-> old-biz
-                        (dissoc :hours :latitude_longitude
+                        (dissoc :hours
+                                :latitude_longitude
                                 :rails_time_zone
                                 :yelp_star_rating
                                 :yelp_review_count
@@ -35,11 +37,11 @@
                             :hours_today hours-today
                             ))]
     (-> source-map
-        (assoc :business new-biz
-               :awesomeness (:awesomeness result))
         (dissoc :latitude_longitude
                 :yelp_star_rating
-                :yelp_review_count))))
+                :yelp_review_count)
+        (assoc :business new-biz
+               :awesomeness (:awesomeness result)))))
 
 (defn map-keys [f m]
   (letfn [(mapper [[k v]] [(f k) (if (map? v) (map-keys f v) v)])]
