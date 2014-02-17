@@ -43,33 +43,62 @@
 ;; so it takes the same amount of time.
 ;; 
 (def indices
-  {;; quick
-   :biz-categories {:f biz-cat/mk-idx,       :db :main}
-   :items          {:f item/mk-idx,          :db :main}
+  {
+   ;; quick
+   :biz-categories {:db-name :main
+                    :index-fn biz-cat/mk-idx}
+                    
+   :items          {:db-name :main
+                    :index-fn item/mk-idx}
+                    
    ;; slow
-   :combined       {:f biz-combined/mk-idx,  :db :businesses}
+   :combined       {:db-name :businesses
+                    :index-fn biz-combined/mk-idx}
+                    
+
    ;; OR, do each 'slow' independently.
-   :businesses     {:f biz/mk-idx,           :db :businesses}
-   :biz-menu-items {:f biz-menu-item/mk-idx, :db :businesses}
+   :businesses     {:db-name :businesses
+                    :index-fn biz/mk-idx}
+   :biz-menu-items {:db-name :businesses
+                    :index-fn biz-menu-item/mk-idx}
    })
 
+
+(defn- mongo-problem-str
+  [exception]
+  (clojure.string/join
+   "\n"
+   ["Problem connecting to MongoDB:"
+    (str exception)
+    "Please ensure that MongoDB is running."]))
+
+(defn- mongo-connect-db!
+  "Given a MongoDB collection name,
+   attempt to establish connection to it."
+  [db-name]
+  ;; This just assumes that the db-name will be correct.
+  ;; FIXME: add check.
+  (let [cfc (get (:mongo-db (cfg/get-cfg)) db-name)]
+    (util/mongo-connect! cfc)))
+
 (defn- index-one
-  [name]
-  (let [idx (get indices name)]
+  "Given a domain-name,
+   connect to the corresponding MongoDB collection,
+   and call the corresponding indexing function."
+  [domain-name]
+  (let [idx (get indices domain-name)]
     (if (nil? idx)
       ;; domain doesn't exist
-      (println (str ">>> Invalid domain name: " name ". SKIPPING. <<<"))
+      (println (str ">>> Invalid domain name: " domain-name ". SKIPPING. <<<"))
       ;; okay
-      (let [f   (:f idx)
-            db  (:db idx)]
-        (println (str "indexing: " name))
-        (let [c (get (:mongo-db (cfg/get-cfg)) db)]
-          (util/mongo-connect! c)
-          (let [cnt (f)]
-            (println (str "indexed " cnt " " (str name) " records."))
-            cnt))))))
-
-;; -- public --
+      (let [{:keys [index-fn db-name]} idx]
+        (println (str "indexing: " domain-name))
+        (try (do (mongo-connect-db! db-name)
+                 (let [cnt (index-fn)]
+                   (println (str "indexed " cnt " " (str domain-name) " records."))
+                   cnt))
+             (catch Exception e
+               (println (mongo-problem-str e))))))))
 
 (defn- words
   "Given string of space- (and possibly comma-) separated values,
@@ -78,6 +107,8 @@
   (-> s
       str/trim
       (str/split #"\s*,?\s")))
+
+;; -- public --
 
 (defn- index-all
   "Serial index creation."

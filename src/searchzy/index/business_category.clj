@@ -5,7 +5,8 @@
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
 
-(def idx-name (:index (:business_categories cfg/elastic-search-names)))
+;; Get CFG info.
+(def idx-name     (:index   (:business_categories cfg/elastic-search-names)))
 (def mapping-name (:mapping (:business_categories cfg/elastic-search-names)))
 
 (def mapping-types
@@ -14,14 +15,23 @@
     {:name {:type "string"}}}})
 
 (defn- add-to-idx
-  "Given a BusinessCategory mongo-map, convert to es-map and add to index."
+  "Given a BusinessCategory mongo-map,
+   1. convert to es-map, and
+   2. add to ES index (explicitly providing _id)."
   [mg-map]
   (es-doc/put idx-name mapping-name
               (str (:_id mg-map))
               (dissoc mg-map :_id)))
 
 (defn mk-idx
-  "Fetch BusinessCategories from MongoDB & add them to index.  Return count."
+  "Fetch BusinessCategories from MongoDB.
+   Add them to ES index.
+   Return count.
+
+   Assumes already connected to:
+     - a particular MongoDB collection,
+     - ElasticSearch
+  "
   []
   (util/recreate-idx idx-name mapping-types)
   (doseq-cnt add-to-idx 10
