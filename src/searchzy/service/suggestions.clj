@@ -79,12 +79,12 @@
 
 (defn- mk-response
   "From ES response, create service response."
-  [biz-res cat-res item-res query geo-map page-map html?]
+  [biz-res cat-res item-res endpoint query geo-map page-map html?]
   (let [partial {:arguments {:query query
                              :geo_filter geo-map
                              :paging page-map
                              :html html?}
-                 :endpoint "/v1/suggestions"   ; TODO: pass this in
+                 :endpoint endpoint
                  }]
     (merge
      (if html?
@@ -123,7 +123,7 @@
       ;; Validation error.
       (responses/error-json {:errors errs})
       ;; Do ES searches.
-      (let [{:keys [query geo-map page-map html]} valid-args
+      (let [{:keys [endpoint query geo-map page-map html]} valid-args
             biz-results  (biz/es-search query :prefix geo-map nil ; -sort-
                                         page-map)
             cat-results  (get-results :business_categories query page-map)
@@ -131,4 +131,4 @@
         ;; Create JSON response.
         (responses/ok-json
          (mk-response biz-results cat-results item-results
-                      query geo-map page-map html))))))
+                      endpoint query geo-map page-map html))))))
