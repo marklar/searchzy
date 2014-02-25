@@ -10,6 +10,7 @@
              [businesses :as docs.biz]
              [business-menu-items :as docs.items]]
             [searchzy.service
+             [inputs :as inputs]
              [business :as biz]
              [responses :as responses]
              [suggestions :as sugg]
@@ -37,6 +38,15 @@
   "Create path by appending version number."
   [version-number path]
   (str "/v" version-number path))
+
+(defn mk-suggestions
+  [endpoint query address lat lon miles size html]
+  (sugg/validate-and-search 
+   {:endpoint endpoint
+    :query query
+    :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+    :page-map {:from "0", :size size}
+    :html html}))
 
 ;; COMPOJURE ROUTES
 (defroutes app-routes
@@ -95,14 +105,21 @@
   (GET (v-path 1 "/suggestions")
        [query address lat lon miles size html]
        (responses/json-p-ify
-        (sugg/validate-and-search 
-         {:query query
-          :geo-map {:address address, :lat lat, :lon lon, :miles miles}
-          :page-map {:from "0", :size size}
-          :html html})))
+        (mk-suggestions (v-path 1 "/suggestions") query address lat lon miles size html)))
+
+  ;; Adds parameter use_jsonp.  False by default.
+  ;; Add fdb_id to each entity in each section of results.
+  (GET (v-path 2 "/suggestions")
+       [query address lat lon miles size html use_jsonp]
+       (let [res (mk-suggestions (v-path 2 "/suggestions") query address lat lon miles size html)]
+         (if (inputs/true-str? use_jsonp)
+           (responses/json-p-ify res)
+           res)))
 
   (route/resources "/")
   (route/not-found "Not Found"))
+
+
 
 
 (util/es-connect! (:elastic-search (cfg/get-cfg)))

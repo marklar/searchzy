@@ -57,13 +57,13 @@
 
 (defn- mk-biz-hit-response
   "From ES biz hit, make service hit."
-  [{id :_id {n :name a :address} :_source}]
-  {:id id, :name n, :address a})
+  [{id :_id {n :name, a :address, fi :fdb_id} :_source}]
+  {:id id, :fdb_id fi, :name n, :address a})
 
 (defn- mk-simple-hit-response
   "For ES hit of either biz-category or item, make a service hit."
-  [{i :_id, {n :name} :_source}]
-  {:id i, :name n})
+  [{i :_id, {n :name, fdb_id :fdb_id} :_source}]
+  {:id i, :fdb_id fdb_id, :name n})
 
 (defn- mk-res-map
   [f hits-map]
@@ -79,12 +79,12 @@
 
 (defn- mk-response
   "From ES response, create service response."
-  [biz-res cat-res item-res query geo-map page-map html?]
+  [biz-res cat-res item-res endpoint query geo-map page-map html?]
   (let [partial {:arguments {:query query
                              :geo_filter geo-map
                              :paging page-map
                              :html html?}
-                 :endpoint "/v1/suggestions"   ; TODO: pass this in
+                 :endpoint endpoint
                  }]
     (merge
      (if html?
@@ -123,7 +123,7 @@
       ;; Validation error.
       (responses/error-json {:errors errs})
       ;; Do ES searches.
-      (let [{:keys [query geo-map page-map html]} valid-args
+      (let [{:keys [endpoint query geo-map page-map html]} valid-args
             biz-results  (biz/es-search query :prefix geo-map nil ; -sort-
                                         page-map)
             cat-results  (get-results :business_categories query page-map)
@@ -131,4 +131,4 @@
         ;; Create JSON response.
         (responses/ok-json
          (mk-response biz-results cat-results item-results
-                      query geo-map page-map html))))))
+                      endpoint query geo-map page-map html))))))

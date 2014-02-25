@@ -93,6 +93,7 @@
   "Given a business mongo-map, create an ElasticSearch map."
   [mg-map]
   {:_id (:_id mg-map)
+   :fdb_id (:fdb_id mg-map)
    ;; search
    :name (:name mg-map)
    :phone_number (get-phone-number mg-map)
