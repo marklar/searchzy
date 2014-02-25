@@ -15,7 +15,7 @@
 ;; When done, check the state.  If a problem, return it.  If not, continue.
 ;; 
 
-(defn mk-cleaner-old
+(defn mk-cleaner-short-circuit
   "Higher-order fn which creates 'clean-' fns.
    Params:
      - oldput-key : name (Keyword) of the input arg group we wish to 'clean'

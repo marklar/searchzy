@@ -56,8 +56,15 @@
    If sort is by 'value', change scoring function and sort by its result."
   [query-str query-type geo-map sort-map page-map]
   (let [es-names (:businesses cfg/elastic-search-names)]
+    (println "es-names: " es-names)
+    (println "query: " (mk-query query-str query-type sort-map))
+    (println "geo-map: " geo-map)
+    (println "geo-filter: " (util/mk-geo-filter geo-map))
+    (println "sort: " (mk-sort sort-map geo-map))
+    (println "page: " page-map)
     (:hits
-     (es-doc/search (:index es-names) (:mapping es-names)
+     (es-doc/search (:index es-names)
+                    (:mapping es-names)
                     :query  (mk-query query-str query-type sort-map)
                     :filter (util/mk-geo-filter geo-map)
                     :sort   (mk-sort sort-map geo-map)
@@ -134,7 +141,10 @@
                 :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
                            (:hits es-results))}})))
 
-(def sort-attrs #{"value" "distance" "score"})
+(defn- search
+  [valid-args]
+  (let [results (get-results valid-args)]
+    (mk-response results valid-args)))
 
 (defn validate-and-search
   "input-args: query-string params, aggregated into sub-hashmaps based on meaning.
@@ -142,11 +152,4 @@
    2. Perform ES search.
    3. Create proper JSON response."
   [input-args]
-  (let [[valid-args errs] (inputs/business-clean-input input-args sort-attrs)]
-    (if (seq errs)
-      ;; Validation error.
-      (responses/error-json {:errors errs})
-      ;; Do ES search.
-      (let [results (get-results valid-args)]
-        ;; Create JSON response.
-        (mk-response results valid-args)))))
+  (util/validate-and-search input-args inputs/business-clean-input search))

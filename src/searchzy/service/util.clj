@@ -1,6 +1,8 @@
 (ns searchzy.service.util
   (:import [java.util Calendar GregorianCalendar TimeZone])
-  (:require [searchzy.service [tz :as tz]]))
+  (:require [searchzy.service
+             [responses :as responses]
+             [tz :as tz]]))
 
 ;; -- GEO-RELATED -- could be moved into searchzy.service.geo.
 
@@ -144,3 +146,16 @@
       false
       (and (time-cmp >= hours-map (:open  hours-today))
            (time-cmp <  hours-map (:close hours-today))))))
+
+;;------------------
+
+;; 1.  clean input
+;; 2a. return error-json of errs if present, else
+;; 2b. perform search with valid-args
+(defn validate-and-search
+  [input-args clean-fn search-fn]
+  (let [[valid-args errs] (clean-fn input-args)]
+    (println (str "valid-args: " valid-args))
+    (if (seq errs)
+      (responses/error-json {:errors errs})
+      (search-fn input-args))))

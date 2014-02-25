@@ -132,21 +132,19 @@
         ;; in-process sorting
         (maybe-value-sort sort-map))))
 
-(def sort-attrs #{"price" "value" "distance"})
+(defn- search
+  [valid-args]
+  (let [items (get-all-open-items valid-args)
+        day-of-week (util/get-day-of-week
+                     (:hours-map valid-args)
+                     (some #(-> % :_source :business :rails_time_zone) items)
+                     (:utc-offset-map valid-args))
+        ;; Gather metadata from the results returned.
+        metadata (meta/get-metadata items day-of-week)]
+    ;; Create JSON response.
+    (mk-response items metadata day-of-week valid-args)))
+
 (defn validate-and-search
   ""
   [input-args]
-  (let [[valid-args errs] (inputs/biz-menu-item-clean-input input-args sort-attrs)]
-    (if (seq errs)
-      ;; Validation error.
-      (responses/error-json {:errors errs})
-      ;; Do ES search.
-      (let [items (get-all-open-items valid-args)
-            day-of-week (util/get-day-of-week
-                         (:hours-map valid-args)
-                         (some #(-> % :_source :business :rails_time_zone) items)
-                         (:utc-offset-map valid-args))
-            ;; Gather metadata from the results returned.
-            metadata (meta/get-metadata items day-of-week)]
-        ;; Create JSON response.
-        (mk-response items metadata day-of-week valid-args)))))
+  (util/validate-and-search input-args inputs/biz-menu-item-clean-input search))
