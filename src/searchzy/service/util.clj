@@ -155,7 +155,6 @@
 (defn validate-and-search
   [input-args clean-fn search-fn]
   (let [[valid-args errs] (clean-fn input-args)]
-    (println (str "valid-args: " valid-args))
     (if (seq errs)
       (responses/error-json {:errors errs})
-      (search-fn input-args))))
+      (search-fn valid-args))))

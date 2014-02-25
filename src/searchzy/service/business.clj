@@ -56,12 +56,6 @@
    If sort is by 'value', change scoring function and sort by its result."
   [query-str query-type geo-map sort-map page-map]
   (let [es-names (:businesses cfg/elastic-search-names)]
-    (println "es-names: " es-names)
-    (println "query: " (mk-query query-str query-type sort-map))
-    (println "geo-map: " geo-map)
-    (println "geo-filter: " (util/mk-geo-filter geo-map))
-    (println "sort: " (mk-sort sort-map geo-map))
-    (println "page: " page-map)
     (:hits
      (es-doc/search (:index es-names)
                     (:mapping es-names)
