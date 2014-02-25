@@ -99,38 +99,35 @@
 
 (defn- get-results
   "Perform prefix search against names."
-  [domain query {:keys [from size]}]
+  [domain query-str {:keys [from size]}]
   (let [es-names (get cfg/elastic-search-names domain)]
-    (:hits (es-doc/search (:index es-names) (:mapping es-names)
-                          :query  (util/mk-suggestion-query query)
+    (:hits (es-doc/search (:index es-names)
+                          (:mapping es-names)
+                          :query  (util/mk-suggestion-query query-str)
                           :from   from
                           :size   size))))
+
+;;
+;; TODO: return biz-categories (order: display_order ASC).
+;; 
 
 ;; fetch results
 ;; TODO: in *parallel*.  How?
 ;;  - pmap: Probably not worth the coordination overhead.
 ;;  - clojure.core.reducers/map
 ;;  - agents (uncoordinated, asynchronous)
-
-
-;; TODO: It's okay to have an empty query.
-;; In that case return the default BusinessCategories.
-;; 
-;; 
-;; 
-
 (defn- search
   [valid-args]
   (let [{:keys [endpoint query geo-map page-map html]} valid-args]
-
-    ;;
-    ;; TODO: If query is empty, return all the default categories.
-    ;;
-
-    (let [biz-results  (biz/es-search query :prefix geo-map nil ; -sort-
-                                      page-map)
-          cat-results  (get-results :business_categories query page-map)
-          item-results (get-results :items query page-map)]
+    (let [no-q (clojure.string/blank? query-str)
+          biz-results  (if no-q
+                         {:total 0, :hits []}
+                         (biz/es-search query :prefix geo-map nil ; -sort-
+                                      page-map))
+          item-results (if no-q
+                         {:total 0, :hits []}
+                         (get-results :items query page-map))
+          cat-results  (get-results :business_categories query page-map)]
       (responses/ok-json
        (mk-response biz-results cat-results item-results
                     endpoint query geo-map page-map html)))))

@@ -77,10 +77,13 @@
   "Returns hits -plus- total."
   [{:keys [query geo-map hours-map sort-map page-map]}]
   (if (nil? (:wday hours-map))
-    ;; We don't need to post-filter results.
+
+    ;;-- ElasticSearch filters. --
+    ;; We don't need to post-filter results based on hours.
     ;; So we have ES do the paging for us.
     (es-search query :match geo-map sort-map page-map)
 
+    ;;-- We filter. --
     ;; We DO need to post-filter.
     ;; But first let's get lots...
     (let [{hits :hits} (es-search query :match geo-map sort-map
