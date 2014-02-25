@@ -57,13 +57,13 @@
 
 (defn- mk-biz-hit-response
   "From ES biz hit, make service hit."
-  [{id :_id {n :name a :address} :_source}]
-  {:id id, :name n, :address a})
+  [{id :_id {n :name, a :address, fi :fdb_id} :_source}]
+  {:id id, :fdb_id fi, :name n, :address a})
 
 (defn- mk-simple-hit-response
   "For ES hit of either biz-category or item, make a service hit."
-  [{i :_id, {n :name} :_source}]
-  {:id i, :name n})
+  [{i :_id, {n :name, fdb_id :fdb_id} :_source}]
+  {:id i, :fdb_id fdb_id, :name n})
 
 (defn- mk-res-map
   [f hits-map]

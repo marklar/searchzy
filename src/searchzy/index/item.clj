@@ -24,7 +24,8 @@
     (if (:is_searchable_ind i)
       (es-doc/put idx-name mapping-name
                   (str (:_id i))
-                  {:name (:name i)}))))
+                  {:name (:name i)
+                   :fdb_id (:fdb_id i)}))))
 
 (defn recreate-idx
   []

@@ -42,6 +42,7 @@
     nil
     (let [vsp (:value_score_picos item)]
       {:_id (:_id item)
+       :fdb_id (:fdb_id item)
        :name (:name item)
        :item_id (str (:item_id item))
        :price_micros (:price_micros item)
