@@ -39,15 +39,6 @@
   [version-number path]
   (str "/v" version-number path))
 
-(defn mk-suggestions
-  [endpoint query address lat lon miles size html]
-  (sugg/validate-and-search 
-   {:endpoint endpoint
-    :query query
-    :geo-map {:address address, :lat lat, :lon lon, :miles miles}
-    :page-map {:from "0", :size size}
-    :html html}))
-
 ;; COMPOJURE ROUTES
 (defroutes app-routes
 
@@ -55,6 +46,8 @@
        (responses/ok-json
         {:message "Welcome to Searchzy!"
          :params args}))
+
+  ;;-- DOCS --
 
   (GET "/docs" []
        (docs.core/show))
@@ -67,6 +60,8 @@
 
   (GET "/docs/business_menu_items" []
        (docs.items/show))
+
+  ;;-- BUSINESSES --
 
   (GET (v-path 1 "/businesses")
        [api_key query address lat lon miles hours utc_offset sort from size]
@@ -82,14 +77,24 @@
            :sort sort
            :page-map {:from from, :size size}})))
 
+  ;;-- BUSINESS_MENU_ITEMS --
+
   ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
        [api_key item_id address lat lon miles max_miles min_results
         hours utc_offset sort from size]
        (if (not (valid-key? api_key))
-         ;; not authorized
+         ;;-- not authorized
          (bounce)
-         ;; authorized
+
+         ;;-- authorized
+
+         ;; We have two different search fns to choose from.
+         ;; If min_results is provided, we use the newer 'bmi' version.
+         ;; If not, we use the (original) 'business_menu_items' one.
+         ;;
+         ;; TODO: Decide which implementation we want.
+         ;;
          (let [search-fn (if (not (clojure.string/blank? min_results))
                            bmi/validate-and-search
                            items/validate-and-search)]
@@ -102,16 +107,23 @@
              :sort sort
              :page-map {:from from, :size size}}))))
 
+  ;;-- SUGGESTIONS --
+
   (GET (v-path 1 "/suggestions")
        [query address lat lon miles size html]
-       (responses/json-p-ify
-        (mk-suggestions (v-path 1 "/suggestions") query address lat lon miles size html)))
+       (let [path (v-path 1 "/suggestions")
+             input-map (sugg/mk-input-map path query address lat lon miles size html)
+             res (sugg/validate-and-search-v1 input-map)]
+         (responses/json-p-ify res)))
 
-  ;; Adds parameter use_jsonp.  False by default.
-  ;; Add fdb_id to each entity in each section of results.
+  ;; Differences from v1:
+  ;; + Adds parameter use_jsonp (default: false).
+  ;; + Adds fdb_id to each entity in each section of results.
   (GET (v-path 2 "/suggestions")
        [query address lat lon miles size html use_jsonp]
-       (let [res (mk-suggestions (v-path 2 "/suggestions") query address lat lon miles size html)]
+       (let [path (v-path 2 "/suggestions")
+             input-map (sugg/mk-input-map path query address lat lon miles size html)
+             res (sugg/validate-and-search-v2 input-map)]
          (if (inputs/true-str? use_jsonp)
            (responses/json-p-ify res)
            res)))

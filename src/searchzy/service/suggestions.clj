@@ -80,12 +80,12 @@
 (defn- mk-response
   "From ES response, create service response."
   [biz-res cat-res item-res endpoint query geo-map page-map html?]
-  (let [partial {:arguments {:query query
-                             :geo_filter geo-map
-                             :paging page-map
-                             :html html?}
-                 :endpoint endpoint
-                 }]
+  (let [tmp {:arguments {:query query
+                         :geo_filter geo-map
+                         :paging page-map
+                         :html html?}
+             :endpoint endpoint
+             }]
     (merge
      (if html?
        {:html (apply mk-html (map :hits [biz-res cat-res item-res]))}
@@ -95,40 +95,69 @@
                   (mk-res-map mk-simple-hit-response cat-res)
                   :items
                   (mk-res-map mk-simple-hit-response item-res)}})
-     partial)))
+     tmp)))
 
 (defn- get-results
   "Perform prefix search against names."
-  [domain query {:keys [from size]}]
+  [domain query-str {:keys [from size]}]
   (let [es-names (get cfg/elastic-search-names domain)]
-    (:hits (es-doc/search (:index es-names) (:mapping es-names)
-                          :query  (util/mk-suggestion-query query)
+    (:hits (es-doc/search (:index es-names)
+                          (:mapping es-names)
+                          :query  (util/mk-suggestion-query query-str)
                           :from   from
                           :size   size))))
+
+;;
+;; TODO: return biz-categories (order: display_order ASC).
+;; 
 
 ;; fetch results
 ;; TODO: in *parallel*.  How?
 ;;  - pmap: Probably not worth the coordination overhead.
 ;;  - clojure.core.reducers/map
 ;;  - agents (uncoordinated, asynchronous)
+(defn- search
+  [valid-args]
+  (let [{:keys [endpoint query geo-map page-map html]} valid-args]
+    (let [no-q (clojure.string/blank? query-str)
+          biz-results  (if no-q
+                         {:total 0, :hits []}
+                         (biz/es-search query :prefix geo-map nil ; -sort-
+                                      page-map))
+          item-results (if no-q
+                         {:total 0, :hits []}
+                         (get-results :items query page-map))
+          cat-results  (get-results :business_categories query page-map)]
+      (responses/ok-json
+       (mk-response biz-results cat-results item-results
+                    endpoint query geo-map page-map html)))))
 
-(defn validate-and-search
+
+;;-- public --
+
+(defn mk-input-map
+  [endpoint query address lat lon miles size html]
+  {:endpoint endpoint
+   :query query
+   ;; :geo-map {:address address, :coords {:lat lat, :lon lon}, :miles miles}
+   :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+   :page-map {:from "0", :size size}
+   :html html})
+
+;; v1
+(defn validate-and-search-v1
   "Perform 3 searches (in parallel!):
       - businesses (w/ filtering)
       - business_categories
       - items"
   [input-args]
-  (let [[valid-args errs] (inputs/suggestion-clean-input input-args)]
-    (if (seq errs)
-      ;; Validation error.
-      (responses/error-json {:errors errs})
-      ;; Do ES searches.
-      (let [{:keys [endpoint query geo-map page-map html]} valid-args
-            biz-results  (biz/es-search query :prefix geo-map nil ; -sort-
-                                        page-map)
-            cat-results  (get-results :business_categories query page-map)
-            item-results (get-results :items query page-map)]
-        ;; Create JSON response.
-        (responses/ok-json
-         (mk-response biz-results cat-results item-results
-                      endpoint query geo-map page-map html))))))
+  (util/validate-and-search input-args inputs/suggestion-clean-input-v1 search))
+
+;; v2
+(defn validate-and-search-v2
+  "Perform 3 searches (in parallel!):
+      - businesses (w/ filtering)
+      - business_categories
+      - items"
+  [input-args]
+  (util/validate-and-search input-args inputs/suggestion-clean-input-v2 search))

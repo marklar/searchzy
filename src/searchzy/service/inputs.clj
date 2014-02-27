@@ -33,9 +33,9 @@
    If the input is valid, create a geo-map.
    If not, return nil."
   [{address :address, lat-str :lat, lon-str :lon, miles-str :miles}]
-  (let [lat       (str-to-val lat-str       nil)
-        lon       (str-to-val lon-str       nil)
-        miles     (str-to-val miles-str     4.0)]
+  (let [lat       (str-to-val lat-str   nil)
+        lon       (str-to-val lon-str   nil)
+        miles     (str-to-val miles-str 4.0)]
     (let [res (geo-locate/resolve-address lat lon address)]
       (if (nil? res)
         nil
@@ -102,14 +102,22 @@
    (fn [i o] {:param :query
               :message (str "Param 'query' must be non-empty "
                             "after normalization.")
-              :args {:original-query i
-                     :normalized-query o}})))
+              :args {:original-query i, :normalized-query o}})))
+
+(def clean-suggestion-query
+  (clean/mk-cleaner
+   :query :query
+   q/normalize
+   (fn [i o] {:param :query
+              :message "There should be no problem!"
+              :args {:original-query i, :normalized-query o}})))
 
 (def clean-geo-map
   (clean/mk-cleaner
    :geo-map :geo-map
    mk-geo-map
-   (fn [i o] {:message (str "Must provide: (valid 'address' OR "
+   (fn [i o] {:params [:address :lat :lon]
+              :message (str "Must provide: (valid 'address' OR "
                             "('lat' AND 'lon')).")
               :args i})))
 
@@ -207,34 +215,48 @@
 (defn business-clean-input
   "Validate each argument group in turn.
    Gather up any validation errors as you go."
-  [args sort-attrs]
-  (clean/gather->> args
-                   clean-query
-                   clean-geo-map
-                   clean-hours
-                   clean-utc-offset
-                   (clean-sort sort-attrs)
-                   clean-page-map))
+  [args]
+  (let [sort-attrs #{"value" "distance" "score"}]
+    (clean/gather->> args
+                     clean-query
+                     clean-geo-map
+                     clean-hours
+                     clean-utc-offset
+                     (clean-sort sort-attrs)
+                     clean-page-map)))
 
 (defn biz-menu-item-clean-input
   "Validate each argument group in turn.
    Gather up any validation errors as you go."
-  [args sort-attrs]
-  (clean/gather->> args
-                   clean-item-id
-                   clean-geo-map
-                   clean-collar-map
-                   clean-hours
-                   clean-utc-offset
-                   (clean-sort sort-attrs)
-                   clean-page-map))
+  [args]
+  (let [sort-attrs #{"price" "value" "distance"}]
+    (clean/gather->> args
+                     clean-item-id
+                     clean-geo-map
+                     clean-collar-map
+                     clean-hours
+                     clean-utc-offset
+                     (clean-sort sort-attrs)
+                     clean-page-map)))
 
-(defn suggestion-clean-input
+;; v1
+(defn suggestion-clean-input-v1
   "Validate each argument group in turn.
    Gather up any validation errors as you go."
   [args]
   (clean/gather->> args
                    clean-query
+                   clean-html
+                   clean-geo-map
+                   clean-page-map))
+
+;; v2 - blank query okay
+(defn suggestion-clean-input-v2
+  "Validate each argument group in turn.
+   Gather up any validation errors as you go."
+  [args]
+  (clean/gather->> args
+                   clean-suggestion-query
                    clean-html
                    clean-geo-map
                    clean-page-map))
