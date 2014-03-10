@@ -132,7 +132,7 @@
 
 (defn- mg-fetch
   [& {:keys [limit]}]
-  (maybe-take limit (mg/fetch :businesses :where {:active_ind true})))
+  (maybe-take limit (mg/fetch :businesses)))
 
 (defn recreate-idx
   []
