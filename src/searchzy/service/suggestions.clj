@@ -119,7 +119,7 @@
 (defn- search
   [valid-args]
   (let [{:keys [endpoint query geo-map page-map html]} valid-args]
-    (let [no-q (clojure.string/blank? query-str)
+    (let [no-q (clojure.string/blank? query)
           biz-results  (if no-q
                          {:total 0, :hits []}
                          (biz/es-search query :prefix geo-map nil ; -sort-
