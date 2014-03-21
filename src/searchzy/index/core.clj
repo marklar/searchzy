@@ -42,6 +42,8 @@
 ;; On my laptop, MongoDB fetching isn't the bottleneck,
 ;; so it takes the same amount of time.
 ;; 
+;; We don't use the 'areas' DB?
+;;
 (def indices
   {
    ;; PRETTY QUICK
