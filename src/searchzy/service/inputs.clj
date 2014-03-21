@@ -172,12 +172,24 @@
         :args i
         :options opts}))))
 
+;; Munge fn for strings -- if blank, return nil.
+(defn- str-or-nil
+  [s]
+  (if (clojure.string/blank? s) nil s))
+
 (def clean-item-id
   (clean/mk-cleaner
    :item-id :item-id
-   (fn [s] (if (clojure.string/blank? s) nil s))
+   str-or-nil
    (fn [i o] {:param :item_id  ; underbar
               :message "Param 'item_id' must have non-empty value."})))
+
+(def clean-business-category-id
+  (clean/mk-cleaner
+   :business-category-id :business-category-id
+   str-or-nil
+   (fn [i o] {:param :business_category_id  ; underbar
+              :message "Param 'business_category_id' must have non-empty value."})))
 
 (defn get-utc-offset-map
   " '-12'   => {:hour -12, :minute  0}
@@ -211,6 +223,20 @@
               :message "Something wrong with your 'collar'."
               :args i})))
    
+;;-----------------------
+
+(defn businesses-by-business-category-id
+  "Validate each argument group in turn.
+   Gather up any validation errors as you go."
+  [args]
+  (let [sort-attrs #{"value" "distance" "score"}]
+    (clean/gather->> args
+                     clean-business-category-id
+                     clean-geo-map
+                     clean-hours
+                     clean-utc-offset
+                     (clean-sort sort-attrs)
+                     clean-page-map)))
 
 (defn business-clean-input
   "Validate each argument group in turn.

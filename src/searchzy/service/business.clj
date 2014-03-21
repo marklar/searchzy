@@ -11,7 +11,7 @@
 
 ;; -- search --
 
-(defn value-sort
+(defn- value-sort
   [order]
   (array-map :yelp_star_rating  order
              :yelp_review_count order
@@ -19,7 +19,7 @@
 
 (def DEFAULT_SORT (value-sort :desc))
 
-(defn mk-sort
+(defn- mk-sort
   [sort-map geo-map]
   (let [order (:order sort-map)]
     (match (:attribute sort-map)
@@ -38,15 +38,18 @@
     :script_score {:script "_score + (doc['value_score_int'].value / 20)"}}
    })
 
+(defn- mk-simple-query-map
+  [query query-type]
+  (if (= query-type :prefix)
+    (util/mk-suggestion-query query)
+    {query-type {:name {:query query
+                        :operator "and"}}}))
+
 (defn- mk-query
   "Create map for querying -
    EITHER: just with 'query' -OR- with a scoring fn for sorting."
   [query query-type sort-map]
-  (let [simple-query-map
-        (if (= query-type :prefix)
-          (util/mk-suggestion-query query)
-          {query-type {:name {:query query
-                              :operator "and"}}})]
+  (let [simple-query-map (mk-simple-query-map query query-type)]
     (if (= "value" (:attribute sort-map))
       simple-query-map
       (mk-function-score-query simple-query-map))))
@@ -80,7 +83,7 @@
 
     ;;-- ElasticSearch filters. --
     ;; We don't need to post-filter results based on hours.
-    ;; So we have ES do the paging for us.
+    ;; So we can have ES do the paging for us.
     (es-search query :match geo-map sort-map page-map)
 
     ;;-- We filter. --
@@ -146,9 +149,105 @@
     (mk-response results valid-args)))
 
 (defn validate-and-search
-  "input-args: query-string params, aggregated into sub-hashmaps based on meaning.
+  "input-args: HTTP params, aggregated into sub-hashmaps based on meaning.
    1. Validate args and convert them into needed values for searching.
    2. Perform ES search.
    3. Create proper JSON response."
   [input-args]
   (util/validate-and-search input-args inputs/business-clean-input search))
+
+;;----------------------------
+
+(defn- mk-by-category-id-response
+  "From ES results, create service response.
+   We've already done paging; no need to do so now."
+  [es-results {:keys [business-category-id geo-map hours-map utc-offset-map sort-map page-map]}]
+  (let [rails-time-zone (some #(-> % :_source :rails_time_zone) (:hits es-results))
+        day-of-week (util/get-day-of-week hours-map rails-time-zone utc-offset-map)]
+    (responses/ok-json
+     {:endpoint "/v1/businesses"   ; TODO: pass this in
+      :arguments {:business_category_id business-category-id
+                  :geo_filter geo-map
+                  :hours_filter hours-map
+                  :utc_offset utc-offset-map
+                  :day_of_week day-of-week
+                  :sort sort-map
+                  :paging page-map}
+      :results {:count (:total es-results)
+                :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
+                           (:hits es-results))}})))
+
+;;
+;; Do we want to be able to search by >1 biz-cat-id?
+;;
+
+(defn- mk-simple-by-cat-id-query-map
+  [biz-cat-id]
+  {:match {:business_category_ids {:query biz-cat-id
+                                   :operator "or"}}})
+
+(defn- mk-by-cat-id-query
+  "Create map for querying -
+   EITHER: just with 'biz-cat-id' -OR- with a scoring fn for sorting."
+  [biz-cat-id sort-map]
+  (let [simple-query-map (mk-simple-by-cat-id-query-map biz-cat-id)]
+    (if (= "value" (:attribute sort-map))
+      simple-query-map
+      (mk-function-score-query simple-query-map))))
+
+
+(defn es-search-by-cat-id
+  "Perform ES search, return results map.
+   If sort is by 'value', change scoring function and sort by its result."
+  [biz-cat-id geo-map sort-map page-map]
+  (let [es-names (:businesses cfg/elastic-search-names)]
+    (:hits
+     (es-doc/search (:index es-names)
+                    (:mapping es-names)
+                    :query  (mk-by-cat-id-query biz-cat-id sort-map)
+                    :filter (util/mk-geo-filter geo-map)
+                    :sort   (mk-sort sort-map geo-map)
+                    :from   (:from page-map)
+                    :size   (:size page-map)))))
+
+(defn- get-results-by-category-id
+  "Given valid-args, return hits -plus- total."
+  [{:keys [business-category-id geo-map hours-map sort-map page-map]}]
+  (if (nil? (:wday hours-map))
+
+    ;;-- ElasticSearch filters. --
+    ;; We don't need to post-filter results based on hours.
+    ;; So we can have ES do the paging for us.
+    (es-search-by-cat-id business-category-id geo-map sort-map page-map)
+
+    ;;-- We filter. --
+    ;; We DO need to post-filter.
+    ;; But first let's get lots...
+    (let [{hits :hits}
+          (es-search-by-cat-id business-category-id
+                               geo-map sort-map
+                               {:from 0, :size MAX_ITEMS})
+          ;; ...then post-filter...
+          open-hits (filter-by-hours hours-map hits)
+          ;; ...and then do our own paging.
+          pageful (take (:size page-map)
+                        (drop (:from page-map) open-hits))]
+      {:total (count open-hits)
+       :hits pageful})))
+
+
+(defn- search-by-category-id
+  ""
+  [valid-args]
+  (let [results (get-results-by-category-id valid-args)]
+    (mk-by-category-id-response results valid-args)))
+
+(defn validate-and-search-by-biz-category-id
+  "input-args: HTTP params, aggregated into sub-hashmaps.
+   1. Validate args and convert them into needed values for searching.
+   2. Perform ES search on business-category-ids.
+   3. Create proper JSON response."
+  [input-args]
+  (util/validate-and-search input-args
+                            inputs/businesses-by-business-category-id
+                            search-by-category-id))
