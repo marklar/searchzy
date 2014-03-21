@@ -47,7 +47,7 @@
         {:message "Welcome to Searchzy!"
          :params args}))
 
-  ;;-- DOCS --
+  ;;-- DOCUMENTATION --
 
   (GET "/docs" []
        (docs.core/show))

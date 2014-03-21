@@ -107,12 +107,14 @@
                   cs :coordinates
                   hs :hours
                   p :permalink
+                  bcis :business_category_ids
                   yid :yelp_id
                   ysr :yelp_star_rating
                   yrc :yelp_review_count} :_source} biz]
     (let [dist (util/haversine cs coords)
           hours-today (util/get-hours-for-day hs day-of-week)]
       {:_id id :name n :address a :permalink p
+       :business_category_ids bcis
        :yelp {:id yid, :star_rating ysr, :review_count yrc}
        :phone_number phone_number
        :distance_in_mi dist
