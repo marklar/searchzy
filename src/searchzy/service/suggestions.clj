@@ -60,10 +60,15 @@
   [{id :_id {n :name, a :address, fi :fdb_id, bcis :business_category_ids} :_source}]
   {:id id, :fdb_id fi, :name n, :address a, :business_category_ids bcis})
 
-(defn- mk-simple-hit-response
-  "For ES hit of either biz-category or item, make a service hit."
+(defn- mk-biz-cat-hit-response
+  "For ES hit biz-category, make a service hit."
   [{i :_id, {n :name, fdb_id :fdb_id} :_source}]
   {:id i, :fdb_id fdb_id, :name n})
+
+(defn- mk-item-hit-response
+  "For ES item hit, make a service hit."
+  [{i :_id, {n :name, bcis :business_category_ids, fdb_id :fdb_id} :_source}]
+  {:id i, :fdb_id fdb_id, :name n, :business_category_ids bcis})
 
 (defn- mk-res-map
   [f hits-map]
@@ -93,9 +98,9 @@
        {:results {:businesses
                   (mk-res-map mk-biz-hit-response    biz-res)
                   :business_categories
-                  (mk-res-map mk-simple-hit-response cat-res)
+                  (mk-res-map mk-biz-cat-hit-response cat-res)
                   :items
-                  (mk-res-map mk-simple-hit-response item-res)}})
+                  (mk-res-map mk-item-hit-response item-res)}})
      tmp)))
 
 (defn- mk-biz-cat-id-filter
