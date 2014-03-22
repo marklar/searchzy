@@ -57,8 +57,8 @@
 
 (defn- mk-biz-hit-response
   "From ES biz hit, make service hit."
-  [{id :_id {n :name, a :address, fi :fdb_id} :_source}]
-  {:id id, :fdb_id fi, :name n, :address a})
+  [{id :_id {n :name, a :address, fi :fdb_id, bcis :business_category_ids} :_source}]
+  {:id id, :fdb_id fi, :name n, :address a, :business_category_ids bcis})
 
 (defn- mk-simple-hit-response
   "For ES hit of either biz-category or item, make a service hit."
@@ -79,8 +79,9 @@
 
 (defn- mk-response
   "From ES response, create service response."
-  [biz-res cat-res item-res endpoint query geo-map page-map html?]
+  [biz-res cat-res item-res endpoint query biz-cat-ids geo-map page-map html?]
   (let [tmp {:arguments {:query query
+                         :business_category_ids biz-cat-ids
                          :geo_filter geo-map
                          :paging page-map
                          :html html?}
@@ -97,13 +98,27 @@
                   (mk-res-map mk-simple-hit-response item-res)}})
      tmp)))
 
+(defn- mk-biz-cat-id-filter
+  [domain biz-cat-ids]
+  (if (empty? biz-cat-ids)
+    nil
+    (let [field-name (if (= domain :business_categories)
+                       :_id
+                       :business_category_ids)]
+      {:term {field-name biz-cat-ids}})))
+
+(defn- mk-filtered-query
+  [domain query-str biz-cat-ids]
+  {:filtered {:query (util/mk-suggestion-query query-str)
+              :filter (mk-biz-cat-id-filter domain biz-cat-ids)}})
+
 (defn- get-results
   "Perform prefix search against names."
-  [domain query-str {:keys [from size]}]
+  [domain query-str biz-cat-ids {:keys [from size]}]
   (let [es-names (get cfg/elastic-search-names domain)]
     (:hits (es-doc/search (:index es-names)
                           (:mapping es-names)
-                          :query  (util/mk-suggestion-query query-str)
+                          :query  (mk-filtered-query domain query-str biz-cat-ids)
                           :from   from
                           :size   size))))
 
@@ -118,27 +133,34 @@
 ;;  - agents (uncoordinated, asynchronous)
 (defn- search
   [valid-args]
-  (let [{:keys [endpoint query geo-map page-map html]} valid-args]
+  (let [{:keys [endpoint query business-category-ids
+                geo-map page-map html]} valid-args]
     (let [no-q (clojure.string/blank? query)
           biz-results  (if no-q
                          {:total 0, :hits []}
-                         (biz/es-search query :prefix geo-map nil ; -sort-
-                                      page-map))
+                         (biz/es-search query :prefix
+                                        business-category-ids
+                                        geo-map nil ; -sort-
+                                        page-map))
           item-results (if no-q
                          {:total 0, :hits []}
-                         (get-results :items query page-map))
-          cat-results  (get-results :business_categories query page-map)]
+                         (get-results :items
+                                      query business-category-ids page-map))
+          cat-results  (get-results :business_categories
+                                    query business-category-ids page-map)]
       (responses/ok-json
        (mk-response biz-results cat-results item-results
-                    endpoint query geo-map page-map html)))))
+                    endpoint query business-category-ids
+                    geo-map page-map html)))))
 
 
 ;;-- public --
 
 (defn mk-input-map
-  [endpoint query address lat lon miles size html]
+  [endpoint query business-category-ids address lat lon miles size html]
   {:endpoint endpoint
    :query query
+   :business-category-ids business-category-ids
    ;; :geo-map {:address address, :coords {:lat lat, :lon lon}, :miles miles}
    :geo-map {:address address, :lat lat, :lon lon, :miles miles}
    :page-map {:from "0", :size size}

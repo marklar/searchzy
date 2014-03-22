@@ -269,6 +269,7 @@
   [args]
   (clean/gather->> args
                    clean-required-query
+                   clean-business-category-ids
                    clean-html
                    clean-geo-map
                    clean-page-map))
@@ -280,6 +281,7 @@
   [args]
   (clean/gather->> args
                    clean-optional-query
+                   clean-business-category-ids
                    clean-html
                    clean-geo-map
                    clean-page-map))

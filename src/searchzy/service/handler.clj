@@ -14,6 +14,7 @@
              [business :as biz]
              [responses :as responses]
              [suggestions :as sugg]
+             ;; two versions of BMI logic...
              [business-menu-items :as items]
              [bmi :as bmi]]
             [compojure
@@ -113,9 +114,10 @@
   ;;-- SUGGESTIONS --
 
   (GET (v-path 1 "/suggestions")
-       [query address lat lon miles size html]
+       [query business_category_ids address lat lon miles size html]
        (let [path (v-path 1 "/suggestions")
-             input-map (sugg/mk-input-map path query address lat lon miles size html)
+             input-map (sugg/mk-input-map path query business_category_ids
+                                          address lat lon miles size html)
              res (sugg/validate-and-search-v1 input-map)]
          (responses/json-p-ify res)))
 
@@ -123,9 +125,10 @@
   ;; + Adds parameter use_jsonp (default: false).
   ;; + Adds fdb_id to each entity in each section of results.
   (GET (v-path 2 "/suggestions")
-       [query address lat lon miles size html use_jsonp]
+       [query business_category_ids address lat lon miles size html use_jsonp]
        (let [path (v-path 2 "/suggestions")
-             input-map (sugg/mk-input-map path query address lat lon miles size html)
+             input-map (sugg/mk-input-map path query business_category_ids
+                                          address lat lon miles size html)
              res (sugg/validate-and-search-v2 input-map)]
          (if (inputs/true-str? use_jsonp)
            (responses/json-p-ify res)
