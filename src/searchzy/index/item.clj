@@ -19,12 +19,13 @@
   "Given an ItemCategory mongo-map,
    get embedded :item maps.
    Convert each to es-map and add to index."
-  [{items :items}]
+  [{:keys [business_category_ids items]}]
   (doseq [i items]
     (if (:is_searchable_ind i)
       (es-doc/put idx-name mapping-name
                   (str (:_id i))
-                  {:name (:name i)
+                  {:business_category_ids business_category_ids
+                   :name (:name i)
                    :fdb_id (:fdb_id i)}))))
 
 (defn recreate-idx

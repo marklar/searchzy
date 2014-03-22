@@ -11,7 +11,7 @@
 
 ;; -- search --
 
-(defn value-sort
+(defn- value-sort
   [order]
   (array-map :yelp_star_rating  order
              :yelp_review_count order
@@ -19,7 +19,7 @@
 
 (def DEFAULT_SORT (value-sort :desc))
 
-(defn mk-sort
+(defn- mk-sort
   [sort-map geo-map]
   (let [order (:order sort-map)]
     (match (:attribute sort-map)
@@ -38,28 +38,46 @@
     :script_score {:script "_score + (doc['value_score_int'].value / 20)"}}
    })
 
+(defn- mk-simple-query-map
+  [query query-type]
+  (if (= query-type :prefix)
+    (util/mk-suggestion-query query)
+    {query-type {:name {:query query
+                        :operator "and"}}}))
+
 (defn- mk-query
   "Create map for querying -
    EITHER: just with 'query' -OR- with a scoring fn for sorting."
-  [query query-type sort-map]
-  (let [simple-query-map
-        (if (= query-type :prefix)
-          (util/mk-suggestion-query query)
-          {query-type {:name {:query query
-                              :operator "and"}}})]
-    (if (= "value" (:attribute sort-map))
-      simple-query-map
-      (mk-function-score-query simple-query-map))))
+  [query-str query-type sort-map]
+  (if (clojure.string/blank? query-str)
+    nil
+    (let [simple-query-map (mk-simple-query-map query-str query-type)]
+      (if (= "value" (:attribute sort-map))
+        simple-query-map
+        (mk-function-score-query simple-query-map)))))
+
+(defn- mk-biz-cat-id-filter
+  [biz-cat-ids]
+  (if (empty? biz-cat-ids)
+    nil
+    {:term {:business_category_ids biz-cat-ids}}))
+
+(defn- mk-filtered-query
+  [query-str query-type biz-cat-ids sort-map]
+  (let [query-map (mk-query query-str query-type sort-map)
+        id-filter (mk-biz-cat-id-filter biz-cat-ids)]
+    {:filtered {:query query-map :filter id-filter}}))
 
 (defn es-search
   "Perform ES search, return results map.
    If sort is by 'value', change scoring function and sort by its result."
-  [query-str query-type geo-map sort-map page-map]
+  [query-str query-type biz-cat-ids geo-map sort-map page-map]
   (let [es-names (:businesses cfg/elastic-search-names)]
     (:hits
      (es-doc/search (:index es-names)
                     (:mapping es-names)
-                    :query  (mk-query query-str query-type sort-map)
+                    :query  (mk-filtered-query query-str query-type
+                                               biz-cat-ids sort-map)
                     :filter (util/mk-geo-filter geo-map)
                     :sort   (mk-sort sort-map geo-map)
                     :from   (:from page-map)
@@ -75,18 +93,19 @@
 (def MAX_ITEMS 1000)
 (defn get-results
   "Returns hits -plus- total."
-  [{:keys [query geo-map hours-map sort-map page-map]}]
+  [{:keys [query business-category-ids geo-map hours-map sort-map page-map]}]
   (if (nil? (:wday hours-map))
 
     ;;-- ElasticSearch filters. --
     ;; We don't need to post-filter results based on hours.
-    ;; So we have ES do the paging for us.
-    (es-search query :match geo-map sort-map page-map)
+    ;; So we can have ES do the paging for us.
+    (es-search query :match business-category-ids geo-map sort-map page-map)
 
     ;;-- We filter. --
     ;; We DO need to post-filter.
     ;; But first let's get lots...
-    (let [{hits :hits} (es-search query :match geo-map sort-map
+    (let [{hits :hits} (es-search query :match business-category-ids
+                                  geo-map sort-map
                                   {:from 0, :size MAX_ITEMS})
           ;; ...then post-filter...
           open-hits (filter-by-hours hours-map hits)
@@ -107,12 +126,14 @@
                   cs :coordinates
                   hs :hours
                   p :permalink
+                  bcis :business_category_ids
                   yid :yelp_id
                   ysr :yelp_star_rating
                   yrc :yelp_review_count} :_source} biz]
     (let [dist (util/haversine cs coords)
           hours-today (util/get-hours-for-day hs day-of-week)]
       {:_id id :name n :address a :permalink p
+       :business_category_ids bcis
        :yelp {:id yid, :star_rating ysr, :review_count yrc}
        :phone_number phone_number
        :distance_in_mi dist
@@ -122,12 +143,17 @@
 (defn- mk-response
   "From ES results, create service response.
    We've already done paging; no need to do so now."
-  [es-results {:keys [query geo-map hours-map utc-offset-map sort-map page-map]}]
-  (let [rails-time-zone (some #(-> % :_source :rails_time_zone) (:hits es-results))
-        day-of-week (util/get-day-of-week hours-map rails-time-zone utc-offset-map)]
+  [es-results {:keys [query business-category-ids
+                      geo-map hours-map utc-offset-map
+                      sort-map page-map]}]
+  (let [rails-time-zone
+        (some #(-> % :_source :rails_time_zone) (:hits es-results))
+        day-of-week
+        (util/get-day-of-week hours-map rails-time-zone utc-offset-map)]
     (responses/ok-json
      {:endpoint "/v1/businesses"   ; TODO: pass this in
       :arguments {:query query
+                  :business_category_ids business-category-ids
                   :geo_filter geo-map
                   :hours_filter hours-map
                   :utc_offset utc-offset-map
@@ -144,7 +170,7 @@
     (mk-response results valid-args)))
 
 (defn validate-and-search
-  "input-args: query-string params, aggregated into sub-hashmaps based on meaning.
+  "input-args: HTTP params, aggregated into sub-hashmaps based on meaning.
    1. Validate args and convert them into needed values for searching.
    2. Perform ES search.
    3. Create proper JSON response."

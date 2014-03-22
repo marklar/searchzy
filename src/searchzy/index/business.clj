@@ -22,6 +22,9 @@
                           :null_value "66.66,66.66"
                           :include_in_all false}
 
+     ;; An *array* of strings.
+     :business_category_ids {:type "string"}
+
      ;; SORT
      :yelp_star_rating  {:type "float"   :null_value 0 :include_in_all false}
      :yelp_review_count {:type "integer" :null_value 0 :include_in_all false}
@@ -99,6 +102,7 @@
    :phone_number (get-phone-number mg-map)
    ;; filter
    :latitude_longitude (get-lat-lon-str mg-map)
+   :business_category_ids (map str (:business_category_ids mg-map))
    ;; sort
    :value_score_int (get-value-score (:business-items mg-map))
    ;; presentation

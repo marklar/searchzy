@@ -91,11 +91,13 @@
 ;; ---
 
 (defn get-query
+  "blank query is an error"
   [q]
   (let [s (q/normalize q)]
     (if (clojure.string/blank? s) nil s)))
 
-(def clean-query
+;; i.e. against name of business
+(def clean-required-query
   (clean/mk-cleaner
    :query :query
    get-query
@@ -104,10 +106,12 @@
                             "after normalization.")
               :args {:original-query i, :normalized-query o}})))
 
-(def clean-suggestion-query
+(def clean-optional-query
   (clean/mk-cleaner
    :query :query
-   q/normalize
+   (fn [q] (if (nil? q)
+             ""
+             (q/normalize q)))
    (fn [i o] {:param :query
               :message "There should be no problem!"
               :args {:original-query i, :normalized-query o}})))
@@ -172,12 +176,27 @@
         :args i
         :options opts}))))
 
+;; Munge fn for strings -- if blank, return nil.
+(defn- str-or-nil
+  [s]
+  (if (clojure.string/blank? s) nil s))
+
 (def clean-item-id
   (clean/mk-cleaner
    :item-id :item-id
-   (fn [s] (if (clojure.string/blank? s) nil s))
+   str-or-nil
    (fn [i o] {:param :item_id  ; underbar
               :message "Param 'item_id' must have non-empty value."})))
+
+(def clean-business-category-ids
+  (clean/mk-cleaner
+   :business-category-ids :business-category-ids
+   (fn [s]
+     (if (clojure.string/blank? s)
+       []
+       (clojure.string/split s #",")))
+   (fn [i o] {:param :business_category_ids  ; underbar
+              :message "There should be no problem with 'business_category_ids'."})))
 
 (defn get-utc-offset-map
   " '-12'   => {:hour -12, :minute  0}
@@ -211,6 +230,7 @@
               :message "Something wrong with your 'collar'."
               :args i})))
    
+;;-----------------------
 
 (defn business-clean-input
   "Validate each argument group in turn.
@@ -218,7 +238,10 @@
   [args]
   (let [sort-attrs #{"value" "distance" "score"}]
     (clean/gather->> args
-                     clean-query
+                     ;; One is required, either query or biz-cat-ids.
+                     clean-optional-query
+                     clean-business-category-ids
+                     ;;
                      clean-geo-map
                      clean-hours
                      clean-utc-offset
@@ -245,7 +268,8 @@
    Gather up any validation errors as you go."
   [args]
   (clean/gather->> args
-                   clean-query
+                   clean-required-query
+                   clean-business-category-ids
                    clean-html
                    clean-geo-map
                    clean-page-map))
@@ -256,7 +280,8 @@
    Gather up any validation errors as you go."
   [args]
   (clean/gather->> args
-                   clean-suggestion-query
+                   clean-optional-query
+                   clean-business-category-ids
                    clean-html
                    clean-geo-map
                    clean-page-map))

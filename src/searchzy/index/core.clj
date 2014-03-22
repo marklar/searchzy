@@ -42,6 +42,8 @@
 ;; On my laptop, MongoDB fetching isn't the bottleneck,
 ;; so it takes the same amount of time.
 ;; 
+;; We don't use the 'areas' DB?
+;;
 (def indices
   {
    ;; PRETTY QUICK
@@ -135,6 +137,10 @@
 ;; -- MAIN --
 (defn -main
   [& args]
+
+  ;; TODO: Add error handling.
+  ;; If user supplies some un-recognized flag (e.g. '-limit'),
+  ;; indicate the error and output the doc-str.
 
   (let [[args-map args-vec doc-str]
         (cli args

@@ -14,6 +14,7 @@
              [business :as biz]
              [responses :as responses]
              [suggestions :as sugg]
+             ;; two versions of BMI logic...
              [business-menu-items :as items]
              [bmi :as bmi]]
             [compojure
@@ -47,7 +48,7 @@
         {:message "Welcome to Searchzy!"
          :params args}))
 
-  ;;-- DOCS --
+  ;;-- DOCUMENTATION --
 
   (GET "/docs" []
        (docs.core/show))
@@ -64,13 +65,16 @@
   ;;-- BUSINESSES --
 
   (GET (v-path 1 "/businesses")
-       [api_key query address lat lon miles hours utc_offset sort from size]
+       [api_key query business_category_ids
+        address lat lon miles
+        hours utc_offset sort from size]
        (if (not (valid-key? api_key))
          ;; not authorized
          (bounce)
          ;; authorized
          (biz/validate-and-search
           {:query query
+           :business-category-ids business_category_ids
            :geo-map {:address address, :lat lat, :lon lon, :miles miles}
            :hours hours
            :utc-offset utc_offset
@@ -110,9 +114,10 @@
   ;;-- SUGGESTIONS --
 
   (GET (v-path 1 "/suggestions")
-       [query address lat lon miles size html]
+       [query business_category_ids address lat lon miles size html]
        (let [path (v-path 1 "/suggestions")
-             input-map (sugg/mk-input-map path query address lat lon miles size html)
+             input-map (sugg/mk-input-map path query business_category_ids
+                                          address lat lon miles size html)
              res (sugg/validate-and-search-v1 input-map)]
          (responses/json-p-ify res)))
 
@@ -120,9 +125,10 @@
   ;; + Adds parameter use_jsonp (default: false).
   ;; + Adds fdb_id to each entity in each section of results.
   (GET (v-path 2 "/suggestions")
-       [query address lat lon miles size html use_jsonp]
+       [query business_category_ids address lat lon miles size html use_jsonp]
        (let [path (v-path 2 "/suggestions")
-             input-map (sugg/mk-input-map path query address lat lon miles size html)
+             input-map (sugg/mk-input-map path query business_category_ids
+                                          address lat lon miles size html)
              res (sugg/validate-and-search-v2 input-map)]
          (if (inputs/true-str? use_jsonp)
            (responses/json-p-ify res)
