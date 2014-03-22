@@ -64,36 +64,16 @@
   ;;-- BUSINESSES --
 
   (GET (v-path 1 "/businesses")
-       [api_key query address lat lon miles hours utc_offset sort from size]
+       [api_key query business_category_ids
+        address lat lon miles
+        hours utc_offset sort from size]
        (if (not (valid-key? api_key))
          ;; not authorized
          (bounce)
          ;; authorized
          (biz/validate-and-search
           {:query query
-           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
-           :hours hours
-           :utc-offset utc_offset
-           :sort sort
-           :page-map {:from from, :size size}})))
-
-  ;;-- BUSINESSES_BY_BUSINESS_CATEGORY --
-
-  ;; Search for businesses based on:
-  ;;   + a business_category_id, and
-  ;;   + location (address or coordinate).
-  ;; Sort by distance.
-  ;; Page-able (sort from size).
-  ;; 
-  ;; Businesses have a business_category_ids array embedded on them.
-
-  (GET (v-path 1 "/businesses_by_business_category_id")
-       [api_key business_category_id address lat lon miles hours utc_offset sort from size]
-       (if (not (valid-key? api_key))
-         (bounce)
-
-         (biz/validate-and-search-by-biz-category-id
-          {:business-category-id business_category_id
+           :business-category-ids business_category_ids
            :geo-map {:address address, :lat lat, :lon lon, :miles miles}
            :hours hours
            :utc-offset utc_offset
