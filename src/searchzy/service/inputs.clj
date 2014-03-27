@@ -46,8 +46,8 @@
 (defn get-collar-map
   "If {}, not err, just no collar."
   [{max-miles-str :max-miles min-results-str :min-results}]
-  (let [miles (str-to-val max-miles-str   nil)
-        num   (str-to-val min-results-str nil)]
+  (let [miles (str-to-val max-miles-str   2)
+        num   (str-to-val min-results-str 0)]
     (match [miles num]
            [nil nil] {}   ;; opting out
            [nil _  ] nil  ;; error
@@ -140,6 +140,12 @@
    (fn [i o] {:params [:from :size]
               :message "Some problem with the paging info."
               :args i})))
+
+(def clean-include-busineses-without-price
+  (clean/mk-cleaner
+   :include-businesses-without-price :include-businesses-without-price
+   true-str?     ;; always produces t/f, never error (nil)
+   (fn [i o])))  ;; no-op
 
 (def clean-html
   (clean/mk-cleaner
@@ -255,6 +261,7 @@
   (let [sort-attrs #{"price" "value" "distance"}]
     (clean/gather->> args
                      clean-item-id
+                     clean-include-busineses-without-price
                      clean-geo-map
                      clean-collar-map
                      clean-hours

@@ -40,6 +40,19 @@
   [version-number path]
   (str "/v" version-number path))
 
+;; We have two different search fns to choose from.
+;; If min_results is provided, we use the newer 'bmi' version.
+;; If not, we use the (original) 'business_menu_items' one.
+;;
+;; TODO: Decide which implementation we want.
+;;
+(defn- get-bmi-search-fn
+  [min-results]
+  (if (not (clojure.string/blank? min-results))
+    bmi/validate-and-search
+    items/validate-and-search))
+
+
 ;; COMPOJURE ROUTES
 (defroutes app-routes
 
@@ -86,30 +99,21 @@
   ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
        [api_key item_id address lat lon miles max_miles min_results
-        hours utc_offset sort from size]
+        hours utc_offset sort from size include_businesses_without_price]
        (if (not (valid-key? api_key))
          ;;-- not authorized
          (bounce)
 
          ;;-- authorized
-
-         ;; We have two different search fns to choose from.
-         ;; If min_results is provided, we use the newer 'bmi' version.
-         ;; If not, we use the (original) 'business_menu_items' one.
-         ;;
-         ;; TODO: Decide which implementation we want.
-         ;;
-         (let [search-fn (if (not (clojure.string/blank? min_results))
-                           bmi/validate-and-search
-                           items/validate-and-search)]
-           (search-fn
-            {:item-id item_id
-             :geo-map {:address address, :lat lat, :lon lon, :miles miles}
-             :collar-map {:max-miles max_miles, :min-results min_results}
-             :hours hours
-             :utc-offset utc_offset
-             :sort sort
-             :page-map {:from from, :size size}}))))
+         (bmi/validate-and-search
+          {:item-id item_id
+           :include-businesses-without-price include_businesses_without_price
+           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+           :collar-map {:max-miles max_miles, :min-results min_results}
+           :hours hours
+           :utc-offset utc_offset
+           :sort sort
+           :page-map {:from from, :size size}})))
 
   ;;-- SUGGESTIONS --
 
