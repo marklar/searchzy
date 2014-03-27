@@ -132,13 +132,17 @@
         ;; in-process sorting
         (maybe-value-sort sort-map))))
 
+(defn- get-day-of-week
+  [items valid-args]
+  (util/get-day-of-week
+   (:hours-map valid-args)
+   (some #(-> % :_source :business :rails_time_zone) items)
+   (:utc-offset-map valid-args)))
+
 (defn- search
   [valid-args]
   (let [items (get-all-open-items valid-args)
-        day-of-week (util/get-day-of-week
-                     (:hours-map valid-args)
-                     (some #(-> % :_source :business :rails_time_zone) items)
-                     (:utc-offset-map valid-args))
+        day-of-week (get-day-of-week items valid-args)
         ;; Gather metadata from the results returned.
         metadata (meta/get-metadata items day-of-week)]
     ;; Create JSON response.

@@ -20,7 +20,7 @@
   "Replace :hours with :hours_today, using :day_of_week.
    Add in Yelp data."
   [result day-of-week coords]
-  (let [source-map  (:_source result)
+  (let [source-map  result ;; (:_source result)
         old-biz     (:business source-map)
         hours-today (util/get-hours-for-day (:hours old-biz) day-of-week)
         new-biz     (-> old-biz
@@ -41,6 +41,7 @@
                 :yelp_star_rating
                 :yelp_review_count)
         (assoc :business new-biz
+               ;; FIXME: awesomeness isn't from :_source!
                :awesomeness (:awesomeness result)))))
 
 (defn map-keys [f m]
@@ -79,20 +80,23 @@
      - geo-distance sort  -AND-
      - geo-distance filter"
   [item-id geo-map sort-map page-map]
-  (:hits
-   (es-doc/search idx-name mapping-name
-                  :query  {:field {:item_id item-id}}
-                  :filter (util/mk-geo-filter geo-map)
-                  :sort   (geo-sort/mk-geo-distance-sort-builder
-                           (:coords geo-map) :asc)
-                  :from   (:from page-map)
-                  :size   (:size page-map))))
+  (map :_source
+       (:hits
+        (:hits
+         (es-doc/search idx-name mapping-name
+                        :query  {:field {:item_id item-id}}
+                        :filter (util/mk-geo-filter geo-map)
+                        :sort   (geo-sort/mk-geo-distance-sort-builder
+                                 (:coords geo-map) :asc)
+                        :from   (:from page-map)
+                        :size   (:size page-map))))))
 
 (defn- maybe-filter-by-hours
   [hours-map items]
   (if (= {} hours-map)
     items
-    (filter #(util/open-at? hours-map (-> % :_source :business :hours))
+    ;; (filter #(util/open-at? hours-map (-> % :_source :business :hours))
+    (filter #(util/open-at? hours-map (-> % :business :hours))
             items)))
 
 (defn- maybe-reverse
@@ -104,9 +108,14 @@
 (defn- maybe-re-sort
   [sort-map items]
   (match (:attribute sort-map)
-         "distance" items   ;; Already handles 'reverse' within ES.
+         ;; "distance" items   ;; Already handles 'reverse' within ES.
+         "distance" (->> items
+                         (sort-by #(-> % :business :distance_in_mi))
+                         (maybe-reverse sort-map))
          "price"    (->> items
-                         (sort-by #(-> % :_source :price_micros))
+                         ;; (sort-by #(-> % :_source :price_micros))
+                         (sort-by (fn [i] [(:price_micros i)
+                                           (- 0 (-> i :business :distance_in_mi)) ]))
                          (maybe-reverse sort-map))
          "value"    (->> items
                          value/score-and-sort
@@ -114,29 +123,106 @@
 
 (defn- add-distance-in-mi
   [item coords]
-  (let [item-coords (-> item :_source :business :coordinates)
+  ;; (let [item-coords (-> item :_source :business :coordinates)
+  (let [item-coords (-> item :business :coordinates)
         dist        (util/haversine item-coords coords)]
-    (assoc-in item [:_source :business :distance_in_mi] dist)))
+    ;; (assoc-in item [:_source :business :distance_in_mi] dist)))
+    (assoc-in item [:business :distance_in_mi] dist)))
 
 (defn- maybe-collar
   "Take only the closest results, stopping when you:
       - have enough AND you're at least 1m out  -OR-
       - run out."
-  [geo-map collar-map items]
+  ;; [geo-map collar-map items]
+  [collar-map items]
   (let [mr (:min-results collar-map)
         miles 1.0]
     (if (nil? mr)
       items
-      (let [get-dist    #(-> % :_source :business :distance_in_mi)
+      ;; (let [get-dist    #(-> % :_source :business :distance_in_mi)
+      (let [get-dist    #(-> % :business :distance_in_mi)
             need-more? (fn [[item idx]]
                          (or (< idx mr)
                              (< (get-dist item) miles)))
-            add-dist    #(add-distance-in-mi % (:coords geo-map))]
+            ;; add-dist    #(add-distance-in-mi % (:coords geo-map))]
+            ]
         (map first
              (take-while need-more?
                          (map vector
-                              (map add-dist items)
+                              items ;; (map add-dist items)
                               (iterate inc 0))))))))
+
+(defn- most-common
+  ":: [a] -> a"
+  [seq]
+  (first
+   (reduce
+    (fn [[k1 v1] [k2 v2]]
+      (if (> v2 v1)
+        [k2 v2]
+        [k1 v1]))
+    (frequencies seq))))
+
+(defn- get-category-id
+  ":: [es-item] -> str
+   Given BusinessMenuItem ES search results,
+   Gather up all the business_category_ids.
+   Use those to make a NEW search."
+  [items item-id geo-map sort-map]
+  (let [at-least-one-item
+        (if (empty? items) 
+          (es-search item-id (assoc geo-map :max_miles 100) sort-map {:from 0, :size 1})
+          items)]
+    (most-common (mapcat #(-> % :business :business_category_ids) at-least-one-item))))
+
+;; Rather than search the 'business_menu_items' index,
+;; we need to search the 'businesses' index.
+(defn- es-by-cat-id-search
+  "Perform search against BusinessCategory _id, specifically using:
+     - geo-distance sort  -AND-
+     - geo-distance filter"
+  [cat-id geo-map sort-map page-map]
+  (let [names (:businesses cfg/elastic-search-names)]
+    (:hits
+     (es-doc/search (:index names) (:mapping name)
+                    :query {:field {:business_category_ids cat-id}}
+                    :filter (util/mk-geo-filter geo-map)
+                    :sort   (geo-sort/mk-geo-distance-sort-builder
+                             (:coords geo-map) :asc)
+                    :from   (:from page-map)
+                    :size   (:size page-map)))))
+
+(defn- de-dupe
+  "If a biz in bizs is already in items, then remove from bizs."
+  [bizs items]
+  ;; (let [biz-ids (map #(:_id (:business (:_source %))) items)]
+  (let [biz-ids (map #(-> % :business :_id) items)]
+    (remove #((set biz-ids) (:_id %)) bizs)))
+
+;; use 'partial'
+(defn- add-distances
+  [geo-map items]
+  (map #(add-distance-in-mi % (:coords geo-map)) items))
+
+(defn- filter-collar-sort
+  [items geo-map collar-map hours-map sort-map]
+  (->> items
+       (add-distances geo-map)
+       (maybe-filter-by-hours hours-map)
+       (maybe-collar collar-map)
+       (maybe-re-sort sort-map)))
+
+(defn- mk-biz-into-item-like-thing
+  [biz]
+  (let [just-biz (:_source biz)]
+    {:business (assoc just-biz :_id (:_id biz))}))
+
+(defn- get-at-least-one-item
+  [item-id new-geo-map sort-map fake-pager]
+  (let [items (es-search item-id new-geo-map sort-map fake-pager)]
+    (if (empty? items)
+      (es-search item-id (assoc new-geo-map :miles 100) sort-map {:from 0, :size 1})
+      items)))
 
 (def MAX-ITEMS 1000)
 (defn- get-all-open-items
@@ -148,19 +234,31 @@
   (let [new-geo-map (if (:max-miles collar-map)
                       (assoc geo-map :miles (:max-miles collar-map))
                       geo-map)
-        {items :hits} (es-search item-id new-geo-map
-                                 sort-map {:from 0, :size MAX-ITEMS})]
-    ;; in-process...
-    (->> items
-         (maybe-filter-by-hours hours-map)
-         (maybe-collar geo-map collar-map)
-         (maybe-re-sort sort-map))))
+        fake-pager {:from 0, :size MAX-ITEMS}
+        ;; items (es-search item-id new-geo-map sort-map fake-pager)
+        items (es-search item-id new-geo-map sort-map fake-pager)
 
-(defn get-day-of-week
+        ;; If (empty? items), then we're screwed.
+        ;; Need to have some item so we know the category-id.
+        category-id (get-category-id items item-id geo-map sort-map)
+        {category-bizs :hits} (es-by-cat-id-search category-id new-geo-map
+                                                   sort-map fake-pager)
+        uniq-bizs (map mk-biz-into-item-like-thing (de-dupe category-bizs items))]
+
+    (filter-collar-sort (concat items uniq-bizs) geo-map collar-map hours-map sort-map)))
+
+    ;; (if (= (:attribute sort-map) "distance")
+    ;;   ;; If geo-sort, first concat lists.  Then filter, collar, and sort.
+    ;;   (filter-collar-sort (concat items uniq-bizs) geo-map collar-map hours-map sort-map)
+    ;;   ;; Otherwise: filter, collar, and sort 'items', THEN concat.
+    ;;   (concat (filter-collar-sort items geo-map collar-map hours-map sort-map) uniq-bizs))))
+
+(defn- get-day-of-week
   [items valid-args]
   (util/get-day-of-week
    (:hours-map valid-args)
-   (some #(-> % :_source :business :rails_time_zone) items)
+   ;; (some #(-> % :_source :business :rails_time_zone) items)
+   (some #(-> % :business :rails_time_zone) items)
    (:utc-offset-map valid-args)))
 
 (defn- search
