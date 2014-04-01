@@ -197,33 +197,47 @@
   (let [just-biz (:_source biz)]
     {:business (assoc just-biz :_id (:_id biz))}))
 
+(defn- item-cat->biz-cat-id
+  [item-cat]
+  (if-let [biz-cat-id (:business_category_id item-cat)]
+    biz-cat-id
+    (first (:business_category_ids item-cat))))
+
+(defn- get-ids-alist-item-2-biz-cat
+  [item-cat]
+  (let [item-ids (map :_id (:items item-cat))
+        biz-cat-id (item-cat->biz-cat-id item-cat)]
+    (map (fn [item-id] [item-id biz-cat-id]) item-ids)))
+
+(defn- compute-id-map
+  []
+  (searchzy.util/mongo-connect-db! :main)
+  (let [all-item-cats (mg/fetch :item_categories)
+        alist (mapcat get-ids-alist-item-2-biz-cat all-item-cats)]
+    (apply conj {} alist)))
+
+(def id-map)
+(defn- get-item-id-2-biz-cat-id
+  []
+  (defonce id-map (compute-id-map))
+  id-map)
+
 (defn- item-id->biz-cat-id
   "Get info from MongoDB."
   [item-id-str]
-  ;; FIXME.  Don't connect to mongo here.  In fact, cache this info in-process.
-  (searchzy.util/mongo-connect-db! :main)
-  (let [
-        ;; all-item-cats (mg/fetch :item_categories)
-        item-id (mg/object-id item-id-str)
-        biz-cat (mg/fetch-one :item_categories
-                              :where {"items._id" item-id})]
-    ;; (doseq [item-cat all-item-cats]
-    ;;   (println (filter #(= item-id %) (map :_id (:items item-cat)))))
-    ;; (println "item-id:" item-id)
-    ;; (println "biz-cat:" biz-cat)
-    (if-let [biz-cat-id (:business_category_id biz-cat)]
-      biz-cat-id
-      (first (:business_category_ids biz-cat)))))
+  (let [id-map (get-item-id-2-biz-cat-id)
+        item-id (mg/object-id item-id-str)]
+    (get id-map item-id)))
 
 (defn- get-category-bizs
   "From MongoDB, fetch business_category_id for this item_id.
    Search ElasticSearch for corresponding Businesses.
    Doesn't return BusinessMenuItems, mind you -- just Businesses."
   [item-id new-geo-map sort-map fake-pager]
-  (let [category-id (item-id->biz-cat-id item-id)]
-    (if (nil? category-id)
+  (let [biz-cat-id (item-id->biz-cat-id item-id)]
+    (if (nil? biz-cat-id)
       []
-      (let [{category-bizs :hits} (es-by-cat-id-search category-id new-geo-map
+      (let [{category-bizs :hits} (es-by-cat-id-search biz-cat-id new-geo-map
                                                        sort-map fake-pager)]
         category-bizs))))
 
