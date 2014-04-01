@@ -75,15 +75,6 @@
     (str exception)
     "Please ensure that MongoDB is running."]))
 
-(defn- mongo-connect-db!
-  "Given a MongoDB collection name,
-   attempt to establish connection to it."
-  [db-name]
-  ;; This just assumes that the db-name will be correct.
-  ;; FIXME: add check.
-  (let [cfc (get (:mongo-db (cfg/get-cfg)) db-name)]
-    (util/mongo-connect! cfc)))
-
 (defn- index-one
   "Given a domain-name,
    connect to the corresponding MongoDB collection,
@@ -96,7 +87,7 @@
       ;; okay
       (let [{:keys [index-fn db-name]} idx]
         (println (str "indexing: " domain-name))
-        (try (do (mongo-connect-db! db-name)
+        (try (do (util/mongo-connect-db! db-name)
                  (let [cnt (index-fn :limit limit)]
                    (println (str "indexed " cnt " " (str domain-name) " records."))
                    cnt))

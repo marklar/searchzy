@@ -5,7 +5,9 @@
    or simply running out."
   (:use [clojure.core.match :only (match)]
         [camel-snake-kebab])
-  (:require [searchzy.cfg :as cfg]
+  (:require [somnium.congomongo :as mg]
+            [searchzy.cfg :as cfg]
+            [searchzy.util]
             [searchzy.service
              [value :as value]
              [metadata :as meta]
@@ -15,6 +17,7 @@
              [responses :as responses]]
             [clojurewerkz.elastisch.native
              [document :as es-doc]]))
+
 
 (defn- mk-one-hit
   "Replace :hours with :hours_today, using :day_of_week.
@@ -152,28 +155,29 @@
                               items ;; (map add-dist items)
                               (iterate inc 0))))))))
 
-(defn- most-common
-  ":: [a] -> a"
-  [seq]
-  (first
-   (reduce
-    (fn [[k1 v1] [k2 v2]]
-      (if (> v2 v1)
-        [k2 v2]
-        [k1 v1]))
-    (frequencies seq))))
+;; (defn- most-common
+;;   ":: [a] -> a"
+;;   [seq]
+;;   (first
+;;    (reduce
+;;     (fn [[k1 v1] [k2 v2]]
+;;       (if (> v2 v1)
+;;         [k2 v2]
+;;         [k1 v1]))
+;;     (frequencies seq))))
 
-(defn- get-category-id
-  ":: [es-item] -> str
-   Given BusinessMenuItem ES search results,
-   Gather up all the business_category_ids.
-   Use those to make a NEW search."
-  [items item-id geo-map sort-map]
-  (let [at-least-one-item
-        (if (empty? items) 
-          (es-search item-id (assoc geo-map :max_miles 100) sort-map {:from 0, :size 1})
-          items)]
-    (most-common (mapcat #(-> % :business :business_category_ids) at-least-one-item))))
+;; (defn- get-category-id
+;;   ":: [es-item] -> str
+;;    Given BusinessMenuItem ES search results,
+;;    Gather up all the business_category_ids.
+;;    Use those to make a NEW search."
+;;   [items item-id geo-map sort-map]
+;;   (let [at-least-one-item
+;;         (if (empty? items) 
+;;           (es-search item-id (assoc geo-map :max_miles 100) sort-map {:from 0, :size 1})
+;;           items)]
+;;     (most-common (mapcat #(-> % :business :business_category_ids) at-least-one-item))))
+
 
 ;; Rather than search the 'business_menu_items' index,
 ;; we need to search the 'businesses' index.
@@ -217,12 +221,28 @@
   (let [just-biz (:_source biz)]
     {:business (assoc just-biz :_id (:_id biz))}))
 
-(defn- get-at-least-one-item
+(defn- item-id->biz-cat-id
+  "Get info from MongoDB."
+  [item-id-str]
+  ;; FIXME.  Don't connect to mongo here.  In fact, cache this info in-process.
+  (searchzy.util/mongo-connect-db! :main)
+
+  (let [biz-cat (mg/fetch-by-id :item_categories (mg/object-id item-id-str))]
+    (if-let [biz-cat-id (:business_category_id biz-cat)]
+      biz-cat-id
+      (first (:business_category_ids biz-cat)))))
+
+(defn- get-category-bizs
+  "From MongoDB, fetch business_category_id for this item_id.
+   Search ElasticSearch for corresponding Businesses.
+   Doesn't return BusinessMenuItems, mind you -- just Businesses."
   [item-id new-geo-map sort-map fake-pager]
-  (let [items (es-search item-id new-geo-map sort-map fake-pager)]
-    (if (empty? items)
-      (es-search item-id (assoc new-geo-map :miles 100) sort-map {:from 0, :size 1})
-      items)))
+  (let [category-id (item-id->biz-cat-id item-id)]
+    (if (nil? category-id)
+      []
+      (let [{category-bizs :hits} (es-by-cat-id-search category-id new-geo-map
+                                                       sort-map fake-pager)]
+        category-bizs))))
 
 (def MAX-ITEMS 1000)
 (defn- get-all-open-items
@@ -235,14 +255,8 @@
                       (assoc geo-map :miles (:max-miles collar-map))
                       geo-map)
         fake-pager {:from 0, :size MAX-ITEMS}
-        ;; items (es-search item-id new-geo-map sort-map fake-pager)
         items (es-search item-id new-geo-map sort-map fake-pager)
-
-        ;; If (empty? items), then we're screwed.
-        ;; Need to have some item so we know the category-id.
-        category-id (get-category-id items item-id geo-map sort-map)
-        {category-bizs :hits} (es-by-cat-id-search category-id new-geo-map
-                                                   sort-map fake-pager)
+        category-bizs (get-category-bizs item-id new-geo-map sort-map fake-pager)
         uniq-bizs (map mk-biz-into-item-like-thing (de-dupe category-bizs items))]
 
     (filter-collar-sort (concat items uniq-bizs) geo-map collar-map hours-map sort-map)))
