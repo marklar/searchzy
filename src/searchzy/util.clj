@@ -51,7 +51,7 @@
    i.e. Changes the state of the world.
    TODO: Do this more functionally?"
   [mg-cfg]
-  (println "conn-str: " (mk-conn-str mg-cfg))
+  ;;(println "conn-str: " (mk-conn-str mg-cfg))
   (let [conn (mg/make-connection (mk-conn-str mg-cfg))]
     (mg/set-connection! conn)))
 
