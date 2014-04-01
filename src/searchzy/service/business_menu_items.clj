@@ -155,30 +155,6 @@
                               items ;; (map add-dist items)
                               (iterate inc 0))))))))
 
-;; (defn- most-common
-;;   ":: [a] -> a"
-;;   [seq]
-;;   (first
-;;    (reduce
-;;     (fn [[k1 v1] [k2 v2]]
-;;       (if (> v2 v1)
-;;         [k2 v2]
-;;         [k1 v1]))
-;;     (frequencies seq))))
-
-;; (defn- get-category-id
-;;   ":: [es-item] -> str
-;;    Given BusinessMenuItem ES search results,
-;;    Gather up all the business_category_ids.
-;;    Use those to make a NEW search."
-;;   [items item-id geo-map sort-map]
-;;   (let [at-least-one-item
-;;         (if (empty? items) 
-;;           (es-search item-id (assoc geo-map :max_miles 100) sort-map {:from 0, :size 1})
-;;           items)]
-;;     (most-common (mapcat #(-> % :business :business_category_ids) at-least-one-item))))
-
-
 ;; Rather than search the 'business_menu_items' index,
 ;; we need to search the 'businesses' index.
 (defn- es-by-cat-id-search
@@ -226,8 +202,15 @@
   [item-id-str]
   ;; FIXME.  Don't connect to mongo here.  In fact, cache this info in-process.
   (searchzy.util/mongo-connect-db! :main)
-
-  (let [biz-cat (mg/fetch-by-id :item_categories (mg/object-id item-id-str))]
+  (let [
+        ;; all-item-cats (mg/fetch :item_categories)
+        item-id (mg/object-id item-id-str)
+        biz-cat (mg/fetch-one :item_categories
+                              :where {"items._id" item-id})]
+    ;; (doseq [item-cat all-item-cats]
+    ;;   (println (filter #(= item-id %) (map :_id (:items item-cat)))))
+    ;; (println "item-id:" item-id)
+    ;; (println "biz-cat:" biz-cat)
     (if-let [biz-cat-id (:business_category_id biz-cat)]
       biz-cat-id
       (first (:business_category_ids biz-cat)))))
