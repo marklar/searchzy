@@ -1,5 +1,6 @@
 (ns searchzy.util
   (:require [clojure.string :as str]
+            [searchzy.cfg :as cfg]
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native :as es]))
 
@@ -53,3 +54,12 @@
   (println "conn-str: " (mk-conn-str mg-cfg))
   (let [conn (mg/make-connection (mk-conn-str mg-cfg))]
     (mg/set-connection! conn)))
+
+(defn mongo-connect-db!
+  "Given a MongoDB collection name,
+   attempt to establish connection to it."
+  [db-name]
+  ;; This just assumes that the db-name will be correct.
+  ;; FIXME: add check.
+  (let [cfc (get (:mongo-db (cfg/get-cfg)) db-name)]
+    (mongo-connect! cfc)))
