@@ -14,9 +14,7 @@
              [business :as biz]
              [responses :as responses]
              [suggestions :as sugg]
-             ;; two versions of BMI logic...
-             [business-menu-items :as items]
-             [bmi :as bmi]]
+             [business-menu-items :as items]]
             [compojure
              [handler :as handler]
              [route :as route]]))
@@ -39,19 +37,6 @@
   "Create path by appending version number."
   [version-number path]
   (str "/v" version-number path))
-
-;; We have two different search fns to choose from.
-;; If min_results is provided, we use the newer 'bmi' version.
-;; If not, we use the (original) 'business_menu_items' one.
-;;
-;; TODO: Decide which implementation we want.
-;;
-(defn- get-bmi-search-fn
-  [min-results]
-  (if (not (clojure.string/blank? min-results))
-    bmi/validate-and-search
-    items/validate-and-search))
-
 
 ;; COMPOJURE ROUTES
 (defroutes app-routes
@@ -105,7 +90,7 @@
          (bounce)
 
          ;;-- authorized
-         (bmi/validate-and-search
+         (items/validate-and-search
           {:item-id item_id
            :include-businesses-without-price include_businesses_without_price
            :geo-map {:address address, :lat lat, :lon lon, :miles miles}
