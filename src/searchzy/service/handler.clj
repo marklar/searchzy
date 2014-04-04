@@ -13,8 +13,9 @@
              [inputs :as inputs]
              [business :as biz]
              [responses :as responses]
-             [suggestions :as sugg]
-             [business-menu-items :as items]]
+             [suggestions :as sugg]]
+            [searchzy.service.bmis
+             [core :as items]]
             [compojure
              [handler :as handler]
              [route :as route]]))

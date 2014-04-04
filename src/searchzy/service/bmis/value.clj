@@ -1,34 +1,35 @@
-(ns searchzy.service.value
+(ns searchzy.service.bmis.value
   "Caclulate an 'awesomeness' score for each item and sort by same."
   )
 
-(defn join-keys
+(defn- join-keys
   "Combine multiple keywords into one, joined by '-'."
   [& keywords]
   (keyword (clojure.string/join \- (map name keywords))))
 
 ;; Item:  {:price_micros, :yelp_star_rating, :yelp_review_count}
 
-(defn yelp-tweak
+(defn- yelp-tweak
   "Given a biz-menu-item, return one with additional attrs
    :tweaked-count and :tweaked-rating.
    (If Yelp rating < 3.0, multiply number of reviews by -1.
     If no Yelp reviews, rating=3 and num-reviews=1.)"
   [item]
-  (let [add (fn [i r c] (assoc i :tweaked-rating r :tweaked-count c))
-        r (:yelp_star_rating  (:_source item))
-        c (:yelp_review_count (:_source item))]
-    (if (or (nil? c) (= c 0))
+  (let [add (fn [item rating count]
+              (assoc item :tweaked-rating rating :tweaked-count count))
+        rating (:yelp_star_rating  (:_source item))
+        count  (:yelp_review_count (:_source item))]
+    (if (or (nil? count) (= count 0))
       (add item 3.0 1)
-      (if (or (nil? r) (< r 3.0))
-        (add item (or r 0.0) (* -1 c))
-        (add item (or r 0.0) c)))))
+      (if (or (nil? rating) (< rating 3.0))
+        (add item (or rating 0.0) (* -1 count))
+        (add item (or rating 0.0) count)))))
 
 ;;
 ;; If we wish to change the way we compute the norm for prices,
 ;; we can't use Integer/MAX_VALUE.  But what to use instead?
 ;;
-(defn price-tweak
+(defn- price-tweak
   "Ensure that price isn't nil.  Add :tweaked-price."
   [item]
   (assoc item :tweaked-price (or (:price_micros (:_source item))
@@ -36,7 +37,7 @@
         
 ;;--------
 
-(defn add-norm
+(defn- add-norm
   "attr: #{:tweaked-count :tweaked-rating :price_micros}
    cmp: affects sort.  < (asc), > (desc)
    Adds norm (e.g. :tweaked-count-norm) to each item."
@@ -57,7 +58,7 @@
 ;; Rank Rating/Reviews independently by ascending order (i.e., lowest number ranked 1)
 ;; Take ranking for Rating/Review and divide by max rank for that bucket
 ;; Apply weight to score
-(defn add-yelp-norms
+(defn- add-yelp-norms
   [items]
   (-> (map yelp-tweak items)
       (add-norm :tweaked-count <)
@@ -67,12 +68,12 @@
 ;;   Rank Price by descending order (i.e., highest number ranked 1)
 ;;   Take ranking for Price and divide by max rank for that bucket
 ;;   Apply weight to score
-(defn add-price-rank-norm
+(defn- add-price-rank-norm
   [items]
   (-> (map price-tweak items)
       (add-norm :tweaked-price >)))
 
-(defn add-price-val-norm
+(defn- add-price-val-norm
   "Create price norm based not on rank but on actual price.
    If the item's price is nil, use (* 1.1 max-price)."
   [items]
@@ -83,18 +84,18 @@
             (assoc % :tweaked-price-norm (- 1.0 (/ p max-price))))
          items)))
 
-(defn add-score-to-item
+(defn- add-score-to-item
   [item]
   (let [score (+ (* 0.4 (:tweaked-price-norm  item))
                  (* 0.3 (:tweaked-rating-norm item))
                  (* 0.3 (:tweaked-count-norm  item)))]
     (assoc item :awesomeness score)))
 
-(defn add-score
+(defn- add-score
   [items]
   (map add-score-to-item items))
 
-(defn score-and-count-gt
+(defn- score-and-count-gt
   "comparator for sorting"
   [i1 i2]
   (let [a1 (:awesomeness i1)
@@ -103,6 +104,8 @@
         c2 (:tweaked-count-norm i2)]
     (or (> a1 a2)
         (and (= a1 a2) (> c1 c2)))))
+
+;;-------------------------------
   
 ;; Final Score and Sort
 ;;   Add weighted scores for Ranking, Review, Price

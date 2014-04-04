@@ -1,4 +1,4 @@
-(ns searchzy.service.metadata
+(ns searchzy.service.bmis.metadata
   "For BizMenuItems"
   (:require [searchzy.service
              [util :as util]]))
