@@ -1,4 +1,4 @@
-(ns searchzy.service.metadata
+(ns searchzy.service.bmis.metadata
   "For BizMenuItems"
   (:require [searchzy.service
              [util :as util]]))
@@ -32,7 +32,7 @@
 (defn- get-latest-hour
   "Given [{:hour h :minute m}], return the latest one."
   [hour-list]
-  (let [max-minutes (apply max (cons 0 (map util/time-to-mins hour-list)))]
+  (let [max-minutes (apply max (cons 0 (map util/time->mins hour-list)))]
     (mins-to-hour max-minutes)))
 
 (defn- get-latest-close

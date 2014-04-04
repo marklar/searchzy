@@ -8,7 +8,7 @@
 
 
 ;; TODO: Use (Integer. s) ?
-(defn str-to-val
+(defn str->val
   "Taking an HTTP query parameter and convert it to a proper value,
    using a default value if none provided."
   [str default]
@@ -24,8 +24,8 @@
 (defn mk-page-map
   "From input info, create usable info."
   [{:keys [from size]}]
-  {:from (str-to-val from 0)
-   :size (str-to-val size 10)})
+  {:from (str->val from 0)
+   :size (str->val size 10)})
 
 (defn mk-geo-map
   "Take input-geo-map: miles, address, lat, lon.
@@ -33,9 +33,9 @@
    If the input is valid, create a geo-map.
    If not, return nil."
   [{address :address, lat-str :lat, lon-str :lon, miles-str :miles}]
-  (let [lat       (str-to-val lat-str   nil)
-        lon       (str-to-val lon-str   nil)
-        miles     (str-to-val miles-str 4.0)]
+  (let [lat       (str->val lat-str   nil)
+        lon       (str->val lon-str   nil)
+        miles     (str->val miles-str 4.0)]
     (let [res (geo-locate/resolve-address lat lon address)]
       (if (nil? res)
         nil
@@ -46,8 +46,8 @@
 (defn get-collar-map
   "If {}, not err, just no collar."
   [{max-miles-str :max-miles min-results-str :min-results}]
-  (let [miles (str-to-val max-miles-str   2)
-        num   (str-to-val min-results-str 0)]
+  (let [miles (str->val max-miles-str   10.0)
+        num   (str->val min-results-str 20)]
     (match [miles num]
            [nil nil] {}   ;; opting out
            [nil _  ] nil  ;; error
@@ -141,7 +141,7 @@
               :message "Some problem with the paging info."
               :args i})))
 
-(def clean-include-busineses-without-price
+(def clean-include-businesses-without-price
   (clean/mk-cleaner
    :include-businesses-without-price :include-businesses-without-price
    true-str?     ;; always produces t/f, never error (nil)
@@ -261,7 +261,7 @@
   (let [sort-attrs #{"price" "value" "distance"}]
     (clean/gather->> args
                      clean-item-id
-                     clean-include-busineses-without-price
+                     clean-include-businesses-without-price
                      clean-geo-map
                      clean-collar-map
                      clean-hours
@@ -291,4 +291,5 @@
                    clean-business-category-ids
                    clean-html
                    clean-geo-map
+                   clean-utc-offset
                    clean-page-map))
