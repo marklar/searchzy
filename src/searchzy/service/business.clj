@@ -61,7 +61,7 @@
   [biz-cat-ids]
   (if (empty? biz-cat-ids)
     nil
-    {:term {:business_category_ids biz-cat-ids}}))
+    {:terms {:business_category_ids biz-cat-ids}}))
 
 (defn- mk-filtered-query
   [query-str query-type biz-cat-ids sort-map]
