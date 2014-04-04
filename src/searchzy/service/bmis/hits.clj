@@ -7,7 +7,7 @@
 (defn- mk-one-hit
   "Replace :hours with :hours_today, using :day_of_week.
    Add in Yelp data."
-  [result day-of-week coords]
+  [result day-of-week]
   (let [source-map  result ;; (:_source result)
         old-biz     (:business source-map)
         hours-today (util/get-hours-for-day (:hours old-biz) day-of-week)
@@ -47,7 +47,8 @@
   [results metadata day-of-week {:keys [item-id geo-map collar-map hours-map
                                         utc-offset-map sort-map page-map]}]
   (let [pageful   (take (:size page-map) (drop (:from page-map) results))
-        resp-hits (map #(mk-one-hit % day-of-week (:coords geo-map)) pageful)]
+        ;; resp-hits (map #(mk-one-hit % day-of-week (:coords geo-map)) pageful)]
+        resp-hits (map #(mk-one-hit % day-of-week) pageful)]
     (responses/ok-json
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id

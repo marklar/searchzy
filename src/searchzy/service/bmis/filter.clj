@@ -1,8 +1,8 @@
 (ns searchzy.service.bmis.filter
-  (:use [clojure.core.match :only (match)]
-        [camel-snake-kebab])
+  (:use [clojure.core.match :only (match)])
   (:require [searchzy.service
              [value :as value]
+             [geo-util :as geo-util]
              [util :as util]]))
   
 
@@ -63,7 +63,7 @@
   [item coords]
   ;; (let [item-coords (-> item :_source :business :coordinates)
   (let [item-coords (-> item :business :coordinates)
-        dist        (util/haversine item-coords coords)]
+        dist        (geo-util/haversine item-coords coords)]
     ;; (assoc-in item [:_source :business :distance_in_mi] dist)))
     (assoc-in item [:business :distance_in_mi] dist)))
 

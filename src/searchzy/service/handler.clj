@@ -12,8 +12,9 @@
             [searchzy.service
              [inputs :as inputs]
              [business :as biz]
-             [responses :as responses]
-             [suggestions :as sugg]]
+             [responses :as responses]]
+            [searchzy.service.suggestions
+             [core :as sugg]]
             [searchzy.service.bmis
              [core :as items]]
             [compojure
@@ -107,18 +108,19 @@
        [query business_category_ids address lat lon miles size html]
        (let [path (v-path 1 "/suggestions")
              input-map (sugg/mk-input-map path query business_category_ids
-                                          address lat lon miles size html)
+                                          address lat lon miles size html nil)
              res (sugg/validate-and-search-v1 input-map)]
          (responses/json-p-ify res)))
 
   ;; Differences from v1:
   ;; + Adds parameter use_jsonp (default: false).
   ;; + Adds fdb_id to each entity in each section of results.
+  ;; + Allows utc_offset string to include appropriate hours_today info in response.
   (GET (v-path 2 "/suggestions")
-       [query business_category_ids address lat lon miles size html use_jsonp]
+       [query business_category_ids address lat lon miles size html use_jsonp utc_offset]
        (let [path (v-path 2 "/suggestions")
              input-map (sugg/mk-input-map path query business_category_ids
-                                          address lat lon miles size html)
+                                          address lat lon miles size html utc_offset)
              res (sugg/validate-and-search-v2 input-map)]
          (if (inputs/true-str? use_jsonp)
            (responses/json-p-ify res)

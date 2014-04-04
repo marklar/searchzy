@@ -4,6 +4,7 @@
             [searchzy.service
              [geo-sort :as geo-sort]
              [util :as util]
+             [geo-util :as geo-util]
              [inputs :as inputs]
              [responses :as responses]]
             [clojurewerkz.elastisch.native
@@ -130,7 +131,7 @@
                   yid :yelp_id
                   ysr :yelp_star_rating
                   yrc :yelp_review_count} :_source} biz]
-    (let [dist (util/haversine cs coords)
+    (let [dist (geo-util/haversine cs coords)
           hours-today (util/get-hours-for-day hs day-of-week)]
       {:_id id :name n :address a :permalink p
        :business_category_ids bcis

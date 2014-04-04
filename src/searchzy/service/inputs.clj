@@ -291,4 +291,5 @@
                    clean-business-category-ids
                    clean-html
                    clean-geo-map
+                   clean-utc-offset
                    clean-page-map))

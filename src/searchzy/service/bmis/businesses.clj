@@ -25,12 +25,6 @@
 
 ;;-------------------------
 
-(defn ->bmi
-  [biz]
-  (let [just-biz (:_source biz)]
-    {:business (assoc just-biz :_id (:_id biz))}))
-
-
 (defn for-category
   "From MongoDB, fetch business_category_id for this item_id.
    Search ElasticSearch for corresponding Businesses.
@@ -40,3 +34,8 @@
     []
     (let [{bizs :hits} (es-search biz-cat-id geo-map sort-map pager)]
       bizs)))
+
+(defn ->bmi
+  [biz]
+  (let [just-biz (:_source biz)]
+    {:business (assoc just-biz :_id (:_id biz))}))

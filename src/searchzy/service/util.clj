@@ -4,46 +4,12 @@
              [responses :as responses]
              [tz :as tz]]))
 
-;; -- GEO-RELATED -- could be moved into searchzy.service.geo.
-
 (defn mk-geo-filter
   "Create map for filtering by geographic distance."
   [{:keys [miles coords]}]
   (let [coords-str (str (:lat coords) "," (:lon coords))]
     {:geo_distance {:distance (str miles "mi")
                     :latitude_longitude coords-str}}))
-
-;; Haversine
-
-(defn haversine
-  "Find geo distance between to geo-points.
-   http://rosettacode.org/wiki/Haversine_formula#Clojure"
-  [{lat1 :lat lon1 :lon} {lat2 :lat lon2 :lon}]
-  (let [R    3959.87 ; miles
-        dlat (Math/toRadians (- lat2 lat1))
-        dlon (Math/toRadians (- lon2 lon1))
-        lat1 (Math/toRadians lat1)
-        lat2 (Math/toRadians lat2)
-        a    (+ (* (Math/sin (/ dlat 2)) (Math/sin (/ dlat 2)))
-                (* (Math/sin (/ dlon 2)) (Math/sin (/ dlon 2))
-                   (Math/cos lat1) (Math/cos lat2)))]
-    (* R 2 (Math/asin (Math/sqrt a)))))
-
-(defn- geo-str-to-map
-  "geo-point string to geo-point map"
-  [s]
-  (let [[lat-str lon-str] (clojure.string/split s #",")]
-    {:lat (read-string lat-str)
-     :lon (read-string lon-str)}))
-
-(defn haversine-from-strs
-  "Find geo distance between to geo-points."
-  [loc1-str loc2-str]
-  (let [loc1 (geo-str-to-map loc1-str)
-        loc2 (geo-str-to-map loc2-str)]
-    (haversine loc1 loc2)))
-
-;; -----
 
 (defn mk-suggestion-query
   "String 's' may contain mutiple terms.
@@ -66,6 +32,7 @@
   (map (fn [{:keys [wday hours]}] [wday hours])
        hour-maps))
 
+;; private?
 (defn get-hours-for-day
   "Specifically related to how hours are stored in a Business object.
    Probably doesn't really belong in util."
@@ -107,34 +74,42 @@
                             (mk-tz-str utc-offset-map)
                             (mk-tz-str DEFAULT-OFFSET))))
 
+(defn get-day-of-week-from-tz
+  "Return an int: [0..6]."
+  [rails-time-zone utc-offset-map]
+  (let [tz      (mk-tz rails-time-zone utc-offset-map)
+        cal     (doto (GregorianCalendar.) (.setTimeZone tz))
+        cal-num (.get cal Calendar/DAY_OF_WEEK)]
+    ;; In Calendar class, days are numbered 1-7, so decrement.
+    (dec cal-num)))
+
 (defn get-day-of-week
   "Return an int: [0..6]."
   [hours-map rails-time-zone utc-offset-map]
   (if (:wday hours-map)
     (:wday hours-map)
-    (let [tz      (mk-tz rails-time-zone utc-offset-map)
-          cal     (doto (GregorianCalendar.) (.setTimeZone tz))
-          cal-num (.get cal Calendar/DAY_OF_WEEK)]
-        ;; In Calendar class, days are numbered 1-7, so decrement.
-        (dec cal-num))))
+    (get-day-of-week-from-tz rails-time-zone utc-offset-map)))
 
-(defn time-to-mins
+;; public
+(defn time->mins
   [{h :hour, m :minute}]
   (try
     (+ m (* h 60))
     (catch Exception e 0)))
 
-(defn time-cmp
+(defn- time-cmp
   [op t1 t2]
-  (op (time-to-mins t1) (time-to-mins t2)))
+  (op (time->mins t1) (time->mins t2)))
 
-(defn valid-hours?
+(defn- valid-hours?
   [hours]
   (let [o (:open hours)
         c (:close hours)]
     (and hours o c
        (:hour o) (:minute o)
        (:hour c) (:minute c))))
+
+;;------------------
 
 (defn open-at?
   "Open: 8:30.  Close: 15:00.
@@ -146,8 +121,6 @@
       false
       (and (time-cmp >= hours-map (:open  hours-today))
            (time-cmp <  hours-map (:close hours-today))))))
-
-;;------------------
 
 ;; 1.  clean input
 ;; 2a. return error-json of errs if present, else
