@@ -67,8 +67,8 @@ need ElasticSearch installed and running.
 
 Once ElasticSearch is installed, run it thus:
 
-    cd path/to/elasticsearch
-    bin/elasticsearch
+    > cd path/to/elasticsearch
+    > bin/elasticsearch
 
 We must also tell Searchzy where to find ElasticSearch, but we'll
 leave that for the "Configuration" section below.
@@ -80,7 +80,7 @@ indexing time, you must have MongoDB running.
 
 To run MongoDB:
 
-    mongod
+    > mongod
 
 Jast as with ElasticSearch, you must tell Searchzy where to find
 MongoDB.  So let's get to the configuration step now.
