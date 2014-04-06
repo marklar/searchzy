@@ -51,7 +51,7 @@ longer, as our enhancements have been integrated into the main repo.
 If you have a 'checkouts' directory (for using our fork), please
 remove it:
 
-    # from 'searchy' root directory:
+    # from 'searchzy' root directory:
     > rm -rf checkouts
 
 
