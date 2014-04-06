@@ -3,11 +3,12 @@
   (:require [searchzy.service
              [util :as util]]))
 
+;; This doesn't exist in the core lib?
 (defn- compact [seq] (remove nil? seq))
 
 (defn- get-prices-micros
   [biz-menu-items]
-  (let [prices (compact (map #(-> % :_source :price_micros) biz-menu-items))
+  (let [prices (compact (map #(-> % :price_micros) biz-menu-items))
         sum (apply + prices)
         cnt (count prices)]
     (if (= 0 cnt)
@@ -18,7 +19,7 @@
 
 (defn- get-all-hours-today
   [biz-menu-items day-of-week]
-  (let [all-hours (compact (map #(-> % :_source :business :hours) biz-menu-items))]
+  (let [all-hours (compact (map #(-> % :business :hours) biz-menu-items))]
     (compact (map #(util/get-hours-for-day % day-of-week) all-hours))))
 
 (def HOUR_MINS 60)
@@ -40,6 +41,8 @@
   [biz-menu-items day-of-week]
   (let [all-closing (map :close (get-all-hours-today biz-menu-items day-of-week))]
     (get-latest-hour all-closing)))
+
+;;----------------------
 
 (defn get-metadata
   [biz-menu-items day-of-week]

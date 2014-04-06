@@ -41,7 +41,6 @@
 (defn- de-dupe
   "If a biz in bizs is already in bmis, then remove from bizs."
   [bizs bmis]
-  ;; (let [biz-ids (map #(:_id (:business (:_source %))) bmis)]
   (let [biz-ids (map #(-> % :business :_id) bmis)]
     (remove #((set biz-ids) (:_id %)) bizs)))
 
@@ -75,7 +74,6 @@
   [bmis valid-args]
   (util/get-day-of-week
    (:hours-map valid-args)
-   ;; (some #(-> % :_source :business :rails_time_zone) bmis)
    (some #(-> % :business :rails_time_zone) bmis)
    (:utc-offset-map valid-args)))
 
