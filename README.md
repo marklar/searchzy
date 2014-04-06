@@ -51,10 +51,8 @@ longer, as our enhancements have been integrated into the main repo.
 If you have a 'checkouts' directory (for using our fork), please
 remove it:
 
-```
-# from 'searchy' root directory:
-> rm -rf checkouts
-```
+    # from 'searchy' root directory:
+    > rm -rf checkouts
 
 
 ### ElasticSearch
@@ -69,7 +67,8 @@ need ElasticSearch installed and running.
 
 Once ElasticSearch is installed, run it thus:
 
-    elasticsearch -f -D es.config=/usr/local/opt/elasticsearch/config/elasticsearch.yml
+    cd path/to/elasticsearch
+    bin/elasticsearch
 
 We must also tell Searchzy where to find ElasticSearch, but we'll
 leave that for the "Configuration" section below.
@@ -139,10 +138,8 @@ to 'google', which does not require an API key.  (But you should use
 Also, you need to find out your ElasticSearch's cluster name. Retrieve
 it via ElasticSearch's REST API, thus:
 
-```
-> curl http://localhost.com:9200/_nodes/cluster_name
-{"cluster_name":"elasticsearch_something","nodes":...}}
-```
+    > curl http://localhost.com:9200/_nodes/cluster_name
+    {"cluster_name":"elasticsearch_something","nodes":...}}
 
 You won't likely need to change the ports from the ones above.  (27017
 is the standard MongoDB port, and 9300 is the standard port for
@@ -212,10 +209,8 @@ directly:
 To deploy Searchzy to production machines, you will need two create
 these two files:
 
-```
-.config.yaml
-searchzy-0.1.0-SNAPSHOT-standalone.jar
-```
+    .config.yaml
+    searchzy-0.1.0-SNAPSHOT-standalone.jar
 
 To create .config.yaml, see [configuration][2].
 
