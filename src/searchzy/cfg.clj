@@ -24,15 +24,15 @@
 ;; Cluster name and transport node addresses can be retrieved
 ;; via HTTP API, for example:
 ;;
-;;   > curl http://localhost:9200/_cluster/nodes
-;;   {"ok":true,"cluster_name":"elasticsearch_markwong-vanharen","nodes":...}}
+;;   > curl -XGET 'http://localhost:9200/_nodes/cluster_name'
+;;   {"cluster_name":"elasticsearch","nodes":{}}
 ;;
 
 (def default-cfg
   {:api-key nil
    :geocoding {:provider "bing"  ;; google
                :bing-api-key nil}
-   :elastic-search {:cluster-name "elasticsearch_markwong-vanharen"
+   :elastic-search {:cluster-name "elasticsearch"
                     :host "127.0.0.1"
                     :port 9300}
    :mongo-db {:main        {:db-name "centzy_web_production"

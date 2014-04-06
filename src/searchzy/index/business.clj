@@ -19,7 +19,7 @@
 
      ;; FILTER
      :latitude_longitude {:type "geo_point"
-                          :null_value "66.66,66.66"
+                          :null_value "66.66,66.66"  ; Doesn't seem to work.
                           :include_in_all false}
 
      ;; An *array* of strings.
@@ -55,7 +55,7 @@
   ;; In MongoDB, the coords are stored 'backwards' (i.e. first lon, then lat).
   [{coords :coordinates}]
   (if (empty? coords)
-    nil
+    "66.66,66.66"
     (str (coords 1) "," (coords 0))))
 
 ;; -- presentation --
@@ -127,7 +127,7 @@
 ;; mg-map and es-map.  (How?  Add tag?)
 (defn add-to-idx
   "Given a business mongo-map, convert to es-map and add to index."
-  ([mg-map] 
+  ([mg-map]
      (let [es-map (mk-es-map mg-map)]
        (add-to-idx mg-map es-map)))
   ([mg-map es-map]
