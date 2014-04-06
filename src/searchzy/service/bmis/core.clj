@@ -31,7 +31,7 @@
        (:hits
         (:hits
          (es-doc/search idx-name mapping-name
-                        :query  {:field {:item_id item-id}}
+                        :query  {:term {:item_id item-id}}
                         :filter (util/mk-geo-filter geo-map)
                         :sort   (geo-sort/mk-geo-distance-sort-builder
                                  (:coords geo-map) :asc)

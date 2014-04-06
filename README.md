@@ -140,8 +140,8 @@ Also, you need to find out your ElasticSearch's cluster name. Retrieve
 it via ElasticSearch's REST API, thus:
 
 ```
-> curl http://localhost.com:9200/_cluster/nodes
-{"ok":true,"cluster_name":"elasticsearch_something","nodes":...}}
+> curl http://localhost.com:9200/_nodes/cluster_name
+{"cluster_name":"elasticsearch_something","nodes":...}}
 ```
 
 You won't likely need to change the ports from the ones above.  (27017

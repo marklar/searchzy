@@ -2,8 +2,8 @@
   "For running the service from the command line using
    'lein run -m searchzy.index.core'."
   (:gen-class)
-  (:use [clojure.tools.cli :only [cli]])
-  (:require [searchzy
+  (:require [clojure.tools.cli :as cli]
+            [searchzy
              [util :as util]
              [cfg :as cfg]]
             [clojure.string :as str]
@@ -66,15 +66,6 @@
                     :index-fn biz-menu-item/mk-idx}
    })
 
-
-(defn- mongo-problem-str
-  [exception]
-  (clojure.string/join
-   "\n"
-   ["Problem connecting to MongoDB:"
-    (str exception)
-    "Please ensure that MongoDB is running."]))
-
 (defn- index-one
   "Given a domain-name,
    connect to the corresponding MongoDB collection,
@@ -87,12 +78,10 @@
       ;; okay
       (let [{:keys [index-fn db-name]} idx]
         (println (str "indexing: " domain-name))
-        (try (do (util/mongo-connect-db! db-name)
-                 (let [cnt (index-fn :limit limit)]
-                   (println (str "indexed " cnt " " (str domain-name) " records."))
-                   cnt))
-             (catch Exception e
-               (println (mongo-problem-str e))))))))
+        (util/mongo-connect-db! db-name)
+        (let [cnt (index-fn :limit limit)]
+          (println (str "indexed " cnt " " (str domain-name) " records."))
+          cnt)))))
 
 (defn- words
   "Given string of space- (and possibly comma-) separated values,
@@ -125,6 +114,40 @@
 ;;     (apply await agents)
 ;;     (println "done!")))
 
+(def cli-options
+  [
+   ["-h" "--help" "Displays this help text and exits."
+    :flag true]
+   
+   ["-l" "--limit NUM" "Limit records to index (each domain)."
+    :default "nil"]
+   
+   ["-d" "--domains \"dom1 dom2\"" (str "The domains to index. "
+                                        "If multiple, ENCLOSE IN QUOTES.")
+    ;; :parse-fn #(str/split % #"\s+")
+    :default "all"]
+   ]
+  )
+
+(defn- usage [options-summary]
+  (->>
+   ["Searchzy Indexer."
+    "For extracting MongoDB data and indexing with ElasticSearch."
+    ""
+    "Options:"
+    options-summary
+    ""
+    "Indexible domains: {biz-categories, items, businesses, biz-menu-items}."]
+   (str/join \newline)))
+
+(defn- error-msg [errors]
+  (str "The following errors occurred while parsing your command:\n\n"
+       (str/join \newline errors)))
+
+(defn- exit [status msg]
+  (println msg)
+  (System/exit status))
+
 ;; -- MAIN --
 (defn -main
   [& args]
@@ -133,29 +156,17 @@
   ;; If user supplies some un-recognized flag (e.g. '-limit'),
   ;; indicate the error and output the doc-str.
 
-  (let [[args-map args-vec doc-str]
-        (cli args
-             (str "\nSearchzy Indexer.\n"
-                  "For extracting MongoDB data and "
-                  "indexing with ElasticSearch.\n\n"
-                  "Indexible domains: {biz-categories, items, "
-                  "businesses, biz-menu-items}.")
+  (let [{:keys [options arguments errors summary]}
+        (cli/parse-opts args cli-options)]
 
-             ["-h" "--help" "Displays this help text and exits."
-              :flag true]
+    ;; handle help & error conditions.
+    (cond
+      (:help options) (exit 0 (usage summary))
+      ;; (not= (count arguments) 1) (exit 1 (usage summary))
+      errors (exit 1 (error-msg errors)))
 
-             ["-l" "--limit" "Limit records to index (each domain)."
-              :default "nil"]
-
-             ["-d" "--domains" (str "The domains to index. "
-                                    "If multiple, ENCLOSE IN QUOTES.")
-              ;; :parse-fn #(clojure.string/split % #"\s+")
-              :default "all"]
-             )]
-
-    (if (:help args-map)
-      (println doc-str)
-      (do
-        (util/es-connect! (:elastic-search (cfg/get-cfg)))
-        (index-all (:domains args-map)
-                   :limit (read-string (:limit args-map)))))))
+    ;; execute program w/ options.
+    (do
+      (util/es-connect! (:elastic-search (cfg/get-cfg)))
+      (index-all (:domains options)
+                 :limit (read-string (:limit options))))))
