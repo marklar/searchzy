@@ -1,7 +1,8 @@
 (ns searchzy.service.bmis.filter
   (:use [clojure.core.match :only (match)])
-  (:require [searchzy.service
-             [value :as value]
+  (:require [searchzy.service.bmis
+             [value :as value]]
+            [searchzy.service
              [geo-util :as geo-util]
              [util :as util]]))
   
