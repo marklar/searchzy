@@ -6,7 +6,6 @@
              [geo-util :as geo-util]
              [util :as util]]))
   
-
 (defn- maybe-filter-by-hours
   [hours-map bmis]
   (if (= {} hours-map)
@@ -15,23 +14,28 @@
             bmis)))
 
 (defn- maybe-reverse
+  "The bmis enter here in ASC order.
+   If that's what's requested, simply return them.
+   If DESC is requested, reverse them."
   [sort-map bmis]
-  (if (= :desc (:order sort-map))
+  (if (= :asc (:order sort-map))
     bmis
     (reverse bmis)))
 
 (defn- maybe-re-sort
   [sort-map bmis]
   (match (:attribute sort-map)
-         ;; "distance" bmis   ;; Already handles 'reverse' within ES.
          "distance" (->> bmis
+                         ;; asc distance_in_mi
                          (sort-by #(-> % :business :distance_in_mi))
                          (maybe-reverse sort-map))
          "price"    (->> bmis
+                         ;; 1. asc price, 2. asc distance_in_mi
                          (sort-by (fn [i] [(:price_micros i)
-                                           (- 0 (-> i :business :distance_in_mi)) ]))
+                                           (-> i :business :distance_in_mi) ]))
                          (maybe-reverse sort-map))
          "value"    (->> bmis
+                         ;; asc value (which is rarely what we'll want)
                          value/score-and-sort
                          (maybe-reverse sort-map))))
 

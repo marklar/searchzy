@@ -17,8 +17,8 @@
   [item]
   (let [add (fn [item rating count]
               (assoc item :tweaked-rating rating :tweaked-count count))
-        rating (:yelp_star_rating  (:_source item))
-        count  (:yelp_review_count (:_source item))]
+        rating (:yelp_star_rating  item)
+        count  (:yelp_review_count item)]
     (if (or (nil? count) (= count 0))
       (add item 3.0 1)
       (if (or (nil? rating) (< rating 3.0))
@@ -32,7 +32,7 @@
 (defn- price-tweak
   "Ensure that price isn't nil.  Add :tweaked-price."
   [item]
-  (assoc item :tweaked-price (or (:price_micros (:_source item))
+  (assoc item :tweaked-price (or (:price_micros item)
                                  Integer/MAX_VALUE)))
         
 ;;--------
@@ -77,7 +77,7 @@
   "Create price norm based not on rank but on actual price.
    If the item's price is nil, use (* 1.1 max-price)."
   [items]
-  (let [get-p     #(:price_micros (:_source %))
+  (let [get-p     #(:price_micros %)
         max-price (apply max (remove nil? (map get-p items)))
         nil-price (* 1.1 max-price)]
     (map #(let [p (or (get-p %) nil-price)]
@@ -95,21 +95,21 @@
   [items]
   (map add-score-to-item items))
 
-(defn- score-and-count-gt
-  "comparator for sorting"
+(defn- score-and-count-lt
+  "Comparator for sorting, in ASC order."
   [i1 i2]
   (let [a1 (:awesomeness i1)
         a2 (:awesomeness i2)
         c1 (:tweaked-count-norm i1)
         c2 (:tweaked-count-norm i2)]
-    (or (> a1 a2)
-        (and (= a1 a2) (> c1 c2)))))
+    (or (< a1 a2)
+        (and (= a1 a2) (< c1 c2)))))
 
 ;;-------------------------------
   
 ;; Final Score and Sort
 ;;   Add weighted scores for Ranking, Review, Price
-;;   Sort by score and then number of reviews (more reviews, higher)
+;;   Sort (ASC) by score and then number of reviews (more reviews, higher)
 (defn score-and-sort
   [items]
   (let [scored-items (-> items
@@ -117,4 +117,4 @@
                          ;; add-price-val-norm
                          add-price-rank-norm
                          add-score)]
-    (sort score-and-count-gt scored-items)))
+    (sort score-and-count-lt scored-items)))
