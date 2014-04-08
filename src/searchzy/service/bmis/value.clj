@@ -105,6 +105,16 @@
     (or (< a1 a2)
         (and (= a1 a2) (< c1 c2)))))
 
+(defn- rm-norms
+  [items]
+  (map #(dissoc %
+                :tweaked-price
+                :tweaked-price-norm
+                :tweaked-rating
+                :tweaked-rating-norm
+                :tweaked-count
+                :tweaked-count-norm) items))
+
 ;;-------------------------------
   
 ;; Final Score and Sort
@@ -117,4 +127,4 @@
                          ;; add-price-val-norm
                          add-price-rank-norm
                          add-score)]
-    (sort score-and-count-lt scored-items)))
+    (rm-norms (sort score-and-count-lt scored-items))))

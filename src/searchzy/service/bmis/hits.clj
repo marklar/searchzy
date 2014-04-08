@@ -8,7 +8,7 @@
   "Replace :hours with :hours_today, using :day_of_week.
    Add in Yelp data."
   [result day-of-week]
-  (let [source-map  result ;; (:_source result)
+  (let [source-map  result
         old-biz     (:business source-map)
         hours-today (util/get-hours-for-day (:hours old-biz) day-of-week)
         new-biz     (-> old-biz
@@ -29,7 +29,6 @@
                 :yelp_star_rating
                 :yelp_review_count)
         (assoc :business new-biz
-               ;; FIXME: awesomeness isn't from :_source!
                :awesomeness (:awesomeness result)))))
 
 (defn- map-keys
@@ -47,7 +46,6 @@
   [results metadata day-of-week {:keys [item-id geo-map collar-map hours-map
                                         utc-offset-map sort-map page-map]}]
   (let [pageful   (take (:size page-map) (drop (:from page-map) results))
-        ;; resp-hits (map #(mk-one-hit % day-of-week (:coords geo-map)) pageful)]
         resp-hits (map #(mk-one-hit % day-of-week) pageful)]
     (responses/ok-json
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
