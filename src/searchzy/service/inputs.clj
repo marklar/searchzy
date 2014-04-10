@@ -141,9 +141,9 @@
               :message "Some problem with the paging info."
               :args i})))
 
-(def clean-include-businesses-without-price
+(def clean-include-unpriced
   (clean/mk-cleaner
-   :include-businesses-without-price :include-businesses-without-price
+   :include-unpriced :include-unpriced
    true-str?     ;; always produces t/f, never error (nil)
    (fn [i o])))  ;; no-op
 
@@ -261,7 +261,7 @@
   (let [sort-attrs #{"price" "value" "distance"}]
     (clean/gather->> args
                      clean-item-id
-                     clean-include-businesses-without-price
+                     clean-include-unpriced
                      clean-geo-map
                      clean-collar-map
                      clean-hours
