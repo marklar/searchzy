@@ -86,7 +86,7 @@
   ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
        [api_key item_id address lat lon miles max_miles min_results
-        hours utc_offset sort from size include_businesses_without_price]
+        hours utc_offset sort from size include_unpriced]
        (if (not (valid-key? api_key))
          ;;-- not authorized
          (bounce)
@@ -94,7 +94,7 @@
          ;;-- authorized
          (items/validate-and-search
           {:item-id item_id
-           :include-businesses-without-price include_businesses_without_price
+           :include-unpriced include_unpriced
            :geo-map {:address address, :lat lat, :lon lon, :miles miles}
            :collar-map {:max-miles max_miles, :min-results min_results}
            :hours hours

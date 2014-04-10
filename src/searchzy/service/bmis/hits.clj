@@ -45,13 +45,13 @@
    so we need to do paging here."
   [results metadata day-of-week {:keys [ item-id geo-map collar-map hours-map
                                          utc-offset-map sort-map page-map
-                                         include-businesses-without-price ]}]
+                                         include-unpriced ]}]
   (let [pageful   (take (:size page-map) (drop (:from page-map) results))
         resp-hits (map #(mk-one-hit % day-of-week) pageful)]
     (responses/ok-json
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id
-                  :include_businesses_without_price include-businesses-without-price
+                  :include_unpriced include-unpriced
                   :geo_filter (assoc geo-map :collar
                                      (map-keys case/->snake_case_keyword collar-map))
                   :hours_filter hours-map
