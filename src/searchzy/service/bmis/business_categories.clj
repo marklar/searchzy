@@ -10,18 +10,18 @@
 
 (defn- get-ids-alist-item-2-biz-cat
   [item-cat]
-  (let [item-ids (map :_id (:bmis item-cat))
+  (let [item-ids (map :_id (:items item-cat))
         biz-cat-id (item-cat->biz-cat-id item-cat)]
-    (map (fn [item-id] [item-id biz-cat-id]) item-ids)))
+    (mapcat (fn [item-id] [item-id biz-cat-id]) item-ids)))
 
 (defn- compute-id-map
-  "Hash-map of Item IDs -> BusinessCategory IDs.
+  "Hash-map: Item IDs -> BusinessCategory IDs.
    Get info from MongoDB."
   []
   (searchzy.util/mongo-connect-db! :main)
   (let [all-item-cats (mg/fetch :item_categories)
         alist (mapcat get-ids-alist-item-2-biz-cat all-item-cats)]
-    (apply conj {} alist)))
+    (apply hash-map alist)))
 
 ;;
 ;; Cache a map of Item IDs -> BusinessCategory IDs.

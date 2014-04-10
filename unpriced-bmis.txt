@@ -1,0 +1,133 @@
+
+/business_menu_items
+
+There are many options (NOT ALL OF WHICH ARE DOCUMENTED?).
+
+required:
+  api_key :: string
+  item_id :: string (MongoDB ObjectID string)
+
+geographic:
+  either:
+    address :: string
+  or:
+    lat :: float
+    lon :: float
+  miles :: float (default: 4.0)
+
+"collar":
+  max_miles   :: integer, default: 10.0
+  min_results :: integer, default: 0
+
+optional:
+  hours :: integer:integer:integer (wday:hour:min)
+  utc_offset :: string ('-12' or '+5:45')
+
+sort :: string: ('price'|'value'|'distance') w/ optional '-' prefix
+
+paging:
+  from :: integer (default: 0)
+  size :: integer (default: 10)
+
+include_businesses_without_price :: boolean (default: false)
+
+=======
+
+The principle input is the item_id.  Think of an Item as a type of
+product or service.  Our goal is to find particular offerings of that
+type of product or service; such instances are called
+BusinessMenuItems.
+
+We want to find ones nearby, within a geographic circle.  We must
+provide a center (either address or lat & lon).  By default, we choose
+a radius of 4.0 miles, but one may override this default.
+
+Now things get tricky...
+
+
+
+This endpoint supports filtering by the hours of operation of the
+business.  This filtering introduces some complication because it
+cannot be performed by (or "in", if you prefer) ElasticSearch.
+Instead, we must perform this filtering ourselves.  We first fetch
+results from ElasticSearch and then filter the results in-process.
+
+Fine, except that we can't know a priori how many results we may have
+to filter out, and what if after filtering we don't have enough?  So
+we grab a whole lotta results -- up to 1000 (hard-coded) --, which is
+very likely to be enough.
+
+
+- max_miles -
+
+And of course, 1000 pre-filtered results may actually be way too many.
+We prefer geographically nearby results, and among those 1000 results
+there may be some impractically far away.  To prevent searching (and
+returning results) too far away, we can provide a 'max_miles' value,
+to restrict our searches to within that radius (default: 10.0).
+
+Okay, so let's summarize.  We perform our search, fetching up to 1000
+results from as far as 'max_miles' away.  Then we (optionally) filter
+those results to businesses which are open at the desired time.  So
+far so good.
+
+But we're not quite ready to return the results.  No matter what sort
+order we've been asked to use ('price', 'value', or 'distance'), we
+generally prefer nearby results.  'max_miles' might have been a large
+radius, and thus it may have provided us with a huge number of viable
+results.  Better to restrict ourselves to the nearer-by ones -- we
+don't want results from 10 miles away if there are plenty from, say, 1
+mile away.
+
+So regardless of how we need to sort the results, we perform the
+ElasticSearch search using a 'distance' sort.  Then we filter (by
+hours of operation).  Then we "collar" the results, selecting a
+subset of nearest-by results.  Only after this "collaring" do we
+perform our final sorting (if necessary).
+
+How do we select a subset of nearby results?  How many is enough?
+What constitutes nearby?
+
+
+- min_results -
+
+As for how many is enough, we can provide a 'min_results' parameter,
+indicating at what minimum number of results we'll be satisfied
+(though we may not reach it!).  The default is 20.
+
+As for what constitutes nearby, we always take all the results out to
+a radius of one mile, but beyond one mile we'll stop once we've
+reached 'min_results'.  ...And *then* we sort the results and return
+them.
+
+
+- Businesses sans Prices -
+
+Up till now, the results we've been talking about are only
+BusinessMenuItems.  You could think of this as a search for Businesses
+for which we have price information (i.e. BusinessMenuItems) for the
+desired service (i.e. Item).  However, we also want to search for
+businesses for which we *lack* prices.  Okay, so how do we do that?
+
+I'll explain how this currently works, but it's worth thinking about
+whether this is how it *should* work, and whether maybe there are
+other possibilities worth considering.
+
+One possibility is that we search only against Businesses, ignoring
+the BusinessMenuItem information for the moment.  After we have the
+set of results we'd like to use, then we fetch relevant
+BusinessMenuItem information for each Business, as available, and
+incorporate that into the results.  
+
+
+- Sort by Value -
+
+How does sort-by-value work?  The "value" (aka as the "awesomeness")
+of a BusinessMenuItem is a function of the Business's Yelp data (the
+number of ratings and the average rating) and the BusinessMenuItem's
+price.
+
+If included in our list of results we have mere Businesses (in
+addition to BusinessMenuItems), that's okay.  Our "awesomeness"
+calculations still work.  Any Business without a price gets a zero for
+that part (i.e. 40%) of its awesomeness score.

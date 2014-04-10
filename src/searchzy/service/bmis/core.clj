@@ -45,12 +45,15 @@
     (remove #((set biz-ids) (:_id %)) bizs)))
 
 (defn- maybe-add-unpriced
-  [include-businesses-without-price bmis item-id fake-geo-map sort-map fake-pager]
-  (if include-businesses-without-price
+  [include-unpriced bmis item-id fake-geo-map sort-map fake-pager]
+  (if include-unpriced
     (let [biz-cat-id (biz-cats/item-id->biz-cat-id item-id)
           bizs (bizs/for-category biz-cat-id fake-geo-map sort-map fake-pager)
           novel-bizs (de-dupe bizs bmis)
           novel-bmis (map bizs/->bmi novel-bizs)]
+      ;; TODO: rather than concating (and later sorting),
+      ;; we really ought to 'zipper' together the priced-bmis and the unpriced-bizs.
+      ;; But we haven't included distances here (that happens in ns:filter).
       (concat bmis novel-bmis))
     bmis))
 
@@ -58,16 +61,15 @@
 (defn- get-all-open-bmis
   "Filter by max_miles, if present.  Sort by distance.
    Then in-process, do additional filtering, collaring, and sorting as needed."
-  [{:keys [item-id geo-map collar-map hours-map sort-map
-           include-businesses-without-price]}]
+  [{:keys [item-id geo-map collar-map hours-map sort-map include-unpriced]}]
   ;; Do search, getting lots of (MAX_BMIS) results.
   ;; Return *only* the actual hits, losing the metadata (actual number of results).
   (let [fake-geo-map (assoc geo-map :miles (:max-miles collar-map))
         fake-pager {:from 0, :size MAX-BMIS}
         priced-bmis (es-search item-id fake-geo-map sort-map fake-pager)
-        bmis (maybe-add-unpriced include-businesses-without-price
-                                  priced-bmis item-id fake-geo-map
-                                  sort-map fake-pager)]
+        bmis (maybe-add-unpriced include-unpriced
+                                 priced-bmis item-id fake-geo-map
+                                 sort-map fake-pager)]
     (filter/filter-collar-sort bmis geo-map collar-map hours-map sort-map)))
 
 (defn- get-day-of-week
