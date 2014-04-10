@@ -51,6 +51,9 @@
           bizs (bizs/for-category biz-cat-id fake-geo-map sort-map fake-pager)
           novel-bizs (de-dupe bizs bmis)
           novel-bmis (map bizs/->bmi novel-bizs)]
+      ;; TODO: rather than concating (and later sorting),
+      ;; we really ought to 'zipper' together the priced-bmis and the unpriced-bizs.
+      ;; But we haven't included distances here (that happens in ns:filter).
       (concat bmis novel-bmis))
     bmis))
 
