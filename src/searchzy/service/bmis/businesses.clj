@@ -16,7 +16,7 @@
   (let [names (:businesses cfg/elastic-search-names)]
     (:hits
      (es-doc/search (:index names) (:mapping name)
-                    :query {:field {:business_category_ids cat-id}}
+                    :query {:term {:business_category_ids cat-id}}
                     :filter (util/mk-geo-filter geo-map)
                     :sort   (geo-sort/mk-geo-distance-sort-builder
                              (:coords geo-map) :asc)

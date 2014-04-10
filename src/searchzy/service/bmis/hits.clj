@@ -18,7 +18,7 @@
                                 :yelp_star_rating
                                 :yelp_review_count
                                 :yelp_id)
-                        (assoc 
+                        (assoc
                             :yelp {:id (:yelp_id old-biz)
                                    :star_rating (:yelp_star_rating old-biz)
                                    :review_count (:yelp_review_count old-biz)}
@@ -43,13 +43,15 @@
   "From ES response, create service response.
    We haven't done paging yet (because we needed metadata),
    so we need to do paging here."
-  [results metadata day-of-week {:keys [item-id geo-map collar-map hours-map
-                                        utc-offset-map sort-map page-map]}]
+  [results metadata day-of-week {:keys [ item-id geo-map collar-map hours-map
+                                         utc-offset-map sort-map page-map
+                                         include-businesses-without-price ]}]
   (let [pageful   (take (:size page-map) (drop (:from page-map) results))
         resp-hits (map #(mk-one-hit % day-of-week) pageful)]
     (responses/ok-json
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id
+                  :include_businesses_without_price include-businesses-without-price
                   :geo_filter (assoc geo-map :collar
                                      (map-keys case/->snake_case_keyword collar-map))
                   :hours_filter hours-map

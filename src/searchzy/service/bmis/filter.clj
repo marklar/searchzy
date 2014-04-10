@@ -26,8 +26,7 @@
   [sort-map bmis]
   (match (:attribute sort-map)
          "distance" (->> bmis
-                         ;; asc distance_in_mi
-                         (sort-by #(-> % :business :distance_in_mi))
+                         ;; asc distance_in_mi (already done in maybe-collar)
                          (maybe-reverse sort-map))
          "price"    (->> bmis
                          ;; 1. asc price, 2. asc distance_in_mi
@@ -37,14 +36,28 @@
          "value"    (->> bmis
                          ;; asc value (which is rarely what we'll want)
                          value/score-and-sort
+                         ;; 1. asc value, 2. desc distance_in_mi
+                         (sort-by (fn [i] [(:awesomeness i)
+                                           (- 0 (-> i :business :distance_in_mi)) ]))
                          (maybe-reverse sort-map))))
+
+(defn- item-idx-alist
+  [xs]
+  (map vector
+       xs
+       (iterate inc 0)))
 
 (defn- maybe-collar
   "Take only the closest results, stopping when you:
       - have enough AND you're at least 1m out  -OR-
       - run out."
-  [collar-map bmis]
-  (let [mr (:min-results collar-map)
+  [collar-map unsorted-bmis]
+  (let [;; Must re-sort by distance before collaring!
+        ;; asc distance_in_mi
+        ;; TODO: rather than SORTING, we really ought to 'zipper' together
+        ;; the priced-bmis and the unpriced-bizs.
+        bmis (sort-by #(-> % :business :distance_in_mi) unsorted-bmis)
+        mr (:min-results collar-map)
         miles 1.0]
     (if (nil? mr)
       bmis
@@ -53,11 +66,7 @@
                          (or (< idx mr)
                              (< (get-dist item) miles)))
             ]
-        (map first
-             (take-while need-more?
-                         (map vector
-                              bmis
-                              (iterate inc 0))))))))
+        (map first (take-while need-more? (item-idx-alist bmis)))))))
 
 (defn- add-distance-in-mi
   [item coords]
