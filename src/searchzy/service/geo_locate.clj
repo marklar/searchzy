@@ -7,13 +7,14 @@
              [google :as goog]
              [bing :as bing]]))     ;; #{bing geonames google}
 
-(defn- bing-geolocate
+(defn- mk-bing-geolocate
   "Given an address (e.g. '2491 Aztec Way, Palo Alto, CA 94303'),
    return: {:address (resolved), :coords} || nil"
   [api-key]
   (if (str/blank? api-key)
-    (throw (Exception. (str "Using 'bing' for geocoding, but "
-                            "'bing-api-key' in config is empty.")))
+    (do
+      (println "Cannot use 'bing' for geocoding because 'bing-api-key' in config is empty.")
+      (fn [addr] nil))  ;; no-op
     (fn [address]
       (if (str/blank? address)
         nil
@@ -59,13 +60,15 @@
     (catch Exception e (do (println (str e))
                            "google"))))
 
-;; Function.  Which implementation depends on config.
+;; Function reference.  Which implementation depends on config.
 (def geolocate
   (let [config (cfg/get-cfg)
-        provider (get-provider config)]
+        provider (get-provider config)
+        bing-geolocate (mk-bing-geolocate (-> config :geocoding :bing-api-key))]
     (match provider
-           "google" goog-geolocate
-           "bing"   (bing-geolocate (-> config :geocoding :bing-api-key))
+           ;; First try one.  Upon failure, try the other.
+           "google" (fn [addr] (or (goog-geolocate addr) (bing-geolocate addr)))
+           "bing"   (fn [addr] (or (bing-geolocate addr) (goog-geolocate addr)))
            :else    (throw (Exception.
                             (str "Invalid geocoding provider in CFG: "
                                  provider))))))
@@ -75,6 +78,7 @@
 (defn- canonicalize-address
   "Lowercase.  Remove punctuation.  Scrunch whitespace."
   [s]
+  (assert s)
   (str/join " " (-> s
                     str/lower-case
                     ;; replace commas with spaces
@@ -112,6 +116,8 @@
     {:coords {:lat lat, :lon lon}
      :address nil}
     ;; Try cache, then lookup if necessary.
-    (let [a (canonicalize-address address)]
-      (or (from-cache a)
-          (lookup a)))))
+    (if (nil? address)
+      nil
+      (let [a (canonicalize-address address)]
+        (or (from-cache a)
+            (lookup a))))))
