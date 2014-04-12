@@ -19,15 +19,16 @@
       (if (str/blank? address)
         nil
         (try
-          (let [result (first (bing/geocode-address address :api-key api-key))]
-            (if (nil? result)
-              nil
-              (let [[lat lon] (-> result :point :coordinates)]
-                {:coords {:lat lat, :lon lon}
-                 :address (:name result)})))
+          (if-let [result (first (bing/geocode-address address :api-key api-key))]
+            (let [[lat lon] (-> result :point :coordinates)]
+              {:coords {:lat lat, :lon lon}
+               :address (:name result)})
+            nil)
           ;; TODO: log something here
-          (catch Exception e (do (println (str e))
-                                 nil)))))))
+          (catch Exception e
+            (do
+              (println "Bing geolocate exception:" (str e))
+              nil)))))))
 
 (defn- goog-geolocate
   "Given an address (e.g. '2491 Aztec Way, Palo Alto, CA 94303'),
@@ -39,16 +40,19 @@
   (if (str/blank? address)
     nil
     (try
-      (let [result (first (goog/geocode-address address))
-            resolved-address (:formatted-address result)
-            {:keys [lat lng]} (:location (:geometry result))]
-        (if (nil? resolved-address)
-          nil
-          {:coords {:lat lat, :lon lng}
-           :address resolved-address}))
+      (if-let [result (first (goog/geocode-address address))]
+        (let [resolved-address (:formatted-address result)
+              {:keys [lat lng]} (:location (:geometry result))]
+          (if (nil? resolved-address)
+            nil
+            {:coords {:lat lat, :lon lng}
+             :address resolved-address}))
+        nil)
       ;; TODO: log something here
-      (catch Exception e (do (println (str e))
-                             nil)))))
+      (catch Exception e
+        (do 
+          (println "Google geolocate exception:" (str e))
+          nil)))))
 
 (defn- get-provider
   "Gets geocoding provider from config.

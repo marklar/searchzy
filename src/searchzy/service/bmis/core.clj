@@ -57,12 +57,12 @@
       (concat bmis novel-bmis))
     bmis))
 
-(def MAX-BMIS 1000)
+(def MAX-BMIS 250)
 (defn- get-all-open-bmis
   "Filter by max_miles, if present.  Sort by distance.
    Then in-process, do additional filtering, collaring, and sorting as needed."
   [{:keys [item-id geo-map collar-map hours-map sort-map include-unpriced]}]
-  ;; Do search, getting lots of (MAX_BMIS) results.
+  ;; Do search, getting lots of (MAX-BMIS) results.
   ;; Return *only* the actual hits, losing the metadata (actual number of results).
   (let [fake-geo-map (assoc geo-map :miles (:max-miles collar-map))
         fake-pager {:from 0, :size MAX-BMIS}
@@ -70,7 +70,7 @@
         bmis (maybe-add-unpriced include-unpriced
                                  priced-bmis item-id fake-geo-map
                                  sort-map fake-pager)]
-    (filter/filter-collar-sort bmis geo-map collar-map hours-map sort-map)))
+    (filter/filter-collar-sort bmis include-unpriced geo-map collar-map hours-map sort-map)))
 
 (defn- get-day-of-week
   [bmis valid-args]
