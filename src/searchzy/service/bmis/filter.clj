@@ -30,7 +30,7 @@
                          (maybe-reverse sort-map))
          "price"    (->> bmis
                          ;; 1. asc price, 2. asc distance_in_mi
-                         (sort-by (fn [i] [(:price_micros i)
+                         (sort-by (fn [i] [(or (:price_micros i) Integer/MAX_VALUE)
                                            (-> i :business :distance_in_mi) ]))
                          (maybe-reverse sort-map))
          "value"    (->> bmis
@@ -51,12 +51,15 @@
   "Take only the closest results, stopping when you:
       - have enough AND you're at least 1m out  -OR-
       - run out."
-  [collar-map unsorted-bmis]
-  (let [;; Must re-sort by distance before collaring!
+  [collar-map include-unpriced unsorted-bmis]
+  (let [
+        ;; If include-unpriced, must re-sort by distance before collaring!
         ;; asc distance_in_mi
         ;; TODO: rather than SORTING, we really ought to 'zipper' together
         ;; the priced-bmis and the unpriced-bizs.
-        bmis (sort-by #(-> % :business :distance_in_mi) unsorted-bmis)
+        bmis (if include-unpriced
+               (sort-by #(-> % :business :distance_in_mi) unsorted-bmis)
+               unsorted-bmis)
         mr (:min-results collar-map)
         miles 1.0]
     (if (nil? mr)
@@ -82,9 +85,9 @@
 ;;--------------------------
 
 (defn filter-collar-sort
-  [bmis geo-map collar-map hours-map sort-map]
+  [bmis include-unpriced geo-map collar-map hours-map sort-map]
   (->> bmis
        (add-distances geo-map)
        (maybe-filter-by-hours hours-map)
-       (maybe-collar collar-map)
+       (maybe-collar collar-map include-unpriced)
        (maybe-re-sort sort-map)))

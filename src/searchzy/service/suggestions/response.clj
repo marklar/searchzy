@@ -22,7 +22,7 @@
     (if (not (empty? cat-hits))
       [:h4.business_categories "Categories"])
     (if (not (empty? cat-hits))
-      [:ul.buinesss_categories
+      [:ul.businesss_categories
        (for [{id :_id {name :name} :_source} cat-hits]
          [:li.ac_biz_category {:id id}
           [:a {:href "#"} name]])])
