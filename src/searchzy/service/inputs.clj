@@ -47,7 +47,7 @@
   "If {}, not err, just no collar."
   [{max-miles-str :max-miles min-results-str :min-results}]
   (let [miles (str->val max-miles-str   10.0)
-        num   (str->val min-results-str 20)]
+        num   (str->val min-results-str 50)]
     (match [miles num]
            [nil nil] {}   ;; opting out
            [nil _  ] nil  ;; error
