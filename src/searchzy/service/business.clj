@@ -64,10 +64,12 @@
     {:terms {:business_category_ids biz-cat-ids}}))
 
 (defn- mk-filtered-query
-  [query-str query-type biz-cat-ids sort-map]
+  [query-str query-type geo-map biz-cat-ids sort-map]
   (let [query-map (mk-query query-str query-type sort-map)
-        id-filter (mk-biz-cat-id-filter biz-cat-ids)]
-    {:filtered {:query query-map :filter id-filter}}))
+        id-filter (mk-biz-cat-id-filter biz-cat-ids)
+        geo-filter (util/mk-geo-filter geo-map)]
+    {:filtered {:query query-map
+                :filter {:and [id-filter geo-filter]}}}))
 
 (defn es-search
   "Perform ES search, return results map.
@@ -78,8 +80,7 @@
      (es-doc/search (:index es-names)
                     (:mapping es-names)
                     :query  (mk-filtered-query query-str query-type
-                                               biz-cat-ids sort-map)
-                    :filter (util/mk-geo-filter geo-map)
+                                               geo-map biz-cat-ids sort-map)
                     :sort   (mk-sort sort-map geo-map)
                     :from   (:from page-map)
                     :size   (:size page-map)))))
@@ -131,6 +132,7 @@
                   yid :yelp_id
                   ysr :yelp_star_rating
                   yrc :yelp_review_count} :_source} biz]
+    ;; TODO: if cs is nil, use :latitude_longitude instead.
     (let [dist (geo-util/haversine cs coords)
           hours-today (util/get-hours-for-day hs day-of-week)]
       {:_id id :name n :address a :permalink p
@@ -163,7 +165,8 @@
                   :paging page-map}
       :results {:count (:total es-results)
                 :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
-                           (:hits es-results))}})))
+                           (remove #(nil? (:coordinates (:_source %)))
+                                   (:hits es-results)))}})))
 
 (defn- search
   [valid-args]

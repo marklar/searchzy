@@ -8,7 +8,7 @@
   "Create map for filtering by geographic distance."
   [{:keys [miles coords]}]
   (let [coords-str (str (:lat coords) "," (:lon coords))]
-    {:geo_distance {:distance (str miles "mi")
+    {:geo_distance {:distance (str miles "miles")
                     :latitude_longitude coords-str}}))
 
 (defn mk-suggestion-query
