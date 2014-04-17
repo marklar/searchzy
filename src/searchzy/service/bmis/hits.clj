@@ -43,7 +43,7 @@
   "From ES response, create service response.
    We haven't done paging yet (because we needed metadata),
    so we need to do paging here."
-  [results metadata day-of-week {:keys [ item-id geo-map collar-map hours-map
+  [results metadata day-of-week {:keys [ item-id geo-map hours-map
                                          utc-offset-map sort-map page-map
                                          include-unpriced ]}]
   (let [pageful   (take (:size page-map) (drop (:from page-map) results))
@@ -52,8 +52,7 @@
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id
                   :include_unpriced include-unpriced
-                  :geo_filter (assoc geo-map :collar
-                                     (map-keys case/->snake_case_keyword collar-map))
+                  :geo_filter geo-map
                   :hours_filter hours-map
                   :utc_offset utc-offset-map
                   :day_of_week day-of-week
