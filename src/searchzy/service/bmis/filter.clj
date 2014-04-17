@@ -22,24 +22,26 @@
     bmis
     (reverse bmis)))
 
-(defn- maybe-re-sort
+(defn- maybe-sort
   [sort-map bmis]
   (match (:attribute sort-map)
-         "distance" (->> bmis
-                         ;; asc distance_in_mi (already done in maybe-collar)
-                         (maybe-reverse sort-map))
-         "price"    (->> bmis
-                         ;; 1. asc price, 2. asc distance_in_mi
-                         (sort-by (fn [i] [(or (:price_micros i) Integer/MAX_VALUE)
-                                           (-> i :business :distance_in_mi) ]))
-                         (maybe-reverse sort-map))
-         "value"    (->> bmis
-                         ;; asc value (which is rarely what we'll want)
-                         value/score-and-sort
-                         ;; 1. asc value, 2. desc distance_in_mi
-                         (sort-by (fn [i] [(:awesomeness i)
-                                           (- 0 (-> i :business :distance_in_mi)) ]))
-                         (maybe-reverse sort-map))))
+         ;; asc distance_in_mi (already done in maybe-collar)
+         "distance" bmis
+         ;; 1. asc price, 2. asc distance_in_mi
+         "price"    (sort-by (fn [i] [(or (:price_micros i) Integer/MAX_VALUE)
+                                      (-> i :business :distance_in_mi) ]) bmis)
+         ;; asc value (which is rarely what we'll want)
+         ;; 1. asc value, 2. desc distance_in_mi
+         "value"    (value/score-and-sort
+                     (sort-by (fn [i] [(:awesomeness i)
+                                       (- 0 (-> i :business :distance_in_mi)) ])
+                              bmis))))
+
+(defn- maybe-re-sort
+  [sort-map bmis]
+  (->> bmis
+       (maybe-sort sort-map)
+       (maybe-reverse sort-map)))
 
 (defn- item-idx-alist
   [xs]
@@ -82,12 +84,18 @@
   [geo-map bmis]
   (map #(add-distance-in-mi % (:coords geo-map)) bmis))
 
+(defn- maybe-sort-by-distance-again
+  [include-unpriced bmis]
+  (if include-unpriced
+    (sort-by #(-> % :business :distance_in_mi) bmis)
+    bmis))
+
 ;;--------------------------
 
-(defn filter-collar-sort
-  [bmis include-unpriced geo-map collar-map hours-map sort-map]
+(defn filter-sort
+  [bmis include-unpriced geo-map hours-map sort-map]
   (->> bmis
-       (add-distances geo-map)
        (maybe-filter-by-hours hours-map)
-       (maybe-collar collar-map include-unpriced)
+       (add-distances geo-map)
+       (maybe-sort-by-distance-again include-unpriced)
        (maybe-re-sort sort-map)))

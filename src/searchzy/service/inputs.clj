@@ -43,17 +43,6 @@
          :coords (:coords res)
          :miles miles}))))
 
-(defn get-collar-map
-  "If {}, not err, just no collar."
-  [{max-miles-str :max-miles min-results-str :min-results}]
-  (let [miles (str->val max-miles-str   10.0)
-        num   (str->val min-results-str 50)]
-    (match [miles num]
-           [nil nil] {}   ;; opting out
-           [nil _  ] nil  ;; error
-           [_   nil] nil  ;; error
-           :else {:max-miles miles, :min-results num})))
-
 ;; ---
 
 (defn- mk-hours-map
@@ -228,14 +217,6 @@
               :message "'utc_offset' should have values like '-5' or '+5:45'."
               :args i})))
 
-(def clean-collar-map
-  (clean/mk-cleaner
-   :collar-map :collar-map
-   get-collar-map
-   (fn [i o] {:params [:max_miles, :min_results]
-              :message "Something wrong with your 'collar'."
-              :args i})))
-   
 ;;-----------------------
 
 (defn business-clean-input
@@ -263,7 +244,6 @@
                      clean-item-id
                      clean-include-unpriced
                      clean-geo-map
-                     clean-collar-map
                      clean-hours
                      clean-utc-offset
                      (clean-sort sort-attrs)

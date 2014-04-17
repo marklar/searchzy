@@ -1,8 +1,7 @@
 (ns searchzy.service.bmis.core
-  "A new version of business-menu-items which employs a 'collar'.
-   That is, it always performs sort-by-distance searches,
-   and then it 'takes' from them until satisfying 'min_results'.
-   or simply running out."
+  "Performs two searches, one for BusinessMenuItems and another for Businesses,
+   and then it integrates the results.
+   Performs filter-by-hours in-process (i.e. not in ElasticSearch)."
   (:use [clojure.core.match :only (match)])
   (:require [searchzy.cfg :as cfg]
             [searchzy.util]
@@ -31,8 +30,8 @@
        (:hits
         (:hits
          (es-doc/search idx-name mapping-name
-                        :query  {:term {:item_id item-id}}
-                        :filter (util/mk-geo-filter geo-map)
+                        :query {:filtered {:query {:term {:item_id item-id}}
+                                           :filter (util/mk-geo-filter geo-map)}}
                         :sort   (geo-sort/mk-geo-distance-sort-builder
                                  (:coords geo-map) :asc)
                         :from   (:from page-map)
@@ -45,10 +44,10 @@
     (remove #((set biz-ids) (:_id %)) bizs)))
 
 (defn- maybe-add-unpriced
-  [include-unpriced bmis item-id fake-geo-map sort-map fake-pager]
+  [include-unpriced bmis item-id geo-map sort-map fake-pager]
   (if include-unpriced
     (let [biz-cat-id (biz-cats/item-id->biz-cat-id item-id)
-          bizs (bizs/for-category biz-cat-id fake-geo-map sort-map fake-pager)
+          bizs (bizs/for-category biz-cat-id geo-map sort-map fake-pager)
           novel-bizs (de-dupe bizs bmis)
           novel-bmis (map bizs/->bmi novel-bizs)]
       ;; TODO: rather than concating (and later sorting),
@@ -59,18 +58,17 @@
 
 (def MAX-BMIS 250)
 (defn- get-all-open-bmis
-  "Filter by max_miles, if present.  Sort by distance.
-   Then in-process, do additional filtering, collaring, and sorting as needed."
-  [{:keys [item-id geo-map collar-map hours-map sort-map include-unpriced]}]
+  "Filter by miles.  Sort by distance.
+   Then in-process, do additional filtering and sorting as needed."
+  [{:keys [item-id geo-map hours-map sort-map include-unpriced]}]
   ;; Do search, getting lots of (MAX-BMIS) results.
   ;; Return *only* the actual hits, losing the metadata (actual number of results).
-  (let [fake-geo-map (assoc geo-map :miles (:max-miles collar-map))
-        fake-pager {:from 0, :size MAX-BMIS}
-        priced-bmis (es-search item-id fake-geo-map sort-map fake-pager)
+  (let [fake-pager {:from 0, :size MAX-BMIS}
+        priced-bmis (es-search item-id geo-map sort-map fake-pager)
         bmis (maybe-add-unpriced include-unpriced
-                                 priced-bmis item-id fake-geo-map
+                                 priced-bmis item-id geo-map
                                  sort-map fake-pager)]
-    (filter/filter-collar-sort bmis include-unpriced geo-map collar-map hours-map sort-map)))
+    (filter/filter-sort bmis include-unpriced geo-map hours-map sort-map)))
 
 (defn- get-day-of-week
   [bmis valid-args]
