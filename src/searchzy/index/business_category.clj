@@ -77,7 +77,6 @@
                               :where {:is_searchable_ind true})))
 
 (defn mk-idx
-  [& {:keys [limit]}]
   "Fetch BusinessCategories from MongoDB.
    Add them to ES index.
    Return count.
@@ -86,5 +85,6 @@
      - a particular MongoDB collection,
      - ElasticSearch
   "
+  [& {:keys [limit]}]
   (recreate-idx)
   (doseq-cnt add-to-idx 10 (mg-fetch :limit limit)))

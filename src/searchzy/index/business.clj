@@ -134,9 +134,10 @@
      (let [id (str (:_id mg-map))]
        (put id (dissoc es-map :_id)))))
 
+(def collection-name :businesses)
 (defn- mg-fetch
   [& {:keys [limit]}]
-  (maybe-take limit (mg/fetch :businesses)))
+  (maybe-take limit (mg/fetch collection-name)))
 
 (defn recreate-idx
   []
