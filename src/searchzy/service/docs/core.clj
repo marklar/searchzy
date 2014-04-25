@@ -13,8 +13,15 @@
    [:body
     [:h1 "Searchzy API"]
     
-    [:p "There are three endpoints.  All are GETs."]
+    [:p "There are four endpoints.  All are GETs."]
     [:ul
+
+     [:li
+      [:a {:href "/docs/lists"} [:span.code "/v1/lists"]]
+      [:ul
+       [:li "for I-don't-know-what"]
+       [:li "for boolean AND matching of many different attributes of Lists"]]]
+
      [:li
       [:a {:href "/docs/suggestions"} [:span.code "/v1/suggestions"]]
       [:ul

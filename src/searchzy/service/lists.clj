@@ -57,7 +57,9 @@
               (if (clojure.string/blank? val)
                 nil
                 {:term {k1 (clojure.string/lower-case val)}})))
-        exprs (remove nil? [(f :seo_region_id :seo-region-id)
+        exprs (remove nil? [(f :location_id   :location-id)
+                            (f :seo_business_category_id :seo-business-category-id)
+                            (f :seo_region_id :seo-region-id)
                             (f :seo_item_id   :seo-item-id  )
                             (f :area_type     :area-type    )
                             (f :state         :state        )])]
