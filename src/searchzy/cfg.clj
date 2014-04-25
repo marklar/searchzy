@@ -52,22 +52,19 @@
      :host "127.0.0.1"
      :port 27017}
 
-    ;; Use instead of 'areas' if 'areas' lacks needed info.
-    ;; Collection: 'lists'.
-    :locality-web-areas 
+    :areas 
     {:db-name "locality_web_production_areas"
      :username "locality_web_05_2014"
      :password "JvJ6XlTIE0nf9mnggPTu7EImHfH7RsuwekgD24F152WaSip85da"
-     ;; w8Vt9Fh5autCMaxRg1GIoZAJv7K7CimiakeUc6EZ8MWyiXGnSF
      :host "locality-web-production-areas.m0.mongolayer.com"
      :port 27017}
     
-    :areas
-    {:db-name "centzy_web_production_areas"
-     :username nil
-     :password nil
-     :host "127.0.0.1"
-     :port 27017}
+    ;; :areas
+    ;; {:db-name "centzy_web_production_areas"
+    ;;  :username nil
+    ;;  :password nil
+    ;;  :host "127.0.0.1"
+    ;;  :port 27017}
     
     :businesses
     {:db-name "centzy_web_production"

@@ -56,7 +56,7 @@
 
    ;; -- TAKE A LONG TIME --
 
-   :lists          {:db-name :locality-web-areas ;; areas
+   :lists          {:db-name :areas
                     :index-fn list/mk-idx}
                     
    ;; both :businesses and :biz-menu-items together, or...
