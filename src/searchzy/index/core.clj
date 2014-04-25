@@ -12,6 +12,7 @@
              [biz-combined :as biz-combined]
              [business :as biz]
              [item :as item]
+             [list :as list]
              [business-menu-item :as biz-menu-item]
              [business-category :as biz-cat]]))
 
@@ -46,15 +47,18 @@
 ;;
 (def indices
   {
-   ;; PRETTY QUICK
+   ;; -- PRETTY QUICK --
    :biz-categories {:db-name :main
                     :index-fn biz-cat/mk-idx}
                     
    :items          {:db-name :main
                     :index-fn item/mk-idx}
-                    
-   ;; TAKE A LONG TIME
 
+   ;; -- TAKE A LONG TIME --
+
+   :lists          {:db-name :locality-web-areas ;; areas
+                    :index-fn list/mk-idx}
+                    
    ;; both :businesses and :biz-menu-items together, or...
    :combined       {:db-name :businesses
                     :index-fn biz-combined/mk-idx}
@@ -98,7 +102,7 @@
   [domains-str & {:keys [limit]}]
   (let [domains (words domains-str)
         names (if (= domains ["all"])
-                [:biz-categories :items :combined]
+                [:biz-categories :items :lists :combined]
                 (map keyword domains))]
     (doseq [n names]
       (index-one n :limit limit))))
@@ -137,7 +141,10 @@
     "Options:"
     options-summary
     ""
-    "Indexible domains: {biz-categories, items, businesses, biz-menu-items}."]
+    (str "Indexible domains: {"
+         (str/join ", " (sort (map name (keys indices))))
+         "}.")
+    ]
    (str/join \newline)))
 
 (defn- error-msg [errors]

@@ -8,6 +8,7 @@
              [core :as docs.core]
              [suggestions :as docs.sugg]
              [businesses :as docs.biz]
+             [lists :as docs.lists]
              [business-menu-items :as docs.items]]
             [searchzy.service
              [inputs :as inputs]
@@ -17,6 +18,7 @@
              [core :as sugg]]
             [searchzy.service.bmis
              [core :as items]]
+            [searchzy.service.lists :as lists]
             [compojure
              [handler :as handler]
              [route :as route]]))
@@ -62,7 +64,31 @@
   (GET "/docs/business_menu_items" []
        (docs.items/show))
 
+  (GET "/docs/lists" []
+       (docs.lists/show))
+
   ;;-- BUSINESSES --
+
+  (GET (v-path 1 "/lists")
+       [api_key
+        location_id seo_business_category_id seo_region_id seo_item_id
+        area_type state
+        address lat lon miles
+        from size]
+       (if (not (valid-key? api_key))
+         ;; not authorized
+         (bounce)
+         ;; authorized
+         (lists/validate-and-search
+          {:location-id location_id
+           :seo-business-category-id seo_business_category_id
+           :seo-region-id seo_region_id
+           :seo-item-id seo_item_id
+           :area-type area_type
+           :state state
+           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+           :page-map {:from from, :size size}
+           })))
 
   (GET (v-path 1 "/businesses")
        [api_key query business_category_ids
@@ -90,7 +116,6 @@
        (if (not (valid-key? api_key))
          ;;-- not authorized
          (bounce)
-
          ;;-- authorized
          (items/validate-and-search
           {:item-id item_id
@@ -116,7 +141,11 @@
   ;; + Adds fdb_id to each entity in each section of results.
   ;; + Allows utc_offset string to include appropriate hours_today info in response.
   (GET (v-path 2 "/suggestions")
-       [query business_category_ids address lat lon miles size html use_jsonp utc_offset]
+       ;; Does NOT require api_key.
+       [query business_category_ids
+        address lat lon miles utc_offset
+        size
+        html use_jsonp]
        (let [path (v-path 2 "/suggestions")
              input-map (sugg/mk-input-map path query business_category_ids
                                           address lat lon miles size html utc_offset)

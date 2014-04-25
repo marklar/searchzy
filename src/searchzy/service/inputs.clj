@@ -219,6 +219,13 @@
 
 ;;-----------------------
 
+(defn lists-clean-input
+  "The other inputs are all strings, which may be blank or not."
+  [args]
+  (clean/gather->> args
+                   clean-geo-map
+                   clean-page-map))
+
 (defn business-clean-input
   "Validate each argument group in turn.
    Gather up any validation errors as you go."
