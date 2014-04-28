@@ -95,6 +95,7 @@
 (defn mk-es-map
   "Given a business mongo-map, create an ElasticSearch map."
   [mg-map]
+  ;; TODO: There has to be a terser way to do this.
   {:_id (:_id mg-map)
    :fdb_id (:fdb_id mg-map)
    ;; search
@@ -122,6 +123,7 @@
   ;; To check if successful, use response/ok? or response/conflict?
   ;; With es-doc/put (vs. es-doc/create), you supply the _id separately.
   (es-doc/put idx-name mapping-name id es-map))
+  ;; (es-doc/async-put idx-name mapping-name id es-map))
 
 ;; TODO: use multimethod here to distinguish between
 ;; mg-map and es-map.  (How?  Add tag?)
@@ -134,25 +136,42 @@
      (let [id (str (:_id mg-map))]
        (put id (dissoc es-map :_id)))))
 
-(def collection-name :businesses)
-(defn- mg-fetch
-  [& {:keys [limit]}]
-  (maybe-take limit (mg/fetch collection-name)))
+(defn- file->ids
+  ":: str -> [objID]"
+  [ids-file]
+  (let [biz-id-strs (util/file->lines ids-file)]
+    (map mg/object-id biz-id-strs)))
 
-(defn recreate-idx
-  []
+;; (let [ids (set (file->ids ids-file))]
+;;   (filter (fn [d] (contains? ids (:_id d)))
+;;           (mg/fetch :businesses)))
+
+(defn- mg-fetch
+  "If there are biz-ids in ids-file, limit mg/fetch by them.
+   Otherwise, just fetch all of them."
+  [& {:keys [limit ids-file]}]
+  (maybe-take
+   limit
+   (if ids-file
+     ;;
+     ;; FIXME - No idea why this doesn't work.
+     ;; Fetching 1-by-1 is horribly inefficient.
+     ;;
+     ;; (mg/fetch-by-ids :businesses (file->ids ids-file))
+     ;; 
+     (map #(mg/fetch-by-id :businesses (mg/object-id %))
+          (util/file->lines ids-file))
+     (mg/fetch :businesses))))
+
+(defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
-  [& {:keys [limit]}]
-  (recreate-idx)
-  (doseq-cnt add-to-idx 5000 (mg-fetch :limit limit)))
-
-
-;; -- Just for testing --
-(defn -main [& args]
-  (mongo-connect! (:mongo-db (cfg/get-cfg)))
-  (doseq [doc (mg-fetch :limit 200)]
-    (println doc)
-    (println)))
+  [& {:keys [limit ids-file]}]
+  (if-not ids-file
+    (recreate-idx))
+  (let [docs (mg-fetch :limit limit :ids-file ids-file)]
+    (doseq-cnt add-to-idx
+               5000
+               docs)))

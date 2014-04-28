@@ -11,7 +11,7 @@
                  [compojure "1.1.6"]
                  [ring/ring-jetty-adapter "1.2.2"]
                  [hiccup "1.0.4"]
-                 [congomongo "0.4.1"]
+                 [congomongo "0.4.3"]
                  [clojurewerkz/elastisch "2.0.0-beta3"]
                  [geocoder-clj "0.2.3"]]
 
