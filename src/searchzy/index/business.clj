@@ -5,6 +5,8 @@
             [clojure.string :as str]
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
+  ;; (:import (org.bson.types)))
+
 
 (def idx-name     (:index   (:businesses cfg/elastic-search-names)))
 (def mapping-name (:mapping (:businesses cfg/elastic-search-names)))
@@ -95,6 +97,7 @@
 (defn mk-es-map
   "Given a business mongo-map, create an ElasticSearch map."
   [mg-map]
+  ;; TODO: There has to be a terser way to do this.
   {:_id (:_id mg-map)
    :fdb_id (:fdb_id mg-map)
    ;; search
@@ -122,6 +125,7 @@
   ;; To check if successful, use response/ok? or response/conflict?
   ;; With es-doc/put (vs. es-doc/create), you supply the _id separately.
   (es-doc/put idx-name mapping-name id es-map))
+  ;; (es-doc/async-put idx-name mapping-name id es-map))
 
 ;; TODO: use multimethod here to distinguish between
 ;; mg-map and es-map.  (How?  Add tag?)
@@ -134,25 +138,71 @@
      (let [id (str (:_id mg-map))]
        (put id (dissoc es-map :_id)))))
 
-(def collection-name :businesses)
-(defn- mg-fetch
-  [& {:keys [limit]}]
-  (maybe-take limit (mg/fetch collection-name)))
+(defn file->ids
+  ":: str -> [objID]"
+  [ids-file]
+  (let [biz-id-strs (util/file->lines ids-file)]
+    ;; I don't know hy 'str' here is necessary!!!!!
+    (map #(mg/object-id (str %)) biz-id-strs)))
 
-(defn recreate-idx
-  []
+;; {:description nil,
+;;  :_id #<ObjectId 4fb687b4c9b1687205002954>,
+;;  :active_ind false,
+;;  :phone_number "3831515",
+;;  :coordinates nil,
+;;  :address_2 nil,
+;;  :yelp_star_rating nil,
+;;  :name "Fade 2 Famous",
+;;  :permalink "fade-2-famous",
+;;  :address_1 nil,
+;;  :city nil,
+;;  :value_score nil,
+;;  :state nil,
+;;  :updated_at #inst "2012-05-18T17:32:36.000-00:00",
+;;  :zip nil,
+;;  :phone_area_code "718",
+;;  :seo_only_ind true,
+;;  :url nil,
+;;  :phone_country_code nil,
+;;  :yelp_id nil,
+;;  :business_category_ids [],
+;;  :country nil,
+;;  :created_at #inst "2012-05-18T17:32:36.000-00:00",
+;;  :yelp_review_count nil,
+;;  :citygrid_listing_id nil}
+
+
+(defn- query-map
+  "Takes filename, datetime.
+   Returns a :where clause for Mongo query.
+   :: (DateTime, str) -> hash-map"
+  [after ids-file]
+  (merge (if after
+           {:updated_at {:$gte after}}
+           {})
+         (if ids-file
+           {:_id {:$in (file->ids ids-file)}}
+           {})))
+
+(defn mg-fetch
+  ":limit    - max number to fetch
+   :after    - Date; fetch only those whose updated_at is after that
+   :ids-file - business IDs in file; fetch only matching"
+  [& {:keys [limit after ids-file]}]
+  (mg/fetch :businesses
+            :limit limit
+            :where (query-map after ids-file)))
+
+(defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
-  [& {:keys [limit]}]
-  (recreate-idx)
-  (doseq-cnt add-to-idx 5000 (mg-fetch :limit limit)))
-
-
-;; -- Just for testing --
-(defn -main [& args]
-  (mongo-connect! (:mongo-db (cfg/get-cfg)))
-  (doseq [doc (mg-fetch :limit 200)]
-    (println doc)
-    (println)))
+  [& {:keys [limit after ids-file]}]
+  (if-not (or after ids-file)
+    (recreate-idx))
+  (doseq-cnt add-to-idx
+             5000
+             (mg-fetch :limit limit
+                       :after after
+                       :ids-file ids-file)))

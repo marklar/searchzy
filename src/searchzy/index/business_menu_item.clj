@@ -91,14 +91,15 @@
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
 
-(defn- mg-fetch
-  [& {:keys [limit]}]
-  (maybe-take limit (mg/fetch :businesses)))
-
 (defn mk-idx
   "Fetch Businesses from MongoDB.
    Add each (and its embedded BusinessUnifiedMenuItems) to the index.
    Return count (of Businesses)."
-  [& {:keys [limit]}]
-  (recreate-idx)
-  (doseq-cnt add-to-idx 5000 (mg-fetch :limit limit)))
+  [& {:keys [limit after ids-file]}]
+  (if-not (or after ids-file)
+    (recreate-idx))
+  (doseq-cnt add-to-idx
+             5000
+             (biz/mg-fetch :limit limit
+                           :after after
+                           :ids-file ids-file)))

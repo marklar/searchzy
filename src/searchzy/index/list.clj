@@ -69,10 +69,15 @@
               (str (:_id mg-map))
               (mg->es mg-map)))
 
-(def collection-name :lists)
 (defn- mg-fetch
-  [& {:keys [limit]}]
-  (maybe-take limit (mg/fetch collection-name)))
+  ":limit - max number to fetch
+   :after - Date; fetch only those whose updated_at is after that"
+  [& {:keys [limit after]}]
+  (mg/fetch :lists
+            :limit limit
+            :where (if after
+                     {:updated_at {:$gte after}}
+                     {})))
 
 (defn recreate-idx
   []
@@ -87,6 +92,7 @@
      - a particular MongoDB collection,
      - ElasticSearch
   "
-  [& {:keys [limit]}]
-  (recreate-idx)
-  (doseq-cnt add-to-idx 5000 (mg-fetch :limit limit)))
+  [& {:keys [limit after]}]
+  (if-not after
+    (recreate-idx))
+  (doseq-cnt add-to-idx 5000 (mg-fetch :limit limit :after after)))

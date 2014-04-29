@@ -72,9 +72,14 @@
   (util/recreate-idx idx-name mapping-types))
 
 (defn- mg-fetch
-  [& {:keys [limit]}]
-  (maybe-take limit (mg/fetch :business_categories
-                              :where {:is_searchable_ind true})))
+  [& {:keys [limit after]}]
+  (mg/fetch :business_categories
+            :limit limit
+            :where (merge
+                    {:is_searchable_ind true}
+                    (if after
+                      {:updated_at {:$gte after}}
+                      {}))))
 
 (defn mk-idx
   "Fetch BusinessCategories from MongoDB.
@@ -85,6 +90,8 @@
      - a particular MongoDB collection,
      - ElasticSearch
   "
-  [& {:keys [limit]}]
+  [& {:keys [limit after]}]
   (recreate-idx)
-  (doseq-cnt add-to-idx 10 (mg-fetch :limit limit)))
+  (doseq-cnt add-to-idx
+             10
+             (mg-fetch :limit limit :after after)))
