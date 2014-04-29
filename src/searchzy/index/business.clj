@@ -5,6 +5,8 @@
             [clojure.string :as str]
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
+  ;; (:import (org.bson.types)))
+
 
 (def idx-name     (:index   (:businesses cfg/elastic-search-names)))
 (def mapping-name (:mapping (:businesses cfg/elastic-search-names)))
@@ -140,38 +142,65 @@
   ":: str -> [objID]"
   [ids-file]
   (let [biz-id-strs (util/file->lines ids-file)]
-    (map mg/object-id biz-id-strs)))
+    ;; I don't know hy 'str' here is necessary!!!!!
+    (map #(mg/object-id (str %)) biz-id-strs)))
 
-;; (let [ids (set (file->ids ids-file))]
-;;   (filter (fn [d] (contains? ids (:_id d)))
-;;           (mg/fetch :businesses)))
+;; {:description nil,
+;;  :_id #<ObjectId 4fb687b4c9b1687205002954>,
+;;  :active_ind false,
+;;  :phone_number "3831515",
+;;  :coordinates nil,
+;;  :address_2 nil,
+;;  :yelp_star_rating nil,
+;;  :name "Fade 2 Famous",
+;;  :permalink "fade-2-famous",
+;;  :address_1 nil,
+;;  :city nil,
+;;  :value_score nil,
+;;  :state nil,
+;;  :updated_at #inst "2012-05-18T17:32:36.000-00:00",
+;;  :zip nil,
+;;  :phone_area_code "718",
+;;  :seo_only_ind true,
+;;  :url nil,
+;;  :phone_country_code nil,
+;;  :yelp_id nil,
+;;  :business_category_ids [],
+;;  :country nil,
+;;  :created_at #inst "2012-05-18T17:32:36.000-00:00",
+;;  :yelp_review_count nil,
+;;  :citygrid_listing_id nil}
+
+
+(defn- query-map
+  "Takes filename, datetime.
+   Returns a :where clause for Mongo query.
+   :: (DateTime, str) -> hash-map"
+  [after ids-file]
+  (merge (if after
+           {:updated_at {:$gte after}}
+           {})
+         (if ids-file
+           {:_id {:$in (file->ids ids-file)}}
+           {})))
 
 (defn- mg-fetch
-  "If there are biz-ids in ids-file, limit mg/fetch by them.
-   Otherwise, just fetch all of them."
-  [& {:keys [limit ids-file]}]
-  (maybe-take
-   limit
-   (if ids-file
-     ;;
-     ;; FIXME - No idea why this doesn't work.
-     ;; Fetching 1-by-1 is horribly inefficient.
-     ;;
-     ;; (mg/fetch-by-ids :businesses (file->ids ids-file))
-     ;; 
-     (map #(mg/fetch-by-id :businesses (mg/object-id %))
-          (util/file->lines ids-file))
-     (mg/fetch :businesses))))
+  ":limit    - max number to fetch
+   :after    - Date; fetch only those whose updated_at is after that
+   :ids-file - business IDs in file; fetch only matching"
+  [& {:keys [limit after ids-file]}]
+  (mg/fetch :businesses
+            :limit limit
+            :where (query-map after ids-file)))
 
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
-  [& {:keys [limit ids-file]}]
-  (if-not ids-file
+  [& {:keys [limit after ids-file]}]
+  (if-not (or ids-file after)
     (recreate-idx))
-  (let [docs (mg-fetch :limit limit :ids-file ids-file)]
-    (doseq-cnt add-to-idx
-               5000
-               docs)))
+  (doseq-cnt add-to-idx
+             5000
+             (mg-fetch :limit limit :after after :ids-file ids-file)))

@@ -7,6 +7,7 @@
    :: str -> [str]
   "
   [file-name]
+  ;; (doall (map str
   (-> file-name
       slurp
       (clojure.string/split #"\s+")))

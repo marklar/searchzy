@@ -3,6 +3,9 @@
    'lein run -m searchzy.index.core'."
   (:gen-class)
   (:require [clojure.tools.cli :as cli]
+            [clj-time
+             [core :as t]
+             [format :as f]]
             [searchzy
              [util :as util]
              [cfg :as cfg]]
@@ -34,7 +37,7 @@
   "Given a domain-name,
    connect to the corresponding MongoDB collection,
    and call the corresponding indexing function."
-  [domain-name & {:keys [limit ids-file]}]
+  [domain-name & {:keys [limit after ids-file]}]
   ;; index :: map w/ keys :index-fn, :db-name
   (let [idx (domains/name->index domain-name)]
     (if (nil? idx)
@@ -44,15 +47,15 @@
       (let [{:keys [index-fn db-name]} idx]
         (println "indexing:" domain-name)
         (util/mongo-connect-db! db-name)
-        (let [cnt (index-fn :limit limit :ids-file ids-file)]
+        (let [cnt (index-fn :limit limit :after after :ids-file ids-file)]
           (println "indexed" cnt (str domain-name) "records.")
           cnt)))))
 
 (defn- index-all
   "Serial index creation."
-  [domains-str & {:keys [limit ids-file]}]
+  [domains-str & {:keys [limit after ids-file]}]
   (doseq [name (domains/str->names domains-str)]
-    (index-one name :limit limit :ids-file ids-file)))
+    (index-one name :limit limit :after after :ids-file ids-file)))
 
 ;; (defn- par-index-all
 ;;   "Parallel indexing.  (Not for use with 'Combined' - no advantage.)
@@ -76,7 +79,7 @@
    ;; limit (for testing, really)
    ["-l"
     "--limit NUM"
-    "Limit records to index (each domain)."
+    "For testing.  Limit number of records to index (per domain)."
     :default "nil"]
 
    ;; domains
@@ -91,9 +94,14 @@
     "--file BIZ-ID-FILE"
     (str "For {businesses|biz-menu-items|combined}, "
          "file of BusinessIDs (1/line) to update.")
-    :default "nil"]
-   ]
-  )
+    :default nil]
+
+   ["-a"
+    "--after yyyyMMdd"
+    "Add/update only those records updated after DATE (start of day, UTC)."
+    :default nil]
+
+   ])
 
 (defn- usage [options-summary]
   (->>
@@ -114,6 +122,22 @@
 (defn- exit [status msg]
   (println msg)
   (System/exit status))
+
+(defn- parse-date-utc
+  "Given string of format yyyyMMdd, return start-of-day DateTime in UTC.
+  :: str -> DateTime"
+  [str]
+  (.toDate
+   (f/parse (f/formatter "yyyyMMdd") str)))
+
+(defn- parse-date-eastern
+  "Given string of format yyyyMMdd, return start-of-day DateTime for NY.
+  :: str -> DateTime"
+  [str]
+  (.toDate 
+   (t/from-time-zone
+    (f/parse (f/formatter "yyyyMMdd") str)
+    (t/time-zone-for-id "America/New_York"))))
 
 ;; -- MAIN --
 (defn -main
@@ -137,4 +161,7 @@
       (util/es-connect! (:elastic-search (cfg/get-cfg)))
       (index-all (:domains options)
                  :limit (read-string (:limit options))
+                 :after (if-let [after (:after options)]
+                          (parse-date-utc after)
+                          nil)
                  :ids-file (:file options)))))

@@ -8,6 +8,7 @@
                  [org.clojure/tools.cli "0.3.1"]
                  [camel-snake-kebab "0.1.4"]
                  [clj-yaml "0.4.0"]
+                 [clj-time "0.7.0"]
                  [compojure "1.1.6"]
                  [ring/ring-jetty-adapter "1.2.2"]
                  [hiccup "1.0.4"]
