@@ -91,44 +91,15 @@
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
 
-;; TODO - this is a copy from business.clj
-(defn- file->ids
-  ":: str -> [objID]"
-  [ids-file]
-  (let [biz-id-strs (util/file->lines ids-file)]
-    ;; I don't know hy 'str' here is necessary!!!!!
-    (map #(mg/object-id (str %)) biz-id-strs)))
-
-;; TODO - this is a copy from business.clj
-(defn- query-map
-  "Takes filename, datetime.
-   Returns a :where clause for Mongo query.
-   :: (DateTime, str) -> hash-map"
-  [after ids-file]
-  (merge (if after
-           {:updated_at {:$gte after}}
-           {})
-         (if ids-file
-           {:_id {:$in (file->ids ids-file)}}
-           {})))
-
-;; TODO - this is a copy from business.clj
-(defn- mg-fetch
-  ":limit    - max number to fetch
-   :after    - Date; fetch only those whose updated_at is after that
-   :ids-file - business IDs in file; fetch only matching"
-  [& {:keys [limit after ids-file]}]
-  (mg/fetch :businesses
-            :limit limit
-            :where (query-map after ids-file)))
-
 (defn mk-idx
   "Fetch Businesses from MongoDB.
    Add each (and its embedded BusinessUnifiedMenuItems) to the index.
    Return count (of Businesses)."
   [& {:keys [limit after ids-file]}]
-  (if-not ids-file
+  (if-not (or after ids-file)
     (recreate-idx))
   (doseq-cnt add-to-idx
              5000
-             (mg-fetch :limit limit :after after :ids-file ids-file)))
+             (biz/mg-fetch :limit limit
+                           :after after
+                           :ids-file ids-file)))

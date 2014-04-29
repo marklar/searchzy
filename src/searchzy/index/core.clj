@@ -57,6 +57,23 @@
   (doseq [name (domains/str->names domains-str)]
     (index-one name :limit limit :after after :ids-file ids-file)))
 
+(defn- parse-date-utc
+  "Given string of format yyyyMMdd, return start-of-day DateTime in UTC.
+  :: str -> DateTime"
+  [str]
+  (.toDate
+   (f/parse (f/formatter "yyyyMMdd") str)))
+
+;; Unused.
+(defn- parse-date-eastern
+  "Given string of format yyyyMMdd, return start-of-day DateTime for NY.
+  :: str -> DateTime"
+  [str]
+  (.toDate 
+   (t/from-time-zone
+    (f/parse (f/formatter "yyyyMMdd") str)
+    (t/time-zone-for-id "America/New_York"))))
+
 ;; (defn- par-index-all
 ;;   "Parallel indexing.  (Not for use with 'Combined' - no advantage.)
 ;;    On my laptop, this uses way too much memory and crashes the JVM.
@@ -122,22 +139,6 @@
 (defn- exit [status msg]
   (println msg)
   (System/exit status))
-
-(defn- parse-date-utc
-  "Given string of format yyyyMMdd, return start-of-day DateTime in UTC.
-  :: str -> DateTime"
-  [str]
-  (.toDate
-   (f/parse (f/formatter "yyyyMMdd") str)))
-
-(defn- parse-date-eastern
-  "Given string of format yyyyMMdd, return start-of-day DateTime for NY.
-  :: str -> DateTime"
-  [str]
-  (.toDate 
-   (t/from-time-zone
-    (f/parse (f/formatter "yyyyMMdd") str)
-    (t/time-zone-for-id "America/New_York"))))
 
 ;; -- MAIN --
 (defn -main

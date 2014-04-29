@@ -138,7 +138,7 @@
      (let [id (str (:_id mg-map))]
        (put id (dissoc es-map :_id)))))
 
-(defn- file->ids
+(defn file->ids
   ":: str -> [objID]"
   [ids-file]
   (let [biz-id-strs (util/file->lines ids-file)]
@@ -184,7 +184,7 @@
            {:_id {:$in (file->ids ids-file)}}
            {})))
 
-(defn- mg-fetch
+(defn mg-fetch
   ":limit    - max number to fetch
    :after    - Date; fetch only those whose updated_at is after that
    :ids-file - business IDs in file; fetch only matching"
@@ -199,8 +199,10 @@
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
   [& {:keys [limit after ids-file]}]
-  (if-not (or ids-file after)
+  (if-not (or after ids-file)
     (recreate-idx))
   (doseq-cnt add-to-idx
              5000
-             (mg-fetch :limit limit :after after :ids-file ids-file)))
+             (mg-fetch :limit limit
+                       :after after
+                       :ids-file ids-file)))
