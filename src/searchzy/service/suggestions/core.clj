@@ -18,7 +18,7 @@
     (let [field-name (if (= domain :business_categories)
                        :_id
                        :business_category_ids)]
-      {:term {field-name biz-cat-ids}})))
+      {:terms {field-name biz-cat-ids}})))
 
 (defn- mk-filtered-query
   [domain query-str biz-cat-ids]
@@ -58,9 +58,13 @@
           item-results (if no-q
                          {:total 0, :hits []}
                          (get-results :items
-                                      query business-category-ids page-map))
+                                      query
+                                      business-category-ids
+                                      page-map))
           cat-results  (get-results :business_categories
-                                    query business-category-ids page-map)]
+                                    query
+                                    business-category-ids
+                                    page-map)]
       (responses/ok-json
        (sugg-response/mk-response biz-results cat-results item-results
                                   endpoint query business-category-ids
