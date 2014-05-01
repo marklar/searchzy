@@ -1,5 +1,11 @@
 (ns searchzy.service.bmis.value
-  "Caclulate an 'awesomeness' score for each item and sort by same."
+  "Caclulate an 'awesomeness' score for each item and sort by same.
+
+   Suraj says:
+   Maybe you can help me on the specifics, but I think we should
+   weight it heavier on # yelp reviews and stars and less on price &
+   distance. Nothing too drastic, but enough so it won't look like a
+   duplicate of our best value."
   )
 
 (defn- join-keys

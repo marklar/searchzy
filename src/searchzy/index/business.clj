@@ -172,7 +172,7 @@
 ;;  :citygrid_listing_id nil}
 
 
-(defn- query-map
+(defn- mk-query-map
   "Takes filename, datetime.
    Returns a :where clause for Mongo query.
    :: (DateTime, str) -> hash-map"
@@ -184,14 +184,20 @@
            {:_id {:$in (file->ids ids-file)}}
            {})))
 
+(defn- mk-fetch-opts
+  [limit after ids-file]
+  (let [query-map (mk-query-map after ids-file)
+        opts (if (empty? query-map) [] [:where query-map])]
+    (if limit
+      (concat opts [:limit limit])
+      opts)))
+
 (defn mg-fetch
   ":limit    - max number to fetch
    :after    - Date; fetch only those whose updated_at is after that
    :ids-file - business IDs in file; fetch only matching"
   [& {:keys [limit after ids-file]}]
-  (mg/fetch :businesses
-            :limit limit
-            :where (query-map after ids-file)))
+  (apply mg/fetch :businesses (mk-fetch-opts limit after ids-file)))
 
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
