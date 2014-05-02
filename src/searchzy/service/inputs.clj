@@ -246,7 +246,7 @@
   "Validate each argument group in turn.
    Gather up any validation errors as you go."
   [args]
-  (let [sort-attrs #{"price" "value" "distance"}]
+  (let [sort-attrs #{"price" "value" "distance" "rating"}]
     (clean/gather->> args
                      clean-item-id
                      clean-include-unpriced
