@@ -22,6 +22,13 @@
     bmis
     (reverse bmis)))
 
+;; PREVIOUSLY, WE INTENDED TO SORT BY DISTANCE, TOO.
+;; WOULD HAVE TO INCLUDE IT IN ns:value AND WEIGHT.
+(defn- foobar
+  [bmi]
+  [(:awesomeness bmi)
+   (- 0 (-> bmi :business :distance_in_mi))])
+
 (defn- maybe-sort
   [sort-map bmis]
   (match (:attribute sort-map)
@@ -30,12 +37,10 @@
          ;; 1. asc price, 2. asc distance_in_mi
          "price"    (sort-by (fn [i] [(or (:price_micros i) Integer/MAX_VALUE)
                                       (-> i :business :distance_in_mi) ]) bmis)
+         ;; asc rating (which is rarely what we'll want)
+         "rating"   (value/rate-and-sort bmis)
          ;; asc value (which is rarely what we'll want)
-         ;; 1. asc value, 2. desc distance_in_mi
-         "value"    (value/score-and-sort
-                     (sort-by (fn [i] [(:awesomeness i)
-                                       (- 0 (-> i :business :distance_in_mi)) ])
-                              bmis))))
+         "value"    (value/score-and-sort bmis)))
 
 (defn- maybe-re-sort
   [sort-map bmis]

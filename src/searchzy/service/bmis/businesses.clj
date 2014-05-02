@@ -12,7 +12,7 @@
   "Perform search against BusinessCategory _id, specifically using:
      - geo-distance sort  -AND-
      - geo-distance filter"
-  [cat-id geo-map sort-map page-map]
+  [cat-id geo-map page-map]
   (let [names (:businesses cfg/elastic-search-names)]
     (:hits
      (es-doc/search (:index names) (:mapping name)
@@ -29,10 +29,10 @@
   "From MongoDB, fetch business_category_id for this item_id.
    Search ElasticSearch for corresponding Businesses.
    Doesn't return BusinessMenuBmis, mind you -- just Businesses."
-  [biz-cat-id geo-map sort-map pager]
+  [biz-cat-id geo-map pager]
   (if (nil? biz-cat-id)
     []
-    (let [{bizs :hits} (es-search biz-cat-id geo-map sort-map pager)]
+    (let [{bizs :hits} (es-search biz-cat-id geo-map pager)]
       bizs)))
 
 (defn ->bmi

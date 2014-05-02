@@ -90,6 +90,8 @@
             (assoc % :tweaked-price-norm (- 1.0 (/ p max-price))))
          items)))
 
+;;-----
+
 (defn- add-score-to-item
   [item]
   (let [score (+ (* 0.4 (:tweaked-price-norm  item))
@@ -100,6 +102,27 @@
 (defn- add-score
   [items]
   (map add-score-to-item items))
+
+;;-----
+
+;; TODO: make factors into data structure to be passed in
+;; {:tweaked-rating-norm 0.4
+;;  :tweaked-count-norm  0.4
+;;  :tweaked-price-norm  0.1}
+
+(defn- add-rating-to-item
+  "NEW"
+  [item]
+  (let [score (+ (* 0.4 (:tweaked-rating-norm item))
+                 (* 0.4 (:tweaked-count-norm  item))
+                 (* 0.1 (:tweaked-price-norm  item)))]
+    (assoc item :awesomeness score)))
+
+(defn- add-rating
+  [items]
+  (map add-rating-to-item items))
+
+;;-----
 
 (defn- score-and-count-lt
   "Comparator for sorting, in ASC order."
@@ -123,14 +146,25 @@
 
 ;;-------------------------------
   
-;; Final Score and Sort
-;;   Add weighted scores for Ranking, Review, Price
-;;   Sort (ASC) by score and then number of reviews (more reviews, higher)
 (defn score-and-sort
+  "Final Score and Sort
+   Add weighted scores for Ranking, Review, Price
+   Sort (ASC) by score and then number of reviews (more reviews, higher)"
   [items]
-  (let [scored-items (-> items
-                         add-yelp-norms
-                         ;; add-price-val-norm
-                         add-price-rank-norm
-                         add-score)]
-    (rm-norms (sort score-and-count-lt scored-items))))
+  (->> items
+       add-yelp-norms
+       ;; add-price-val-norm
+       add-price-rank-norm
+       add-score
+       (sort score-and-count-lt)
+       rm-norms))
+
+(defn rate-and-sort
+  "Weigh Yelp more than price, distance."
+  [items]
+  (->> items
+       add-yelp-norms
+       add-price-rank-norm
+       add-rating
+       (sort score-and-count-lt)
+       rm-norms))

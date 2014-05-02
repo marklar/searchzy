@@ -25,7 +25,7 @@
   "Perform search against item_id, specifically using:
      - geo-distance sort  -AND-
      - geo-distance filter"
-  [item-id geo-map sort-map page-map]
+  [item-id geo-map page-map]
   (map :_source
        (:hits
         (:hits
@@ -44,10 +44,10 @@
     (remove #((set biz-ids) (:_id %)) bizs)))
 
 (defn- maybe-add-unpriced
-  [include-unpriced bmis item-id geo-map sort-map fake-pager]
+  [include-unpriced bmis item-id geo-map fake-pager]
   (if include-unpriced
     (let [biz-cat-id (biz-cats/item-id->biz-cat-id item-id)
-          bizs (bizs/for-category biz-cat-id geo-map sort-map fake-pager)
+          bizs (bizs/for-category biz-cat-id geo-map fake-pager)
           novel-bizs (de-dupe bizs bmis)
           novel-bmis (map bizs/->bmi novel-bizs)]
       ;; TODO: rather than concating (and later sorting),
@@ -64,10 +64,10 @@
   ;; Do search, getting lots of (MAX-BMIS) results.
   ;; Return *only* the actual hits, losing the metadata (actual number of results).
   (let [fake-pager {:from 0, :size MAX-BMIS}
-        priced-bmis (es-search item-id geo-map sort-map fake-pager)
+        priced-bmis (es-search item-id geo-map fake-pager)
         bmis (maybe-add-unpriced include-unpriced
                                  priced-bmis item-id geo-map
-                                 sort-map fake-pager)]
+                                 fake-pager)]
     (filter/filter-sort bmis include-unpriced geo-map hours-map sort-map)))
 
 (defn- get-day-of-week
