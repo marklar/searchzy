@@ -40,14 +40,18 @@
   [item]
   (if (nil? (:item_id item))
     nil
-    (let [vsp (:value_score_picos item)]
-      {:_id (:_id item)
-       :fdb_id (:fdb_id item)
-       :name (:name item)
-       :item_id (str (:item_id item))
-       :price_micros (:price_micros item)
-       :value_score_picos vsp})))
+    {:_id (:_id item)
+     :fdb_id (:fdb_id item)
+     :name (:name item)
+     :item_id (str (:item_id item))
+     :price_micros (:price_micros item)
+     :value_score_picos (:value_score_picos item)}))
 
+;;
+;; TODO:
+;;   Should this use :unified_menu :sections ?
+;;   Or should it use :business_items ?
+;;
 (defn- get-items-from-mg-map
   [{{sections :sections} :unified_menu}]
   (flatten (map :items sections)))
@@ -57,13 +61,15 @@
   ([mg-map]
      (mk-es-maps mg-map (biz/mk-es-map mg-map)))
   ([mg-map biz-map]
-     (let [items (get-items-from-mg-map mg-map)]
+     (let [items (get-items-from-mg-map mg-map)
+           biz-info (merge {:business biz-map}
+                           (select-keys biz-map [:yelp_star_rating
+                                                 :yelp_review_count
+                                                 ;; FIXME: there is no :latitude_longitude.
+                                                 ;; Only :coordinates.
+                                                 :latitude_longitude]))]
        (map
-        #(assoc %
-           :yelp_star_rating   (:yelp_star_rating biz-map)
-           :yelp_review_count  (:yelp_review_count biz-map)
-           :latitude_longitude (:latitude_longitude biz-map)
-           :business biz-map)
+        #(merge % biz-info)
         (remove nil? (map mk-es-item-map items))))))
 
 (defn- put [id es-map]
@@ -95,11 +101,11 @@
   "Fetch Businesses from MongoDB.
    Add each (and its embedded BusinessUnifiedMenuItems) to the index.
    Return count (of Businesses)."
-  [& {:keys [limit after ids-file]}]
-  (if-not (or after ids-file)
+  [& {:keys [limit after biz-ids]}]
+  (if-not (or after biz-ids)
     (recreate-idx))
   (doseq-cnt add-to-idx
              5000
              (biz/mg-fetch :limit limit
                            :after after
-                           :ids-file ids-file)))
+                           :biz-ids biz-ids)))

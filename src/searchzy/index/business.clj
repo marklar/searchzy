@@ -5,7 +5,6 @@
             [clojure.string :as str]
             [somnium.congomongo :as mg]
             [clojurewerkz.elastisch.native.document :as es-doc]))
-  ;; (:import (org.bson.types)))
 
 
 (def idx-name     (:index   (:businesses cfg/elastic-search-names)))
@@ -47,13 +46,13 @@
   "For seq of business_item maps, find highest value_score (as % int)."
   [biz-items]
   (let [scores (filter number? (map :value_score biz-items))]
-    (int (* 100 (apply max (cons 0 scores))))))
+    (int (* 100 (apply max 0 scores)))))
 
 ;; -- filter --
 
 (defn- get-lat-lon-str
   "From MongoMap, get two nums, in REVERSE ORDER, and create string.
-   e.g. [10.3 40.1] => '10.3,40.1' "
+   e.g. [40.1 10.3] => '10.3,40.1' "
   ;; In MongoDB, the coords are stored 'backwards' (i.e. first lon, then lat).
   [{coords :coordinates}]
   (if (empty? coords)
@@ -80,44 +79,43 @@
       {:hours {:open  {:hour oh :minute om}
                :close {:hour ch :minute cm}}})))
 
+(defn- get-street
+  ":: mg-map -> str"
+  [{a1 :address_1, a2 :address_2}]
+  (str/join ", " (remove str/blank? [a1 a2])))
+
 (defn- get-address
-  ""
-  [{a1 :address_1 a2 :address_2 city :city state :state zip :zip}]
-  {:street (str/join ", " (remove str/blank? [a1 a2]))
-   :city city
-   :state state
-   :zip zip})
+  ":: mg-map -> addr-map"
+  [mg-map]
+  (assoc
+    (select-keys mg-map [:city :state :zip])
+    :street (get-street mg-map)))
 
 ;; -- search document --
 
 ;; PUBLIC -- because used by business-menu-item/-mk-es-maps.
 ;; FIXME: Change this from using:
 ;;    embedded :business_items to
-;;    :unified_menu => :sections => :items
+;;    :unified_menu => :sections => :items => :value_score_picos
 (defn mk-es-map
   "Given a business mongo-map, create an ElasticSearch map."
   [mg-map]
-  ;; TODO: There has to be a terser way to do this.
-  {:_id (:_id mg-map)
-   :fdb_id (:fdb_id mg-map)
-   ;; search
-   :name (:name mg-map)
-   :phone_number (get-phone-number mg-map)
-   ;; filter
-   :latitude_longitude (get-lat-lon-str mg-map)
-   :business_category_ids (map str (:business_category_ids mg-map))
-   ;; sort
-   :value_score_int (get-value-score (:business-items mg-map))
-   ;; presentation
-   :address (get-address mg-map)
-   :coordinates (get-coords mg-map)
-   :hours (map get-biz-hour-info (:business_hours mg-map))
-   :permalink (:permalink mg-map)
-   :yelp_star_rating (:yelp_star_rating mg-map)
-   :yelp_review_count (:yelp_review_count mg-map)
-   :yelp_id (:yelp_id mg-map)
-   :rails_time_zone (:rails_time_zone mg-map)
-   })
+  (assoc
+      (select-keys mg-map [:_id :fdb_id :name :permalink
+                           :yelp_star_rating :yelp_review_count :yelp_id
+                           :rails_time_zone])
+    ;; search
+    :phone_number (get-phone-number mg-map)
+    ;; filter
+    :latitude_longitude (get-lat-lon-str mg-map)
+    :business_category_ids (map str (:business_category_ids mg-map))
+    ;; sort
+    :value_score_int (get-value-score (:business_items mg-map))
+    ;; presentation
+    :address (get-address mg-map)
+    :coordinates (get-coords mg-map)
+    :hours (map get-biz-hour-info (:business_hours mg-map))
+    ))
    
 (defn- put [id es-map]
   ;; TODO
@@ -137,13 +135,6 @@
   ([mg-map es-map]
      (let [id (str (:_id mg-map))]
        (put id (dissoc es-map :_id)))))
-
-(defn file->ids
-  ":: str -> [objID]"
-  [ids-file]
-  (let [biz-id-strs (util/file->lines ids-file)]
-    ;; I don't know hy 'str' here is necessary!!!!!
-    (map #(mg/object-id (str %)) biz-id-strs)))
 
 ;; {:description nil,
 ;;  :_id #<ObjectId 4fb687b4c9b1687205002954>,
@@ -176,39 +167,39 @@
   "Takes filename, datetime.
    Returns a :where clause for Mongo query.
    :: (DateTime, str) -> hash-map"
-  [after ids-file]
+  [after biz-ids]
   (merge (if after
            {:updated_at {:$gte after}}
            {})
-         (if ids-file
-           {:_id {:$in (file->ids ids-file)}}
-           {})))
+         (if (empty? biz-ids)
+           {}
+           {:_id {:$in biz-ids}})))
 
 (defn- mk-fetch-opts
-  [limit after ids-file]
-  (let [query-map (mk-query-map after ids-file)
+  [limit after biz-ids]
+  (let [query-map (mk-query-map after biz-ids)
         opts (if (empty? query-map) [] [:where query-map])]
     (if limit
-      (concat opts [:limit limit])
+      (concat [:limit limit] opts)
       opts)))
 
 (defn mg-fetch
   ":limit    - max number to fetch
    :after    - Date; fetch only those whose updated_at is after that
-   :ids-file - business IDs in file; fetch only matching"
-  [& {:keys [limit after ids-file]}]
-  (apply mg/fetch :businesses (mk-fetch-opts limit after ids-file)))
+   :biz-ids  - business IDs (from file); fetch only matching"
+  [& {:keys [limit after biz-ids]}]
+  (apply mg/fetch :businesses (mk-fetch-opts limit after biz-ids)))
 
 (defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
 
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
-  [& {:keys [limit after ids-file]}]
-  (if-not (or after ids-file)
+  [& {:keys [limit after biz-ids]}]
+  (if-not (or after biz-ids)
     (recreate-idx))
   (doseq-cnt add-to-idx
              5000
              (mg-fetch :limit limit
                        :after after
-                       :ids-file ids-file)))
+                       :biz-ids biz-ids)))

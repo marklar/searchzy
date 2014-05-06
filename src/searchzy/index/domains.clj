@@ -14,7 +14,7 @@
   [s]
   (-> s
       str/trim
-      (str/split #"\s*,?\s")))
+      (str/split #"\s+|(\s*,\s*)")))
 
 ;;
 ;; Can use this:
