@@ -9,6 +9,7 @@
   ;; "\\+-&|!(){}[]^~*?:"
   (str "[" (double-quote-each-char "\\+-&|!(){}[]^~*?:") "]"))
 
+;; unused
 (defn- escape-special-chars
   ;; Rather than escaping these characters, perhaps instead
   ;; we want to replace them with spaces?
@@ -27,7 +28,9 @@
 (defn- escape-double-quotes
   [s]
   ;; Why not just include '"' among the 'special-chars' above?
-  (.replaceAll s "(.*)\"(.*)" "$1\\\\\"$2"))
+  ;; (.replaceAll s "(.*)\"(.*)" "$1\\\\\"$2"))
+  (let [ss (clojure.string/split s #"\"")]
+    (clojure.string/join "\\\"" ss)))
 
 (defn- escape-odd-double-quotes
   "Count the double quotes in string 's'.

@@ -63,10 +63,10 @@
 (defn mk-cleaner
   "Higher-order fn which creates 'clean-' fns.
    Params:
-     - oldput-key : name (Keyword) of the input arg group we wish to 'clean'
-     - input-key  : name (Keyword) of the arg group to use in output
+     - input-key  : name (Keyword) of the input arg group we wish to 'clean'
+     - output-key : name (Keyword) of the arg group to use in output
      - munge-fn   : fn :: input -> desired-output (of the arg group)
-                    Upon validation error, must return nil.
+                    Upon validation error, MUST RETURN NIL.
      - error-fn   : fn :: (input, output) -> error-hashmap
 
    The created fn takes the hashmap of all args,
