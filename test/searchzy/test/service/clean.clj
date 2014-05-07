@@ -2,7 +2,6 @@
   (:use midje.sweet)
   (:require [searchzy.service.clean :as clean]))
 
-
 (let [f (fn [n] [(dec n), nil])
       g (fn [n] [(inc n), nil])
       h (fn [n] [n, :h-error])
@@ -43,5 +42,4 @@
         (clean/gather->> 1 g h k f) => [1 '(:k-error :h-error)]
         )
 
-)
-
+  )

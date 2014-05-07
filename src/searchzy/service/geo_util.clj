@@ -2,7 +2,7 @@
   "GEO-RELATED"
   )
 
-(defn- geo-str-to-map
+(defn- geo-str->map
   "geo-point string to geo-point map"
   [s]
   (let [[lat-str lon-str] (clojure.string/split s #",")]
@@ -30,6 +30,6 @@
 (defn haversine-from-strs
   "Find geo distance between to geo-points."
   [loc1-str loc2-str]
-  (let [loc1 (geo-str-to-map loc1-str)
-        loc2 (geo-str-to-map loc2-str)]
+  (let [loc1 (geo-str->map loc1-str)
+        loc2 (geo-str->map loc2-str)]
     (haversine loc1 loc2)))
