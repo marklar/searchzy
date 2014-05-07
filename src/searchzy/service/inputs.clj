@@ -29,7 +29,6 @@
 
 (defn mk-geo-map
   "Take input-geo-map: miles, address, lat, lon.
-   >> Also optional max_miles. <<
    If the input is valid, create a geo-map.
    If not, return nil."
   [{address :address, lat-str :lat, lon-str :lon, miles-str :miles}]
@@ -101,6 +100,7 @@
    (fn [q] (if (nil? q)
              ""
              (q/normalize q)))
+   ;; This function is never needed.
    (fn [i o] {:param :query
               :message "There should be no problem!"
               :args {:original-query i, :normalized-query o}})))

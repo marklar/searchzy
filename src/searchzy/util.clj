@@ -12,13 +12,13 @@
 
 (defn doseq-cnt
   "Call function 'f' on each of 'seq',
-   printing count out after each 'num' items."
-  [f num seq]
+   printing count out after each 'n' items."
+  [f n seq]
   (let [cnt (atom 0)]
     (doseq [i seq]
       (f i)
       (swap! cnt inc)
-      (if (= 0 (mod @cnt num))
+      (if (= 0 (mod @cnt n))
         (println @cnt)))
     @cnt))
 
@@ -34,17 +34,25 @@
 
 ;; -- mongo --
 
+;; What if only p is nil?
 (defn- auth-str
+  "username, password -> str"
   [u p]
   (if (and u p)
     (str u ":" p "@")
-    ""))
+    (if u
+      (str u "@")
+      "")))
 
 (defn mk-conn-str
   [{:keys [db-name host port username password]}]
   (str "mongodb://"
        (auth-str username password)
-       host ":" port "/" db-name))
+       host
+       (if port
+         (str ":" port)
+         "")
+       "/" db-name))
 
 (defn mongo-connect!
   "Sets 'current' MongoDB connection.

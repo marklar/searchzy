@@ -43,7 +43,7 @@
    2. Escape odd double quotes.
    (Escaping bool operators isn't necessary.
    The str is already downcased, and Lucene bool ops must be SHOUTED.)
-   3. Trim."
+   3. Trim -- including scrunching whitespace."
   [str]
   (if (clojure.string/blank? str)
     str
@@ -53,5 +53,5 @@
         ;; escape-special-chars
         whitespace-special-chars
         escape-odd-double-quotes
-        clojure.string/trim)))
-
+        clojure.string/trim
+        (clojure.string/replace #"\s+" " "))))
