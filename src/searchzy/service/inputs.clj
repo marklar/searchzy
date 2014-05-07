@@ -19,7 +19,7 @@
 (defn true-str?
   "Convert string (e.g. from cmd-line or http args) to bool."
   [s]
-  (contains? #{"true" "t" "1"} s))
+  (contains? #{"true" "t" "1"} (str s)))
 
 (defn mk-page-map
   "From input info, create usable info."
@@ -153,9 +153,9 @@
 
 (defn- get-sort-map
   "If a non-legal value is supplied, return nil (== error)."
-  [sort-str valid-attributes]
+  [sort-str valid-attributes-set]
   (let [[order attr] (get-order-and-attr sort-str)]
-    (if (contains? valid-attributes attr)
+    (if (contains? valid-attributes-set attr)
       {:attribute attr, :order order}
       nil)))
 
@@ -194,9 +194,9 @@
               :message "There should be no problem with 'business_category_ids'."})))
 
 (defn get-utc-offset-map
-  " '-12'   => {:hour -12, :minute  0}
-    '+1'    => {:hour   1, :minute  0}
-    '+5:45' => {:hour   5, :minute 45}"
+  " '-12'   => {:hours -12, :minutes  0}
+    '+1'    => {:hours   1, :minutes  0}
+    '+5:45' => {:hours   5, :minutes 45}"
   [offset-str]
   (if (clojure.string/blank? offset-str)
     ;; {} means empty optional.
@@ -213,7 +213,7 @@
   (clean/mk-cleaner
    :utc-offset :utc-offset-map
    get-utc-offset-map
-   (fn [i o] {:param :utc-offset
+   (fn [i o] {:param :utc_offset  ; underbar
               :message "'utc_offset' should have values like '-5' or '+5:45'."
               :args i})))
 
@@ -268,7 +268,7 @@
                    clean-geo-map
                    clean-page-map))
 
-;; v2 - blank query okay
+;; v2 - blank query okay; optional utc-offset, too.
 (defn suggestion-clean-input-v2
   "Validate each argument group in turn.
    Gather up any validation errors as you go."
