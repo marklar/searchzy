@@ -1,16 +1,26 @@
 (ns searchzy.index.util
   (:require [clojurewerkz.elastisch.native.index :as es-idx]
+            [somnium.congomongo :as mg]
             [clojure.set]))
 
 (defn file->lines
   "Given name of file, split on newlines and return strings.
+   If no such file, throws exception.
    :: str -> [str]
   "
   [file-name]
-  ;; (doall (map str
   (-> file-name
       slurp
       (clojure.string/split #"\s+")))
+
+(defn file->ids
+  ":: str -> [objID]"
+  [file-name]
+  (if-not file-name
+    []
+    (let [biz-id-strs (file->lines file-name)]
+      ;; I don't know hy 'str' here is necessary!!!!!
+      (map #(mg/object-id (str %)) biz-id-strs))))
 
 (defn recreate-idx
   "If index 'idx-name' exists, delete it.

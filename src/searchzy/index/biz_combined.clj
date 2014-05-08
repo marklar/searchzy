@@ -20,11 +20,11 @@
      - businesses
      - business_menu_items
    Return count (of Businesses)."
-  [& {:keys [limit after ids-file]}]
+  [& {:keys [limit after biz-ids]}]
 
   ;; Recreate indices only if starting from scratch, not when updating.
-  ;; We know we're updating if we have ids-file.
-  (if-not (or after ids-file)
+  ;; We know we're updating if we have biz-ids
+  (if-not (or after biz-ids)
     (do
       (biz/recreate-idx)
       (item/recreate-idx)))
@@ -34,4 +34,4 @@
              ;; fetch Mongo docs
              (biz/mg-fetch :limit limit
                            :after after
-                           :ids-file ids-file)))
+                           :biz-ids biz-ids)))

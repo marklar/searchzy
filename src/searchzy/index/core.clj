@@ -9,7 +9,9 @@
             [searchzy
              [util :as util]
              [cfg :as cfg]]
-            [searchzy.index.domains :as domains]
+            [searchzy.index
+             [domains :as domains]
+             [util :as idx-util]]
             [clojure.string :as str]
             [clojurewerkz.elastisch.native.index :as es-idx]))
 
@@ -37,7 +39,7 @@
   "Given a domain-name,
    connect to the corresponding MongoDB collection,
    and call the corresponding indexing function."
-  [domain-name & {:keys [limit after ids-file]}]
+  [domain-name & {:keys [limit after biz-ids]}]
   ;; index :: map w/ keys :index-fn, :db-name
   (let [idx (domains/name->index domain-name)]
     (if (nil? idx)
@@ -47,15 +49,15 @@
       (let [{:keys [index-fn db-name]} idx]
         (println "indexing:" domain-name)
         (util/mongo-connect-db! db-name)
-        (let [cnt (index-fn :limit limit :after after :ids-file ids-file)]
+        (let [cnt (index-fn :limit limit :after after :biz-ids biz-ids)]
           (println "indexed" cnt (str domain-name) "records.")
           cnt)))))
 
 (defn- index-all
   "Serial index creation."
-  [domains-str & {:keys [limit after ids-file]}]
+  [domains-str & {:keys [limit after biz-ids]}]
   (doseq [name (domains/str->names domains-str)]
-    (index-one name :limit limit :after after :ids-file ids-file)))
+    (index-one name :limit limit :after after :biz-ids biz-ids)))
 
 (defn- parse-date-utc
   "Given string of format yyyyMMdd, return start-of-day DateTime in UTC.
@@ -160,9 +162,10 @@
     ;; execute program w/ options.
     (do
       (util/es-connect! (:elastic-search (cfg/get-cfg)))
-      (index-all (:domains options)
-                 :limit (read-string (:limit options))
-                 :after (if-let [after (:after options)]
-                          (parse-date-utc after)
-                          nil)
-                 :ids-file (:file options)))))
+      (let [biz-ids (idx-util/file->ids (:file options))]
+        (index-all (:domains options)
+                   :limit (read-string (:limit options))
+                   :after (if-let [after (:after options)]
+                            (parse-date-utc after)
+                            nil)
+                   :biz-ids biz-ids)))))

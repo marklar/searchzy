@@ -79,10 +79,11 @@
         (map first (take-while need-more? (item-idx-alist bmis)))))))
 
 (defn- add-distance-in-mi
-  [item coords]
-  (let [item-coords (-> item :business :coordinates)
-        dist        (geo-util/haversine item-coords coords)]
-    (assoc-in item [:business :distance_in_mi] dist)))
+  [bmi coords]
+  (let [bmi-coords (-> bmi :business :coordinates)]
+    (if bmi-coords
+      (let [dist (geo-util/haversine bmi-coords coords)]
+        (assoc-in bmi [:business :distance_in_mi] dist)))))
 
 ;; use 'partial'
 (defn- add-distances

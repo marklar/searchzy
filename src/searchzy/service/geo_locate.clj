@@ -54,15 +54,18 @@
           (println "Google geolocate exception:" (str e))
           nil)))))
 
+(def default-provider "google")
+
 (defn- get-provider
   "Gets geocoding provider from config.
-   If fails, returns 'google' by default."
+   If fails, returns default-provider."
   [config]
   (try
-    ;; clojure.string functions may raise null pointer exception.
+    ;; clojure.string functions may raise NullPointerException.
     (-> config :geocoding :provider str/trim str/lower-case)
-    (catch Exception e (do (println (str e))
-                           "google"))))
+    (catch Exception e
+      (do (println "WARNING: Problem reading geocoding CFG:" (str e))
+          default-provider))))
 
 ;; Function reference.  Which implementation depends on config.
 (def geolocate
@@ -79,6 +82,8 @@
 
 (def C (atom (cache/lru-cache-factory {} :threshold (Math/pow 2 16))))
 
+;; FIXME: Is it a good idea to remove all punctuation?
+;; What about street addresses like this: "12-145 Haiku Plantation"?
 (defn- canonicalize-address
   "Lowercase.  Remove punctuation.  Scrunch whitespace."
   [s]

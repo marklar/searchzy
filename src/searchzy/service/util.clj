@@ -4,6 +4,7 @@
              [responses :as responses]
              [tz :as tz]]))
 
+;; Assert that the input values are good.
 (defn mk-geo-filter
   "Create map for filtering by geographic distance."
   [{:keys [miles coords]}]
@@ -36,11 +37,11 @@
 (defn get-hours-for-day
   "Specifically related to how hours are stored in a Business object.
    Probably doesn't really belong in util."
-  [hours day-of-week]
+  [week-of-hours day-of-week]
   ;; We cannot rely on the hours being a complete list.
   ;; Sometimes, there'll be a day or more missing.
   ;; It's necessary to look at each entry's :wday.
-  (let [alist       (day-hour-maps-to-alist hours)
+  (let [alist       (day-hour-maps-to-alist week-of-hours)
         num-2-hours (apply hash-map (flatten alist))]
     (let [res (get num-2-hours day-of-week)]
       (if (nil? res)
@@ -48,10 +49,11 @@
         res))))
 
 (defn- two-digit-str
-  "0 =>  '00'
-   15 => '15' "
-  [int]
-  (let [s (str int)]
+  "0  => '00'
+   15 => '15'
+  "
+  [non-neg-int]
+  (let [s (str non-neg-int)]
     (if (< (count s) 2)
       (str "0" s)
       s)))
@@ -61,8 +63,9 @@
   (if (empty? utc-offset-map)
     nil
     (let [{:keys [hours minutes]} utc-offset-map]
-      (str "GMT" (if (< hours 0) "" "+")
-           (two-digit-str hours) ":"
+      (str "GMT"
+           (if (< hours 0) "-" "+")
+           (two-digit-str (Math/abs hours)) ":"
            (two-digit-str minutes)))))
 
 ;; New York City
@@ -74,8 +77,13 @@
                             (mk-tz-str utc-offset-map)
                             (mk-tz-str DEFAULT-OFFSET))))
 
+;; No unit test.  Side effects (GregorianCalendar).
 (defn get-day-of-week-from-tz
-  "Return an int: [0..6]."
+  "Return an int: [0..6].  0 = Sunday.
+   e.g. args:
+     rails-time-zone: 'Eastern Time (US & Canada)'
+     utc-offset-map:  {:hours -5, :minutes 0}
+  "
   [rails-time-zone utc-offset-map]
   (let [tz      (mk-tz rails-time-zone utc-offset-map)
         cal     (doto (GregorianCalendar.) (.setTimeZone tz))
@@ -84,7 +92,7 @@
     (dec cal-num)))
 
 (defn get-day-of-week
-  "Return an int: [0..6]."
+  "Return an int: [0..6].  0 = Sunday."
   [hours-map rails-time-zone utc-offset-map]
   (if (:wday hours-map)
     (:wday hours-map)
@@ -115,8 +123,8 @@
   "Open: 8:30.  Close: 15:00.
      Time: 10:51 => true
      Time: 15:00 => false"
-  [hours-map biz-hours]
-  (let [hours-today (get-hours-for-day biz-hours (:wday hours-map))]
+  [hours-map week-of-biz-hours]
+  (let [hours-today (get-hours-for-day week-of-biz-hours (:wday hours-map))]
     (if (not (valid-hours? hours-today))
       false
       (and (time-cmp >= hours-map (:open  hours-today))
