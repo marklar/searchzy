@@ -96,11 +96,19 @@
     (sort-by #(-> % :business :distance_in_mi) bmis)
     bmis))
 
+;;
+;; TODO: Why in the world are these "empties" even there?
+;;
+(defn- reject-empties
+  [bmis]
+  (filter #(-> % :business :_id) bmis))
+
 ;;--------------------------
 
 (defn filter-sort
   [bmis include-unpriced geo-map hours-map sort-map]
   (->> bmis
+       reject-empties
        (maybe-filter-by-hours hours-map)
        (add-distances geo-map)
        (maybe-sort-by-distance-again include-unpriced)

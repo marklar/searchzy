@@ -1,4 +1,7 @@
 (ns searchzy.service.bmis.business-categories
+  " >>>>>>>>>>> DEPRECATED <<<<<<<<<<< 
+   The 'items' ElasticSearch index already contains this info.
+  "
   (:require [somnium.congomongo :as mg]
             [searchzy.util]))
 

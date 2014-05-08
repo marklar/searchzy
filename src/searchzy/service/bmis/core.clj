@@ -10,9 +10,9 @@
              [util :as util]
              [inputs :as inputs]]
             [searchzy.service.bmis
+             [items :as items]
              [hits :as hits]
              [businesses :as bizs]
-             [business-categories :as biz-cats]
              [metadata :as meta]
              [filter :as filter]]
             [clojurewerkz.elastisch.native
@@ -46,7 +46,7 @@
 (defn- maybe-add-unpriced
   [include-unpriced bmis item-id geo-map fake-pager]
   (if include-unpriced
-    (let [biz-cat-id (biz-cats/item-id->biz-cat-id item-id)
+    (let [biz-cat-id (items/get-biz-cat-id item-id)
           bizs (bizs/for-category biz-cat-id geo-map fake-pager)
           novel-bizs (de-dupe bizs bmis)
           novel-bmis (map bizs/->bmi novel-bizs)]
@@ -70,6 +70,8 @@
                                  fake-pager)]
     (filter/filter-sort bmis include-unpriced geo-map hours-map sort-map)))
 
+;;-------------------------
+
 (defn- get-day-of-week
   [bmis valid-args]
   (util/get-day-of-week
@@ -77,13 +79,16 @@
    (some #(-> % :business :rails_time_zone) bmis)
    (:utc-offset-map valid-args)))
 
+;;-------------------------
+
 (defn- search
   [valid-args]
   (let [bmis (get-all-open-bmis valid-args)
         day-of-week (get-day-of-week bmis valid-args)
+        related-items (items/get-related-items (:item-id valid-args))
         ;; Gather metadata from the results returned.
         metadata (meta/get-metadata bmis day-of-week)]
-    (hits/mk-response bmis metadata day-of-week valid-args)))
+    (hits/mk-response bmis related-items metadata day-of-week valid-args)))
 
 ;;-------------------------
 

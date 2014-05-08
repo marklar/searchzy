@@ -43,9 +43,10 @@
   "From ES response, create service response.
    We haven't done paging yet (because we needed metadata),
    so we need to do paging here."
-  [results metadata day-of-week {:keys [ item-id geo-map hours-map
-                                         utc-offset-map sort-map page-map
-                                         include-unpriced ]}]
+  [results related-items metadata day-of-week
+   {:keys [ item-id geo-map hours-map
+            utc-offset-map sort-map page-map
+            include-unpriced ]}]
   (let [pageful   (take (:size page-map) (drop (:from page-map) results))
         resp-hits (map #(mk-one-hit % day-of-week) pageful)]
     (responses/ok-json
@@ -61,5 +62,6 @@
       :results {:count (count results)
                 :prices_micros (:prices-micros metadata)
                 :latest_close (:latest-close metadata)
+                :related_items related-items
                 :hits resp-hits
                 }})))

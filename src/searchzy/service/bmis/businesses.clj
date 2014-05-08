@@ -26,8 +26,8 @@
 ;;-------------------------
 
 (defn for-category
-  "From MongoDB, fetch business_category_id for this item_id.
-   Search ElasticSearch for corresponding Businesses.
+  "Given business_category_id,
+   search ElasticSearch for corresponding Businesses.
    Doesn't return BusinessMenuBmis, mind you -- just Businesses."
   [biz-cat-id geo-map pager]
   (if (nil? biz-cat-id)
