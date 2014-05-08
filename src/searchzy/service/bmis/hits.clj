@@ -59,9 +59,13 @@
                   :day_of_week day-of-week
                   :sort sort-map
                   :paging page-map}
-      :results {:count (count results)
-                :prices_micros (:prices-micros metadata)
-                :latest_close (:latest-close metadata)
-                :related_items related-items
-                :hits resp-hits
-                }})))
+      :results (merge {:count (count results)
+                       :related_items related-items
+                       :hits resp-hits}
+                      (if (:prices-micros metadata)
+                        ;; v1
+                        {:prices_micros (:prices-micros metadata)
+                         :latest_close (:latest-close metadata)}
+                        ;; v2
+                        {:metadata metadata}))
+      })))

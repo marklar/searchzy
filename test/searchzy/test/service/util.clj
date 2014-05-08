@@ -72,9 +72,9 @@
 (fact "`time->mins`"
       (let [f util/time->mins]
         ;; weird times
-        (f nil) => 0
-        (f {})  => 0
-        (f {:hour 10}) => 0
+        (f nil) => nil
+        (f {})  => nil
+        (f {:hour 10}) => nil
         ;; good times
         (f {:hour 0,  :minute 30}) => 30
         (f {:hour 10, :minute 41}) => 641
