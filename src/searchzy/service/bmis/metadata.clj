@@ -1,14 +1,11 @@
 (ns searchzy.service.bmis.metadata
-  "For BizMenuItems"
+  "For BizMenuItems -- >>>>>>> VERSION 1 <<<<<<<"
   (:require [searchzy.service
              [util :as util]]))
 
-;; This doesn't exist in the core lib?
-(defn- compact [seq] (remove nil? seq))
-
 (defn- get-prices-micros
   [biz-menu-items]
-  (let [prices (compact (map #(-> % :price_micros) biz-menu-items))
+  (let [prices (util/compact (map :price_micros biz-menu-items))
         sum (apply + prices)
         cnt (count prices)]
     (if (= 0 cnt)
@@ -19,8 +16,8 @@
 
 (defn- get-all-hours-today
   [biz-menu-items day-of-week]
-  (let [all-hours (compact (map #(-> % :business :hours) biz-menu-items))]
-    (compact (map #(util/get-hours-for-day % day-of-week) all-hours))))
+  (let [all-hours (util/compact (map #(-> % :business :hours) biz-menu-items))]
+    (util/compact (map #(util/get-hours-for-day % day-of-week) all-hours))))
 
 (def HOUR_MINS 60)
 
@@ -33,7 +30,7 @@
 (defn- get-latest-hour
   "Given [{:hour h :minute m}], return the latest one."
   [hour-list]
-  (let [max-minutes (apply max (cons 0 (map util/time->mins hour-list)))]
+  (let [max-minutes (apply max (util/compact (map util/time->mins hour-list)))]
     (mins-to-hour max-minutes)))
 
 (defn- get-latest-close

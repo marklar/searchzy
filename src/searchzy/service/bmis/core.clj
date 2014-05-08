@@ -10,10 +10,12 @@
              [util :as util]
              [inputs :as inputs]]
             [searchzy.service.bmis
+             [hours :as hours]
+             [price :as price]
+             [metadata :as meta]
              [items :as items]
              [hits :as hits]
              [businesses :as bizs]
-             [metadata :as meta]
              [filter :as filter]]
             [clojurewerkz.elastisch.native
              [document :as es-doc]]))
@@ -81,18 +83,28 @@
 
 ;;-------------------------
 
+(defn get-metadata
+  "For >>>> v2 <<<<<.
+   For v1, use `meta/get-metadata`."
+  [bmis day-of-week]
+  {:price_micros (price/metadata bmis)
+   :business_hours (hours/metadata bmis day-of-week)})
+
 (defn- search
-  [valid-args]
+  [valid-args meta-fn]
   (let [bmis (get-all-open-bmis valid-args)
-        day-of-week (get-day-of-week bmis valid-args)
         related-items (items/get-related-items (:item-id valid-args))
         ;; Gather metadata from the results returned.
-        metadata (meta/get-metadata bmis day-of-week)]
+        day-of-week (get-day-of-week bmis valid-args)
+        metadata (meta-fn bmis day-of-week)]
     (hits/mk-response bmis related-items metadata day-of-week valid-args)))
 
 ;;-------------------------
 
 (defn validate-and-search
   ""
-  [input-args]
-  (util/validate-and-search input-args inputs/biz-menu-item-clean-input search))
+  [version-str input-args]
+  (let [meta-fn (if (= version-str "v1") meta/get-metadata get-metadata)]
+    (util/validate-and-search input-args
+                              inputs/biz-menu-item-clean-input
+                              #(search % meta-fn))))

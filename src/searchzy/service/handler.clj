@@ -109,6 +109,7 @@
 
   ;;-- BUSINESS_MENU_ITEMS --
 
+  ;; >>> v1 <<<
   ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
        [api_key item_id address lat lon miles
@@ -118,6 +119,26 @@
          (bounce)
          ;;-- authorized
          (items/validate-and-search
+          "v1"
+          {:item-id item_id
+           :include-unpriced include_unpriced
+           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+           :hours hours
+           :utc-offset utc_offset
+           :sort sort
+           :page-map {:from from, :size size}})))
+
+  ;; >>> v2 <<<
+  ;; These results contain aggregate meta-info.
+  (GET (v-path 2 "/business_menu_items")
+       [api_key item_id address lat lon miles
+        hours utc_offset sort from size include_unpriced]
+       (if (not (valid-key? api_key))
+         ;;-- not authorized
+         (bounce)
+         ;;-- authorized
+         (items/validate-and-search
+          "v2"
           {:item-id item_id
            :include-unpriced include_unpriced
            :geo-map {:address address, :lat lat, :lon lon, :miles miles}

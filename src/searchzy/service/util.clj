@@ -4,6 +4,9 @@
              [responses :as responses]
              [tz :as tz]]))
 
+;; This doesn't exist in the core lib?
+(defn compact [seq] (remove nil? seq))
+
 ;; Assert that the input values are good.
 (defn mk-geo-filter
   "Create map for filtering by geographic distance."
@@ -103,7 +106,7 @@
   [{h :hour, m :minute}]
   (try
     (+ m (* h 60))
-    (catch Exception e 0)))
+    (catch Exception e nil)))
 
 (defn- time-cmp
   [op t1 t2]
