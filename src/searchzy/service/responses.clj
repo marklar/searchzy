@@ -15,8 +15,8 @@
 (defn json-p-ify
   "Ring middleware!
    Take a response map.  Return w/ body wrapped in JSONP."
-  [{b :body :as resp}]
-  (assoc resp :body (str "jsonCallBack(" b ")")))
+  [{body :body :as resp}]
+  (assoc resp :body (str "jsonCallBack(" body ")")))
 
 (defn ok-json
   [obj]
