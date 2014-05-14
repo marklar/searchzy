@@ -110,7 +110,6 @@
   ;;-- BUSINESS_MENU_ITEMS --
 
   ;; >>> v1 <<<
-  ;; These results contain aggregate meta-info.
   (GET (v-path 1 "/business_menu_items")
        [api_key item_id address lat lon miles
         hours utc_offset sort from size include_unpriced]
@@ -129,7 +128,6 @@
            :page-map {:from from, :size size}})))
 
   ;; >>> v2 <<<
-  ;; These results contain aggregate meta-info.
   (GET (v-path 2 "/business_menu_items")
        [api_key item_id address lat lon miles
         hours utc_offset sort from size include_unpriced]

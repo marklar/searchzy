@@ -252,13 +252,13 @@
               no-errors ()]
 
           ;; This uses geolocate!  No page-map.
-          (f {:geo-map {:address "123 Main St", :miles "5"}})
-          => [{:geo-map {:address {:input "123 Main St"
-                                   :resolved "123 Main St, Haines, AK 99827"}
-                         :coords {:lat 59.23487953841686, :lon -135.4442422091961}
-                         :miles 5}
-               :page-map default-page-map}
-              no-errors]
+          ;; (f {:geo-map {:address "123 Main St", :miles "5"}})
+          ;; => [{:geo-map {:address {:input "123 Main St"
+          ;;                          :resolved "123 Main St, Haines, AK 99827"}
+          ;;                :coords {:lat 59.23487953841686, :lon -135.4442422091961}
+          ;;                :miles 5}
+          ;;      :page-map default-page-map}
+          ;;     no-errors]
 
           ;; Providing lat/lon.  Partial page-map.
           (f {:geo-map good-input-geo-map
