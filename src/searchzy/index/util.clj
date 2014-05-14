@@ -22,9 +22,15 @@
       ;; I don't know hy 'str' here is necessary!!!!!
       (map #(mg/object-id (str %)) biz-id-strs))))
 
+(defn- maybe-delete-idx [idx-name]
+  (if (es-idx/exists? idx-name)
+    (do
+      (println (str "deleting index: " idx-name))
+      (es-idx/delete idx-name))))
+
 (defn recreate-idx
   "If index 'idx-name' exists, delete it.
-   Then create it using 'mapping-types'.
+   Then create it using :mappings.
    ...
    Do this only if indexing from scratch.
    If updating index, do not do this."
@@ -32,10 +38,7 @@
   ;; TODO
   ;; Functions delete and create return Clojure maps.
   ;; Use response/ok? or response/conflict? to verify success.
-  (if (es-idx/exists? idx-name)
-    (do
-      (println (str "deleting index: " idx-name))
-      (es-idx/delete idx-name)))
+  (maybe-delete-idx idx-name)
   (do
     (println (str "creating index: " idx-name))
     (let [foo (es-idx/create idx-name :mappings mapping-types)]

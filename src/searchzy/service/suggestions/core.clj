@@ -26,7 +26,8 @@
               :filter (mk-biz-cat-id-filter domain biz-cat-ids)}})
 
 (defn- get-results
-  "Perform prefix search against names."
+  "Perform prefix search against names / stemmed_names.
+   Specifically for 'business_categories' and 'items'."
   [domain query-str biz-cat-ids {:keys [from size]}]
   (let [es-names (get cfg/elastic-search-names domain)]
     (:hits (es-doc/search (:index es-names)

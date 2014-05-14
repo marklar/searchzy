@@ -15,7 +15,10 @@
 (def mapping-types
   {mapping-name
    {:properties
-    {:name {:type "string"}}}})
+    ;; Add name twice.  Once stemmed, once not.
+    {:name {:type "string"}
+     :stemmed_name {:type "string", :analyzer "snowball"}
+     }}})
 
 
 ;; An example mg-map...
@@ -58,28 +61,38 @@
 ;; to be stored in ElasticSearch,
 ;; just as we do with Businesses.
 
+(defn- mg->es
+  [mg-map]
+  (-> mg-map
+      (dissoc :_id)
+      (assoc :stemmed_name (:name mg-map))))
+
 (defn- add-to-idx
   "Given a BusinessCategory mongo-map,
    1. convert to es-map, and
    2. add to ES index (explicitly providing _id)."
   [mg-map]
   (es-doc/put idx-name mapping-name
-              (str (:_id mg-map))
-              (dissoc mg-map :_id)))
+              (str (:_id mg-map))   ; explicit ID
+              (mg->es mg-map)))
 
 (defn- recreate-idx
   []
   (util/recreate-idx idx-name mapping-types))
 
+(defn- mg-where
+  [after]
+  (merge
+   {:is_searchable_ind true}
+   (if after
+     {:updated_at {:$gte after}}
+     {})))
+
 (defn- mg-fetch
   [& {:keys [limit after]}]
   (mg/fetch :business_categories
             :limit limit
-            :where (merge
-                    {:is_searchable_ind true}
-                    (if after
-                      {:updated_at {:$gte after}}
-                      {}))))
+            :where (mg-where after)))
 
 (defn mk-idx
   "Fetch BusinessCategories from MongoDB.

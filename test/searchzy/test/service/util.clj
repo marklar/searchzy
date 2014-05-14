@@ -18,12 +18,16 @@
 (fact "`mk-suggestion-query`"
       (let [f util/mk-suggestion-query]
         ;; just one token
-        (f "one") => {:bool {:must [{:prefix {:name "one"}}]}}
+        (f "one") => {:bool {:minimum_should_match 1
+                             :must []
+                             :should [{:prefix {:name "one"}}
+                                      {:match {:stemmed_name "one"}}]}}
         ;; multiple tokens
-        (f "one two thr") => {:bool {:must [{:prefix {:name "thr"}}
-                                            {:term {:name "one"}}
-                                            {:term {:name "two"}}
-                                            ]}}
+        (f "one two thr") => {:bool {:minimum_should_match 1
+                                     :must [{:match {:stemmed_name "one"}}
+                                            {:match {:stemmed_name "two"}}]
+                                     :should [{:prefix {:name "thr"}}
+                                              {:match {:stemmed_name "thr"}}]}}
         ))
 
 (let [hours-0 {:open {:hour 12, :minute 0}
