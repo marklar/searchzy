@@ -12,8 +12,15 @@
   {mapping-name
    {:properties
     {:_id  {:type "string"}
-     ;; not necessary to search for name.  just store it.
-     :name {:type "string"}}}})
+     :name {:type "string"}
+     :stemmed_name {:type "string", :analyzer "snowball"}}}})
+
+(defn- mg->es
+  [mg-map biz-cat-ids]
+  {:business_category_ids biz-cat-ids
+   :name (:name mg-map)
+   :stemmed_name (:name mg-map)
+   :fdb_id (:fdb_id mg-map)})
 
 (defn- add-to-idx
   "Given an ItemCategory mongo-map,
@@ -23,10 +30,8 @@
   (doseq [i items]
     (if (:is_searchable_ind i)
       (es-doc/put idx-name mapping-name
-                  (str (:_id i))
-                  {:business_category_ids business_category_ids
-                   :name (:name i)
-                   :fdb_id (:fdb_id i)}))))
+                  (str (:_id i))   ; explicit ID
+                  (mg->es i business_category_ids)))))
 
 (defn recreate-idx
   []

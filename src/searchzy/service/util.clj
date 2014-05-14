@@ -19,15 +19,16 @@
   "String 's' may contain mutiple terms.
    Perform a boolean query."
   [s]
-  ;; split s into tokens.
-  ;; take all but last token: create :term query for each.
-  ;; take last token: create prefix match.
+  ;; Split s into tokens.
+  ;; Take all but last token: do a stemmed query for each.
+  ;; Take last token: either prefix match or stemmed match.
   (let [tokens (clojure.string/split s #" ")
-        prefix (last tokens)
-        fulls  (butlast tokens)]
-    (let [foo (cons {:prefix {:name prefix}}
-                    (map (fn [t] {:term {:name t}}) fulls))]
-      {:bool {:must foo}})))
+        fulls (butlast tokens)
+        prefix (last tokens)]
+    {:bool {:minimum_should_match 1
+            :must   (map (fn [t] {:match {:stemmed_name t}}) fulls)
+            :should [{:prefix {:name prefix}}
+                     {:match {:stemmed_name prefix}}]}}))
 
 ;; -- hours --
 
