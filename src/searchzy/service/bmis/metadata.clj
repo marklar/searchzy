@@ -3,16 +3,22 @@
   (:require [searchzy.service
              [util :as util]]))
 
-(defn- get-prices-micros
-  [biz-menu-items]
-  (let [prices (util/compact (map :price_micros biz-menu-items))
-        sum (apply + prices)
-        cnt (count prices)]
+(defn- get-price-meta
+  ":: [Int] -> {:mean Float, :max Float, :min Float}"
+  [prices]
+  (let [cnt (count prices)]
     (if (= 0 cnt)
       {:mean 0, :max 0, :min 0}
-      {:mean (/ sum cnt)
+      {:mean (/ (apply + 0 prices) cnt)
        :max  (apply max prices)
        :min  (apply min prices)})))
+
+(defn- get-prices-micros
+  [biz-menu-items]
+  (let [prices (util/compact (map :price_micros biz-menu-items))]
+    (get-price-meta prices)))
+
+;;--------------------
 
 (defn- get-all-hours-today
   [biz-menu-items day-of-week]
@@ -21,7 +27,7 @@
 
 (def HOUR_MINS 60)
 
-(defn- mins-to-hour
+(defn- mins->hour
   [minutes]
   (let [m (mod minutes HOUR_MINS)]
     {:hour   (/ (- minutes m) HOUR_MINS)
@@ -30,8 +36,8 @@
 (defn- get-latest-hour
   "Given [{:hour h :minute m}], return the latest one."
   [hour-list]
-  (let [max-minutes (apply max (util/compact (map util/time->mins hour-list)))]
-    (mins-to-hour max-minutes)))
+  (let [max-minutes (apply max 0 (util/compact (map util/time->mins hour-list)))]
+    (mins->hour max-minutes)))
 
 (defn- get-latest-close
   "Given biz-menu-items, return a single 'hour' (i.e. {:hour h, :minute m})."
