@@ -1,5 +1,6 @@
 (ns searchzy.service.bmis.filter
-  (:use [clojure.core.match :only (match)])
+  (:use [clojure.core.match :only (match)]
+        [clojure.contrib.seq-utils :only [separate]])
   (:require [searchzy.service.bmis
              [value :as value]]
             [searchzy.service
@@ -16,9 +17,12 @@
 (defn- maybe-reverse
   "The bmis enter here in ASC order.
    If that's what's requested, simply return them.
-   If DESC is requested, reverse them."
+   If DESC is requested, reverse them.
+  "
   [sort-map bmis]
-  (if (= :asc (:order sort-map))
+  ;; >> sort-by-price already reverse-sorted if necessary
+  (if (or (= "price" (:attribute sort-map))
+          (= :asc (:order sort-map)))
     bmis
     (reverse bmis)))
 
@@ -29,14 +33,24 @@
   [(:awesomeness bmi)
    (- 0 (-> bmi :business :distance_in_mi))])
 
+(defn- sort-by-price
+  "1. asc/desc price (for those with price),
+   2. asc distance_in_mi"
+  [sort-map bmis]
+  (let [[priced unpriced] (separate :price_micros bmis)
+        asc-priced (sort-by (fn [i] [(:price_micros i)
+                                     (-> i :business :distance_in_mi)]) priced)
+        asc-unpriced (sort-by (fn [i] (-> i :business :distance_in_mi)) unpriced)
+        maybe-rev (if (= :asc (:order sort-map)) identity reverse)]
+    (concat (maybe-rev asc-priced) (maybe-rev asc-unpriced))))
+
 (defn- maybe-sort
   [sort-map bmis]
   (match (:attribute sort-map)
          ;; asc distance_in_mi (already done in maybe-collar)
          "distance" bmis
-         ;; 1. asc price, 2. asc distance_in_mi
-         "price"    (sort-by (fn [i] [(or (:price_micros i) Integer/MAX_VALUE)
-                                      (-> i :business :distance_in_mi) ]) bmis)
+         ;; 1. asc/desc price (for those with price), 2. asc distance_in_mi
+         "price"    (sort-by-price sort-map bmis)
          ;; asc rating (which is rarely what we'll want)
          "rating"   (value/rate-and-sort bmis)
          ;; asc value (which is rarely what we'll want)
@@ -91,8 +105,8 @@
   (map #(add-distance-in-mi % (:coords geo-map)) bmis))
 
 (defn- maybe-sort-by-distance-again
-  [include-unpriced bmis]
-  (if include-unpriced
+  [include-unpriced sort-map bmis]
+  (if (and include-unpriced (= "distance" (:attribute sort-map)))
     (sort-by #(-> % :business :distance_in_mi) bmis)
     bmis))
 
@@ -111,5 +125,5 @@
        reject-empties
        (maybe-filter-by-hours hours-map)
        (add-distances geo-map)
-       (maybe-sort-by-distance-again include-unpriced)
+       (maybe-sort-by-distance-again include-unpriced sort-map)
        (maybe-re-sort sort-map)))

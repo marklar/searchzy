@@ -7,6 +7,7 @@
                  [org.clojure/core.match "0.2.1"]
                  [org.clojure/core.cache "0.6.3"]
                  [org.clojure/tools.cli "0.3.1"]
+                 [org.clojars.nathell/clojure-contrib "1.2.0"]
                  [camel-snake-kebab "0.1.4"]
                  [clj-yaml "0.4.0"]
                  [clj-time "0.7.0"]
