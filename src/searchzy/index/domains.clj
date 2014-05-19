@@ -4,6 +4,7 @@
              [biz-combined :as biz-combined]
              [business :as biz]
              [item :as item]
+             [location :as location]
              [list :as list]
              [business-menu-item :as biz-menu-item]
              [business-category :as biz-cat]]))
@@ -35,6 +36,9 @@
    :items          {:db-name :main
                     :index-fn item/mk-idx}
 
+   :locations      {:db-name :areas
+                    :index-fn location/mk-idx}
+
    ;; -- TAKE A LONG TIME --
 
    :lists          {:db-name :areas
@@ -57,7 +61,7 @@
                     sort
                     (str/join ", ")))
 
-(def all-domains [:biz-categories :items :lists :combined])
+(def all-domains [:biz-categories :items :locations :lists :combined])
 
 (defn str->names
   [domains-str]
