@@ -14,18 +14,14 @@
   {mapping-name
    {:properties
     {:_id {:type "string"}
-     :permalink {:type "string"}}}})
-
-(defn- mg->es
-  [mg-map]
-  (-> mg-map
-      (dissoc :_id)))
+     :permalink {:type "string"
+                 :index "not_analyzed"}}}})
 
 (defn- add-to-idx
   [mg-map]
   (es-doc/put idx-name mapping-name
               (str (:_id mg-map))
-              (mg->es mg-map)))
+              mg-map))
 
 (defn- recreate-idx
   []
