@@ -168,17 +168,25 @@
    Returns a :where clause for Mongo query.
    :: (DateTime, str) -> hash-map"
   [after biz-ids]
-  (merge (if after
-           {:updated_at {:$gte after}}
-           {})
-         (if (empty? biz-ids)
-           {}
-           {:_id {:$in biz-ids}})))
-
+  (merge
+   ;; Don't include Businesses lacking :address_1.
+   {:$and [{:address_1 {:$ne nil}}
+           {:address_1 {:$ne ""}}]}
+   ;; If user provides a date filter, get only newer stuff.
+   (if after
+     {:updated_at {:$gte after}}
+     {})
+   ;; If user specifies particular businesses, get only those.
+   (if (empty? biz-ids)
+     {}
+     {:_id {:$in biz-ids}})))
+  
 (defn- mk-fetch-opts
   [limit after biz-ids]
   (let [query-map (mk-query-map after biz-ids)
-        opts (if (empty? query-map) [] [:where query-map])]
+        opts (if (empty? query-map)
+               []
+               [:where query-map])]
     (if limit
       (concat [:limit limit] opts)
       opts)))

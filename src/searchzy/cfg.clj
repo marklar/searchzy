@@ -18,6 +18,9 @@
                           :mapping "business_menu_item"}
    :lists                {:index   "lists"
                           :mapping "list"}
+   :locations            {:index   "locations"
+                          :mapping "location"}
+
    ;; -- fast --
    :business_categories  {:index   "business_categories"
                           :mapping "business_category"}
@@ -46,28 +49,21 @@
    :mongo-db
    {
     :main
-    {:db-name "centzy_web_production"
+    {:db-name "centzy2_development"
      :username nil
      :password nil
      :host "127.0.0.1"
      :port 27017}
 
     :areas 
-    {:db-name "locality_web_production_areas"
-     :username "locality_web_05_2014"
-     :password "JvJ6XlTIE0nf9mnggPTu7EImHfH7RsuwekgD24F152WaSip85da"
-     :host "locality-web-production-areas.m0.mongolayer.com"
+    {:db-name "locality_web_development_areas"
+     :username nil
+     :password nil
+     :host "127.0.0.1"
      :port 27017}
     
-    ;; :areas
-    ;; {:db-name "centzy_web_production_areas"
-    ;;  :username nil
-    ;;  :password nil
-    ;;  :host "127.0.0.1"
-    ;;  :port 27017}
-    
     :businesses
-    {:db-name "centzy_web_production"
+    {:db-name "locality_web_production_businesses"
      :username nil
      :password nil
      :host "127.0.0.1"

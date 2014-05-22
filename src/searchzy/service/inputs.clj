@@ -176,6 +176,18 @@
   [s]
   (if (clojure.string/blank? s) nil s))
 
+(defn- optional-comma-separated-strs
+  [s]
+  (if (clojure.string/blank? s)
+    []
+    (clojure.string/split s #",")))
+
+(defn- required-comma-separated-strs
+  [s]
+  (if (clojure.string/blank? s)
+    nil
+    (clojure.string/split s #",")))
+
 (def clean-item-id
   (clean/mk-cleaner
    :item-id :item-id
@@ -186,10 +198,7 @@
 (def clean-business-category-ids
   (clean/mk-cleaner
    :business-category-ids :business-category-ids
-   (fn [s]
-     (if (clojure.string/blank? s)
-       []
-       (clojure.string/split s #",")))
+   optional-comma-separated-strs
    (fn [i o] {:param :business_category_ids  ; underbar
               :message "There should be no problem with 'business_category_ids'."})))
 
@@ -218,6 +227,37 @@
               :args i})))
 
 ;;-----------------------
+;; mean-prices
+
+(def clean-item-category-ids
+  (clean/mk-cleaner
+   :item-category-ids :item-category-ids
+   required-comma-separated-strs
+   (fn [i o] {:param :item_category_ids  ; underbar
+              :message "Param 'item_category_ids' must have non-empty value."})))
+
+(def clean-permalink
+  (clean/mk-cleaner
+   :permalink :permalink
+   str-or-nil
+   (fn [i o] {:param :permalink
+              :message "Param 'permalink' must have non-empty value."})))
+
+(def clean-location-miles
+  (clean/mk-cleaner
+   :miles :miles
+   #(str->val % 1.0)
+   (fn [i o] {:param :miles
+              :message "There should be no problem with 'miles'."})))
+
+;;-----------------------
+
+(defn mean-prices-input
+  [args]
+  (clean/gather->> args
+                   clean-permalink
+                   clean-item-category-ids
+                   clean-location-miles))
 
 (defn lists-clean-input
   "The other inputs are all strings, which may be blank or not."

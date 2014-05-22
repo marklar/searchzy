@@ -125,16 +125,36 @@
                                    :coordinates {:lat 20.2, :lon 10.1}
                                    :hours '()}))
 
-(fact "`mk-query-map`"
-      (let [f #'biz/mk-query-map]
-        (f ..some-date.. ["1" "2"]) => {:updated_at {:$gte ..some-date..}
-                                        :_id {:$in ["1" "2"]}}
-        (f ..some-date.. nil) => {:updated_at {:$gte ..some-date..}}
-        (f nil ["1" "2"]) => {:_id {:$in ["1" "2"]}}
-        (f nil nil) => {}))
 
-(fact "`mk-fetch-opts`"
-      (let [f #'biz/mk-fetch-opts]
-        (f 10 ..some-date.. ["1" "2"]) => '(:limit 10 :where {:updated_at {:$gte ..some-date..}
-                                                              :_id {:$in ["1" "2"]}})
-        (f nil ..some-date.. []) => '(:where {:updated_at {:$gte ..some-date..}})))
+(let [standard-where {:$and [{:address_1 {:$ne nil}}
+                             {:address_1 {:$ne ""}}
+                             ]}]
+
+  (fact "`mk-query-map`"
+        (let [f #'biz/mk-query-map]
+          (f ..some-date.. ["1" "2"]) => (contains {:updated_at {:$gte ..some-date..}
+                                                    :_id {:$in ["1" "2"]}})
+          
+          (f ..some-date.. nil) => (contains {:updated_at {:$gte ..some-date..}})
+          
+          (f nil ["1" "2"]) => (contains {:_id {:$in ["1" "2"]}})
+          
+          (f nil nil) => standard-where
+          ))
+
+
+  (fact "`mk-fetch-opts`"
+        (let [f #'biz/mk-fetch-opts]
+
+          (f 10 ..some-date.. ["1" "2"])
+          => (contains [:limit 10 :where
+                        (merge standard-where
+                               {:updated_at {:$gte ..some-date..}
+                                :_id {:$in ["1" "2"]}}
+                               )])
+          
+          (f nil ..some-date.. [])
+          => (contains [:where
+                        (merge standard-where
+                               {:updated_at {:$gte ..some-date..}})])
+          )))

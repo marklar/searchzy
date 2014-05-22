@@ -12,6 +12,7 @@
              [business-menu-items :as docs.items]]
             [searchzy.service
              [inputs :as inputs]
+             [mean-prices :as mean-prices]
              [business :as biz]
              [responses :as responses]]
             [searchzy.service.suggestions
@@ -66,6 +67,20 @@
 
   (GET "/docs/lists" []
        (docs.lists/show))
+
+  ;;-- MEAN_PRICES --
+
+  ;; TODO: permalink
+  (GET (v-path 1 "/mean_prices")
+       [api_key permalink item_category_ids miles]
+       (if (not (valid-key? api_key))
+         ;;-- not authorized
+         (bounce)
+         ;;-- authorized
+         (mean-prices/validate-and-search
+          {:permalink permalink
+           :item-category-ids item_category_ids
+           :miles miles})))
 
   ;;-- BUSINESSES --
 
