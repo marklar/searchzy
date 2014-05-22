@@ -17,9 +17,10 @@
 
 (defn- get-results
   [{:keys [permalink item-ids miles]}]
-  ;; for now, return locations
+  ;; For now, return the Location.
+  ;; From the Location, determine what the 'wrapping' Location should be.
+  ;; 
   (get-location permalink))
-  ;; from locations, get 
 
 ;; for now, just show locations
 (defn- mk-response
