@@ -53,7 +53,7 @@
    For each Item, add to index.
    Return count (of ItemCategories)."
   [& {:keys [limit after]}]
-  (if-not after
+  (if (nil? after)
     (recreate-idx))
   (doseq-cnt add-to-idx
              10

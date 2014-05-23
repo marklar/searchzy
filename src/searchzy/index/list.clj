@@ -93,6 +93,6 @@
      - ElasticSearch
   "
   [& {:keys [limit after]}]
-  (if-not after
+  (if (nil? after)
     (recreate-idx))
   (doseq-cnt add-to-idx 5000 (mg-fetch :limit limit :after after)))
