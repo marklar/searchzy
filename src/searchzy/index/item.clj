@@ -22,16 +22,23 @@
    :stemmed_name (:name mg-map)
    :fdb_id (:fdb_id mg-map)})
 
+(defn- get-biz-cat-ids
+  [item]
+  (let [item-category (mg/fetch-by-id :item_categories
+                                      (:item_category_id item))]
+    (if (nil? item-category)
+      nil    ;; This shouldn't happen, right?
+      (:business_category_ids item-category))))
+
 (defn- add-to-idx
-  "Given an ItemCategory mongo-map,
-   get embedded :item maps.
-   Convert each to es-map and add to index."
-  [{:keys [business_category_ids items]}]
-  (doseq [i items]
-    (if (:is_searchable_ind i)
-      (es-doc/put idx-name mapping-name
-                  (str (:_id i))   ; explicit ID
-                  (mg->es i business_category_ids)))))
+  "Given an Item mongo-map,
+   first get its business_category_ids via its item_category_id.
+   Then convert to es-map and add to index."
+  [item]
+  (if (:is_searchable_ind item)
+    (es-doc/put idx-name mapping-name
+                (str (:_id item))   ; explicit ID
+                (mg->es item (get-biz-cat-ids item)))))
 
 (defn recreate-idx
   []
@@ -39,7 +46,7 @@
 
 (defn- mg-fetch
   [& {:keys [limit after]}]
-  (mg/fetch :item_categories
+  (mg/fetch :items
             :limit limit
             :where (merge
                     {:is_searchable_ind true}
@@ -48,9 +55,8 @@
                       {}))))
 
 (defn mk-idx
-  "Fetch ItemCategories from MongoDB.
-   For each ItemCategory, get embedded :items.
-   For each Item, add to index.
+  "Fetch Items from MongoDB.
+   For each, add to index.
    Return count (of ItemCategories)."
   [& {:keys [limit after]}]
   (if (nil? after)
