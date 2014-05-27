@@ -23,8 +23,8 @@
   [item]
   (let [add (fn [item rating count]
               (assoc item :tweaked-rating rating :tweaked-count count))
-        rating (:yelp_star_rating  item)
-        count  (:yelp_review_count item)]
+        rating (-> item :business :yelp_star_rating)
+        count  (-> item :business :yelp_review_count)]
     (if (or (nil? count) (= count 0))
       (add item 3.0 1)
       (if (or (nil? rating) (< rating 3.0))
@@ -79,6 +79,7 @@
   (-> (map price-tweak items)
       (add-norm :tweaked-price >)))
 
+;; -- Currently unused. --
 (defn- add-price-val-norm
   "Create price norm based not on rank but on actual price.
    If the item's price is nil, use (* 1.1 max-price)."
@@ -145,7 +146,8 @@
                 :tweaked-count-norm) items))
 
 ;;-------------------------------
-  
+
+;; VALUE  
 (defn score-and-sort
   "Final Score and Sort
    Add weighted scores for Ranking, Review, Price
@@ -159,6 +161,7 @@
        (sort score-and-count-lt)
        rm-norms))
 
+;; RATING
 (defn rate-and-sort
   "Weigh Yelp more than price, distance."
   [items]
