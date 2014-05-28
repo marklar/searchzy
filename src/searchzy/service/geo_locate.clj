@@ -8,7 +8,9 @@
              [bing :as bing]]))     ;; #{bing geonames google}
 
 (defn- mk-bing-geolocate
-  "Given an address (e.g. '2491 Aztec Way, Palo Alto, CA 94303'),
+  "Returns a function, based on whether an api-key is provided or not.
+   The returned function...
+   Given an address (e.g. '2491 Aztec Way, Palo Alto, CA 94303'),
    return: {:address (resolved), :coords} || nil"
   [api-key]
   (if (str/blank? api-key)
@@ -80,7 +82,7 @@
                             (str "Invalid geocoding provider in CFG: "
                                  provider))))))
 
-(def C (atom (cache/lru-cache-factory {} :threshold (Math/pow 2 16))))
+(def CACHE (atom (cache/lru-cache-factory {} :threshold (Math/pow 2 16))))
 
 ;; FIXME: Is it a good idea to remove all punctuation?
 ;; What about street addresses like this: "12-145 Haiku Plantation"?
@@ -98,29 +100,84 @@
                     str/trim
                     (str/split #"\s+"))))
 
+;;-----------------------
+
+(defn- resolve-cfg-addr
+  "[k v] -> [k v]"
+  [[cfg-addr cfg-coords]]
+  (let [loc (geolocate cfg-addr)
+        addr (if (nil? loc) cfg-addr (:address loc))]
+    [(canonicalize-address addr) cfg-coords]))
+
+;; Also defined in clojure.walk,
+;; but that one is recursive (and we don't need that).
+(defn- stringify-keys
+  [hash-map]
+  (apply assoc {} (flatten (map (fn [[k v]] [(name k) v]) hash-map))))
+
+;;
+;; We want to be able to find an address either:
+;;    * as provided in the configuration (but canonicalized!), OR
+;;    * as resolved by bing/google (but canonicalized!)
+;;
+;; So we create a hash which uses both versions of the address
+;; as its keys.
+;;
+(def address-2-coords)
+(defn get-address-2-coords []
+  (let [a-2-cs (stringify-keys (-> (cfg/get-cfg) :geocoding :preferred-coords))
+        locs (map resolve-cfg-addr a-2-cs)]
+    (defonce address-2-coords
+      (apply assoc a-2-cs (flatten locs)))
+    address-2-coords))
+
+;;-----------------------
+
+(defn- from-config
+  [addr]
+  (let [a-2-cs (get-address-2-coords)]
+    (if-let [coords (a-2-cs addr)]
+      {:address addr, :coords coords}
+      nil)))
+
 (defn- from-cache
   "If get from cache, notify cache that we've used it and return value.
    If failed, return nil."
   [addr]
-  (if-let [loc (cache/lookup @C addr)]
-    (do (swap! C #(cache/hit % addr))
+  (if-let [loc (cache/lookup @CACHE addr)]
+    (do (swap! CACHE #(cache/hit % addr))
         loc)
     nil))
 
 (defn- lookup
   "Perform geo lookup.  Success: add to cache.  Failure: return nil."
   [addr]
-  (if-let [loc (geolocate addr)]
-    (do (swap! C #(cache/miss % addr loc))
-        loc)
+  ;; If bing/google lookup works...
+  (if-let [lookup-loc (geolocate addr)]
+
+    ;; See whether the "resolved" address is in the config.
+    (let [canon-lookup-addr (canonicalize-address (:address lookup-loc))]
+
+      ;; If it is in config, opt for the config loc.
+      ;; Else, opt for the looked-up one.
+      (let [loc (or (from-config canon-lookup-addr)
+                    lookup-loc)]
+        ;; Cache the resolved address with the loc, and
+        ;; return the proper loc.
+        (swap! CACHE #(cache/miss % canon-lookup-addr loc))
+        (swap! CACHE #(cache/miss % addr loc))
+        loc))
+
+    ;; If bing/google lookup fails, we lose.
     nil))
-    
+
 (defn resolve-address
   "If lat,lon are good, just return those coords with no resolved address.
    Otherwise use address to look up geocoordinates.
    Returns: {:address (resolved), :coords} || nil"
   [lat lon address]
-  (if (not (or (nil? lat) (nil? lon)))
+  ;; if both not nil
+  (if-not (or (nil? lat) (nil? lon))
     ;; No need to lookup.
     {:coords {:lat lat, :lon lon}
      :address nil}
@@ -128,5 +185,6 @@
     (if (nil? address)
       nil
       (let [a (canonicalize-address address)]
-        (or (from-cache a)
+        (or (from-config a)
+            (from-cache a)
             (lookup a))))))

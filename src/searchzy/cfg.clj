@@ -40,7 +40,9 @@
   {:api-key nil
 
    :geocoding {:provider "bing"  ;; google
-               :bing-api-key nil}
+               :bing-api-key nil
+               :preferred-coords {"new york ny" {:lat 40.757777777777775
+                                                 :lon -73.98583333333333}}}
 
    :elastic-search {:cluster-name "elasticsearch"
                     :host "127.0.0.1"

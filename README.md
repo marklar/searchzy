@@ -99,31 +99,35 @@ Its contents should look like this:
 ```yaml
 api-key:
 geocoding:
-    provider: bing  # default: google
-    bing-api-key: 
+    provider: bing  # -or- google
+    bing-api-key: Al4K-FqvPXxTlsOZq3Hb1nXkmC93RyiSqszyzf2hXEVzzr8YsG6EeOS91j2H2iqh
+    preferred-coords:
+        "new york":
+            lat: 40.757777777777775
+            lon: -73.98583333333333
 mongo-db:
     main:
-        db-name: locality_web_production
+        db-name: centzy2_development
         username:
         password: 
         host: 127.0.0.1
         port: 27017
     areas:
-        db-name: locality_web_production_areas
+        db-name: locality_web_development_areas
         username:
-        password: 
+        password:
         host: 127.0.0.1
         port: 27017
     businesses:
-        db-name: locality_web_production_businesses
+        db-name: locality_web_development_businesses
         username:
         password: 
         host: 127.0.0.1
         port: 27017
 elastic-search:
-    cluster-name: elasticsearch
     host: localhost
     port: 9300
+    cluster-name: elasticsearch
 ```
 
 Except that some of the values will need to be added (e.g.: api-key) or
