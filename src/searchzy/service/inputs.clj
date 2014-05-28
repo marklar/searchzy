@@ -320,3 +320,9 @@
                    clean-geo-map
                    clean-utc-offset
                    clean-page-map))
+
+(defn biz-counts-clean-input
+  [args]
+  (clean/gather->> args
+                   clean-item-id
+                   clean-geo-map))
