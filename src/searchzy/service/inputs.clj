@@ -97,9 +97,7 @@
 (def clean-optional-query
   (clean/mk-cleaner
    :query :query
-   (fn [q] (if (nil? q)
-             ""
-             (q/normalize q)))
+   (fn [q] (if (nil? q) "" (q/normalize q)))
    ;; This function is never needed.
    (fn [i o] {:param :query
               :message "There should be no problem!"
@@ -188,12 +186,20 @@
     nil
     (clojure.string/split s #",")))
 
-(def clean-item-id
+(def clean-required-item-id
   (clean/mk-cleaner
    :item-id :item-id
    str-or-nil
    (fn [i o] {:param :item_id  ; underbar
               :message "Param 'item_id' must have non-empty value."})))
+
+(def clean-optional-item-id
+  (clean/mk-cleaner
+   :item-id :item-id
+   (fn [q] (if (nil? q) "" (q/normalize q)))
+   ;; This function is never needed.
+   (fn [i o] {:param :item_id  ; underbar
+              :message "There should be no problem!"})))
 
 (def clean-business-category-ids
   (clean/mk-cleaner
@@ -288,7 +294,7 @@
   [args]
   (let [sort-attrs #{"price" "value" "distance" "rating"}]
     (clean/gather->> args
-                     clean-item-id
+                     clean-required-item-id
                      clean-include-unpriced
                      clean-geo-map
                      clean-hours
@@ -324,5 +330,5 @@
 (defn biz-counts-clean-input
   [args]
   (clean/gather->> args
-                   clean-item-id
+                   clean-optional-item-id
                    clean-geo-map))
