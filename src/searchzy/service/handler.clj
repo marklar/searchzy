@@ -11,6 +11,7 @@
              [lists :as docs.lists]
              [business-menu-items :as docs.items]]
             [searchzy.service
+             [biz-counts :as biz-counts]
              [inputs :as inputs]
              [mean-prices :as mean-prices]
              [business :as biz]
@@ -73,7 +74,7 @@
   ;; TODO: permalink
   (GET (v-path 1 "/mean_prices")
        [api_key permalink item_category_ids miles]
-       (if (not (valid-key? api_key))
+       (if-not (valid-key? api_key)
          ;;-- not authorized
          (bounce)
          ;;-- authorized
@@ -84,13 +85,22 @@
 
   ;;-- BUSINESSES --
 
+  ;; TODO:  Make geo-map optional.  If missing, use coords from item.
+  (GET (v-path 1 "/business_counts")
+       [api_key item_id address lat lon miles]
+       (if-not (valid-key? api_key)
+         (bounce)
+         (biz-counts/validate-and-search
+          {:item-id item_id
+           :geo-map {:address address, :lat lat, :lon lon, :miles miles}})))
+
   (GET (v-path 1 "/lists")
        [api_key
         location_id seo_business_category_id seo_region_id seo_item_id
         area_type state
         address lat lon miles
         from size]
-       (if (not (valid-key? api_key))
+       (if-not (valid-key? api_key)
          ;; not authorized
          (bounce)
          ;; authorized
@@ -109,7 +119,7 @@
        [api_key query business_category_ids
         address lat lon miles
         hours utc_offset sort from size]
-       (if (not (valid-key? api_key))
+       (if-not (valid-key? api_key)
          ;; not authorized
          (bounce)
          ;; authorized
@@ -128,7 +138,7 @@
   (GET (v-path 1 "/business_menu_items")
        [api_key item_id address lat lon miles
         hours utc_offset sort from size include_unpriced]
-       (if (not (valid-key? api_key))
+       (if-not (valid-key? api_key)
          ;;-- not authorized
          (bounce)
          ;;-- authorized
@@ -146,7 +156,7 @@
   (GET (v-path 2 "/business_menu_items")
        [api_key item_id address lat lon miles
         hours utc_offset sort from size include_unpriced]
-       (if (not (valid-key? api_key))
+       (if-not (valid-key? api_key)
          ;;-- not authorized
          (bounce)
          ;;-- authorized
