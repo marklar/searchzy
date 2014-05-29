@@ -148,8 +148,7 @@
 
 (def preferred-coords)
 (defn get-preferred-coords []
-  (if-not (resolve 'preferred-coords)
-    (defonce preferred-coords (mk-preferred-coords)))
+  (defonce preferred-coords (mk-preferred-coords))
   preferred-coords)
 
 ;;-----------------------
