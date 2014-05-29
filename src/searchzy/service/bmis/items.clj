@@ -20,18 +20,29 @@
 
 ;;-------------------------
 
+(def MAX_ITEMS_TO_TRY 10)
+
+(defn- item->biz-cat-id
+  [es-item]
+  (try
+    (-> es-item :_source :business_category_ids first)
+    (catch Exception e nil)))
+
 (defn get-biz-cat-id
-  ":: str -> str | nil"
+  "Attempts to find a business_category_id by looking in all the returned Items.
+   :: str -> str | nil"
   [item-id]
   (let [results (es-doc/search idx-name mapping-name
                                :query {:match {:_id item-id}}
-                               :size 1)]
-    (try
-      (-> results :hits :hits first :_source :business_category_ids first)
-      (catch Exception e nil))))
+                               :size 1)
+        hits (-> results :hits :hits)
+        biz-cat-ids (map item->biz-cat-id hits)]
+    (or (first (remove nil? biz-cat-ids))
+        nil)))
 
 (defn get-related-items
   ":: str -> [Item]"
   [item-id-str]
-  (let [biz-cat-id (get-biz-cat-id item-id-str)]
-    (biz-cat-id->items biz-cat-id)))
+  (if-let [biz-cat-id (get-biz-cat-id item-id-str)]
+    (biz-cat-id->items biz-cat-id)
+    []))
