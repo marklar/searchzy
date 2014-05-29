@@ -102,18 +102,27 @@
 
 ;;-----------------------
 
-(defn- resolve-cfg-addr
+(defn- resolve-addr-str
+  [addr]
+  (if-let [loc (geolocate addr)]
+    (:address loc)
+    nil))
+
+(defn- resolve-and-canonicalize-addr
   "[k v] -> [k v]"
   [[cfg-addr cfg-coords]]
-  (let [loc (geolocate cfg-addr)
-        addr (if (nil? loc) cfg-addr (:address loc))]
+  (let [cfg-addr-str (name cfg-addr)
+        resolved (resolve-addr-str cfg-addr-str)
+        addr (or resolved cfg-addr-str)]
     [(canonicalize-address addr) cfg-coords]))
 
 ;; Also defined in clojure.walk,
 ;; but that one is recursive (and we don't need that).
-(defn- stringify-keys
-  [hash-map]
-  (apply assoc {} (flatten (map (fn [[k v]] [(name k) v]) hash-map))))
+(defn stringify-keys
+  "stringifies only top-level keys"
+  [map]
+  (let [f (fn [acc [k v]] (assoc acc (name k) v))]
+    (reduce f {} map)))
 
 ;;
 ;; We want to be able to find an address either:
@@ -123,19 +132,31 @@
 ;; So we create a hash which uses both versions of the address
 ;; as its keys.
 ;;
-(def address-2-coords)
-(defn get-address-2-coords []
-  (let [a-2-cs (stringify-keys (-> (cfg/get-cfg) :geocoding :preferred-coords))
-        locs (map resolve-cfg-addr a-2-cs)]
-    (defonce address-2-coords
-      (apply assoc a-2-cs (flatten locs)))
-    address-2-coords))
+(defn- mk-resolved-addr-2-coords
+  [cfg-map]
+  (let [locs (map resolve-and-canonicalize-addr cfg-map)]
+    (apply hash-map (flatten locs))))
+
+(defn- mk-preferred-coords []
+  (let [cfg-map (-> (cfg/get-cfg) :geocoding :preferred-coords)]
+    (if (empty? cfg-map)
+      ;; If nothing in config...
+      {}
+      ;; else use config...
+      (merge (stringify-keys cfg-map)
+             (mk-resolved-addr-2-coords cfg-map)))))
+
+(def preferred-coords)
+(defn get-preferred-coords []
+  (if-not (resolve 'preferred-coords)
+    (defonce preferred-coords (mk-preferred-coords)))
+  preferred-coords)
 
 ;;-----------------------
 
 (defn- from-config
   [addr]
-  (let [a-2-cs (get-address-2-coords)]
+  (let [a-2-cs (get-preferred-coords)]
     (if-let [coords (a-2-cs addr)]
       {:address addr, :coords coords}
       nil)))
