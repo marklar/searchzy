@@ -192,12 +192,19 @@
         (f "non-empty") => "non-empty"
         ))
 
-(fact "`clean-item-id`"
-      (let [f inputs/clean-item-id
+(fact "`clean-required-item-id`"
+      (let [f inputs/clean-required-item-id
             error-map {:param :item_id
                        :message "Param 'item_id' must have non-empty value."}]
         (f {:item-id nil}) => [{:item-id nil}, error-map]
         (f {:item-id ""})  => [{:item-id nil}, error-map]
+        (f {:item-id "1234"})  => [{:item-id "1234"}, nil]
+        ))
+
+(fact "`clean-optional-item-id`"
+      (let [f inputs/clean-optional-item-id]
+        (f {:item-id nil}) => [{:item-id ""}, nil]
+        (f {:item-id ""})  => [{:item-id ""}, nil]
         (f {:item-id "1234"})  => [{:item-id "1234"}, nil]
         ))
 
