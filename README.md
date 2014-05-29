@@ -165,15 +165,7 @@ To index just a subset of the domains, specify which.  For example:
 
     > lein run -m searchzy.index.core --domains "items biz-categories"
 
-This is the complete set of options: {biz-categories, items,
-businesses, biz-menu-items}.
-
-For development or testing purposes, you may specify a maximum
-number of records to index per domain, in this case 1000:
-
-    > lein run -m searchzy.index.core --limit 1000
-
-For more information:
+You can see the complete lists of options by using the help:
 
     > lein run -m searchzy.index.core --help
 
