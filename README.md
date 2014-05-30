@@ -90,7 +90,7 @@ MongoDB.  So let's get to the configuration step now.
 
 In the top-level directory of this project, add a file called:
 
-    .config.yaml
+    .config.yaml which can be created from .config.template.yaml
 
 Don't forget the leading period.
 
@@ -142,7 +142,7 @@ to 'google', which does not require an API key.  (But you should use
 Also, you need to find out your ElasticSearch's cluster name. Retrieve
 it via ElasticSearch's REST API, thus:
 
-    > curl http://localhost.com:9200/_nodes/cluster_name
+    > curl http://localhost:9200/_nodes/cluster_name
     {"cluster_name":"elasticsearch_something","nodes":...}}
 
 You won't likely need to change the ports from the ones above.  (27017
