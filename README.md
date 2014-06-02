@@ -90,7 +90,7 @@ MongoDB.  So let's get to the configuration step now.
 
 In the top-level directory of this project, add a file called:
 
-    .config.yaml
+    .config.yaml which can be created from .config.template.yaml
 
 Don't forget the leading period.
 

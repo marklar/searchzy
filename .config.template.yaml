@@ -37,4 +37,4 @@ mongo-db:
 elastic-search:
     host: localhost     # 107.20.137.247
     port: 9300
-    cluster-name: elasticsearch      # elasticsearch
+    cluster-name: elasticsearch_jeremy      # elasticsearch
