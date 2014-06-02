@@ -11,6 +11,8 @@
              [lists :as docs.lists]
              [business-menu-items :as docs.items]]
             [searchzy.service
+             [authorization :as auth]
+             [catch-exceptions :as catch]
              [biz-counts :as biz-counts]
              [inputs :as inputs]
              [mean-prices :as mean-prices]
@@ -24,19 +26,6 @@
             [compojure
              [handler :as handler]
              [route :as route]]))
-
-(defn- valid-key?
-  [api-key]
-  (let [lock (:api-key (cfg/get-cfg))]
-    (if (nil? lock)
-      true
-      (= api-key lock))))
-
-(defn- bounce []
-  (responses/json-p-ify
-   ;; Using "forbidden" (403) instead of "unauthorized" (401)
-   ;; because I don't want to deal with authentication headers.
-   (responses/forbidden-json {:error "Not authorized."})))
 
 (def current-version "v1")
 (defn v-path
@@ -74,25 +63,19 @@
   ;; TODO: permalink
   (GET (v-path 1 "/mean_prices")
        [api_key permalink item_category_ids miles]
-       (if-not (valid-key? api_key)
-         ;;-- not authorized
-         (bounce)
-         ;;-- authorized
-         (mean-prices/validate-and-search
-          {:permalink permalink
-           :item-category-ids item_category_ids
-           :miles miles})))
+       (mean-prices/validate-and-search
+        {:permalink permalink
+         :item-category-ids item_category_ids
+         :miles miles}))
 
   ;;-- BUSINESSES --
 
   ;; TODO:  Make geo-map optional.  If missing, use coords from item.
   (GET (v-path 1 "/business_counts")
        [api_key item_id address lat lon miles]
-       (if-not (valid-key? api_key)
-         (bounce)
-         (biz-counts/validate-and-search
-          {:item-id item_id
-           :geo-map {:address address, :lat lat, :lon lon, :miles miles}})))
+       (biz-counts/validate-and-search
+        {:item-id item_id
+         :geo-map {:address address, :lat lat, :lon lon, :miles miles}}))
 
   (GET (v-path 1 "/lists")
        [api_key
@@ -100,37 +83,29 @@
         area_type state
         address lat lon miles
         from size]
-       (if-not (valid-key? api_key)
-         ;; not authorized
-         (bounce)
-         ;; authorized
-         (lists/validate-and-search
-          {:location-id location_id
-           :seo-business-category-id seo_business_category_id
-           :seo-region-id seo_region_id
-           :seo-item-id seo_item_id
-           :area-type area_type
-           :state state
-           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
-           :page-map {:from from, :size size}
-           })))
+       (lists/validate-and-search
+        {:location-id location_id
+         :seo-business-category-id seo_business_category_id
+         :seo-region-id seo_region_id
+         :seo-item-id seo_item_id
+         :area-type area_type
+         :state state
+         :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+         :page-map {:from from, :size size}
+         }))
 
   (GET (v-path 1 "/businesses")
        [api_key query business_category_ids
         address lat lon miles
         hours utc_offset sort from size]
-       (if-not (valid-key? api_key)
-         ;; not authorized
-         (bounce)
-         ;; authorized
-         (biz/validate-and-search
-          {:query query
-           :business-category-ids business_category_ids
-           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
-           :hours hours
-           :utc-offset utc_offset
-           :sort sort
-           :page-map {:from from, :size size}})))
+       (biz/validate-and-search
+        {:query query
+         :business-category-ids business_category_ids
+         :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+         :hours hours
+         :utc-offset utc_offset
+         :sort sort
+         :page-map {:from from, :size size}}))
 
   ;;-- BUSINESS_MENU_ITEMS --
 
@@ -138,37 +113,29 @@
   (GET (v-path 1 "/business_menu_items")
        [api_key item_id address lat lon miles
         hours utc_offset sort from size include_unpriced]
-       (if-not (valid-key? api_key)
-         ;;-- not authorized
-         (bounce)
-         ;;-- authorized
-         (items/validate-and-search
-          "v1"
-          {:item-id item_id
-           :include-unpriced include_unpriced
-           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
-           :hours hours
-           :utc-offset utc_offset
-           :sort sort
-           :page-map {:from from, :size size}})))
+       (items/validate-and-search
+        "v1"
+        {:item-id item_id
+         :include-unpriced include_unpriced
+         :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+         :hours hours
+         :utc-offset utc_offset
+         :sort sort
+         :page-map {:from from, :size size}}))
 
   ;; >>> v2 <<<
   (GET (v-path 2 "/business_menu_items")
        [api_key item_id address lat lon miles
         hours utc_offset sort from size include_unpriced]
-       (if-not (valid-key? api_key)
-         ;;-- not authorized
-         (bounce)
-         ;;-- authorized
-         (items/validate-and-search
-          "v2"
-          {:item-id item_id
-           :include-unpriced include_unpriced
-           :geo-map {:address address, :lat lat, :lon lon, :miles miles}
-           :hours hours
-           :utc-offset utc_offset
-           :sort sort
-           :page-map {:from from, :size size}})))
+       (items/validate-and-search
+        "v2"
+        {:item-id item_id
+         :include-unpriced include_unpriced
+         :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+         :hours hours
+         :utc-offset utc_offset
+         :sort sort
+         :page-map {:from from, :size size}}))
 
   ;;-- SUGGESTIONS --
 
@@ -202,10 +169,13 @@
   (route/not-found "Not Found"))
 
 
-
+;;---------------------------------
 
 (util/es-connect! (:elastic-search (cfg/get-cfg)))
 
 ;; COMPOJURE APP -- fn :: request-map -> response-map
 (def app
-  (handler/site app-routes))
+  (handler/site (-> app-routes
+                    catch/catch-exceptions
+                    auth/authorize)))
+
