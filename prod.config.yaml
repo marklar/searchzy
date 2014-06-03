@@ -1,9 +1,8 @@
-api-key:
+# FIXME: Add an api-key!
+api-key: 
 geocoding:
-    provider: bing  # -or- google
+    provider: bing
     bing-api-key: Al4K-FqvPXxTlsOZq3Hb1nXkmC93RyiSqszyzf2hXEVzzr8YsG6EeOS91j2H2iqh
-    # google-api-key: AIzaSyCVFA6n6QjPlpZQJAX-VrvgGpXGL-fMcnA
-    # https://developers.google.com/maps/documentation/geocoding/#api_key
     preferred-coords:
         "new york":
             lat: 40.757777777777775
@@ -11,23 +10,23 @@ geocoding:
 mongo-db:
     main:
         db-name: centzy_web_production
-        username:
-        password: 
-        host: 127.0.0.1
+        username: centzy_web
+        password: 4FZVvZKMUq43jmJsBUp9KLpLDHNnR9KdEEAi7p3X
+        host: centzy-production.m0.mongolayer.com
         port: 27017
     areas:
         db-name: locality_web_production_areas
-        username: locality_web_05_2014
-        password: JvJ6XlTIE0nf9mnggPTu7EImHfH7RsuwekgD24F152WaSip85da
+        username: locality_web
+        password: Mors7G4fQq8P2LkugtaJngKi2jf9seZLgAb2GanyGWWqMEoX9J
         host: locality-web-production-areas.m0.mongolayer.com
         port: 27017
     businesses:
         db-name: locality_web_production_businesses
-        username:
-        password: 
-        host: 127.0.0.1
+        username: locality_web
+        password: Mors7G4fQq8P2LkugtaJngKi2jf9seZLgAb2GanyGWWqMEoX9J
+        host: locality-web-production-businesses.m0.mongolayer.com
         port: 27017
 elastic-search:
-    host: 107.20.137.247
+    host: localhost
     port: 9300
     cluster-name: elasticsearch
