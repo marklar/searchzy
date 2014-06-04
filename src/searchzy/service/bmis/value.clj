@@ -6,12 +6,7 @@
    weight it heavier on # yelp reviews and stars and less on price &
    distance. Nothing too drastic, but enough so it won't look like a
    duplicate of our best value."
-  )
-
-(defn- join-keys
-  "Combine multiple keywords into one, joined by '-'."
-  [& keywords]
-  (keyword (clojure.string/join \- (map name keywords))))
+  (:require [searchzy.service.util :as util]))
 
 ;; Item:  {:price_micros, :yelp_star_rating, :yelp_review_count}
 
@@ -40,41 +35,63 @@
   [item]
   (assoc item :tweaked-price (or (:price_micros item)
                                  Integer/MAX_VALUE)))
-        
+
 ;;--------
 
-(defn- add-norm
-  "attr: #{:tweaked-count :tweaked-rating :price_micros}
-   cmp: affects sort.  < (asc), > (desc)
-   Adds norm (e.g. :tweaked-count-norm) to each item."
-  [items attr cmp]
-  (let [norm-key  (join-keys attr :norm)
-        max-rank  (count items)
-        normalize (fn [m r] (assoc m norm-key (/ r max-rank)))
-        [_ _ _ normed]
-        (reduce (fn [[prev-rank prev-val idx res] item]
-                  (let [val  (get item attr)
-                        rank (if (= val prev-val) prev-rank (inc idx))]
-                    [rank val (inc idx) (cons (normalize item rank) res)]))
-                [0 nil 0 ()]
-                (sort-by attr cmp items))]
-    (reverse normed)))
+(defn- rank-norm-fn
+  "Create a function which takes:
+     * an item-map
+     * that item's rank based on 'attr'
+   And returns an augmented item-map w/ a 'normalized rank' for that attr.
+   A 'normalized rank': rank / max-rank."
+  [items attr]
+  (let [max-rank (count items)
+        norm-key (util/join-keys attr :norm)]
+    (fn [item rank]
+      (assoc item norm-key (/ rank max-rank)))))
 
-;; Rating/Reviews Factor
-;; Rank Rating/Reviews independently by ascending order (i.e., lowest number ranked 1)
-;; Take ranking for Rating/Review and divide by max rank for that bucket
-;; Apply weight to score
+(defn- group-items-by
+  [items attr cmp]
+  (map second (sort-by first cmp (group-by attr items))))
+
+(defn- add-norm
+  "Sort items by attr using cmp (so that better is higher)."
+  [items attr cmp]
+  (let [;; seq of seqs of items, grouped by attr.
+        grouped-items (group-items-by items attr cmp)
+        ;; fn : [item rank] -> item w/ 'normed rank'
+        norm-rank     (rank-norm-fn items attr)
+        ;; norm-rank each item
+        [normed-item-groups _]
+        (reduce (fn [[res rank] item-group]
+                  (let [new-items (map #(norm-rank % rank) item-group)
+                        next-rank (+ rank (count item-group))]
+                    [(cons new-items res) next-rank]))
+                [() 1]
+                grouped-items)]
+    (flatten normed-item-groups)))
+
 (defn- add-yelp-norms
+  "Add :tweaked-count-norm and :tweaked-rating-norm to items.
+   Each normed value is between 0 and 1.
+   The closer to 1, the better.
+
+   PM's description...
+   Rating/Reviews Factor
+     Rank Rating/Reviews independently by ascending order (i.e., lowest number ranked 1)
+     Take ranking for Rating/Review and divide by max rank for that bucket
+     Apply weight to score"
   [items]
   (-> (map yelp-tweak items)
       (add-norm :tweaked-count <)
       (add-norm :tweaked-rating <)))
 
-;; Price Factor
-;;   Rank Price by descending order (i.e., highest number ranked 1)
-;;   Take ranking for Price and divide by max rank for that bucket
-;;   Apply weight to score
 (defn- add-price-rank-norm
+  "PM's description...
+   Price Factor
+     Rank Price by descending order (i.e., highest number ranked 1)
+     Take ranking for Price and divide by max rank for that bucket
+     Apply weight to score"
   [items]
   (-> (map price-tweak items)
       (add-norm :tweaked-price >)))
@@ -93,47 +110,20 @@
 
 ;;-----
 
-(defn- add-score-to-item
-  [item]
-  (let [score (+ (* 0.4 (:tweaked-price-norm  item))
-                 (* 0.3 (:tweaked-rating-norm item))
-                 (* 0.3 (:tweaked-count-norm  item)))]
-    (assoc item :awesomeness score)))
+(defn- compute-score
+  [item factors]
+  (let [weighted-scores (map (fn [[attr factor]]
+                               (* factor (get item attr)))
+                             factors)]
+    (apply + weighted-scores)))
 
 (defn- add-score
-  [items]
-  (map add-score-to-item items))
+  [factors items]
+  (map
+   #(assoc % :awesomeness (compute-score % factors))
+   items))
 
 ;;-----
-
-;; TODO: make factors into data structure to be passed in
-;; {:tweaked-rating-norm 0.4
-;;  :tweaked-count-norm  0.4
-;;  :tweaked-price-norm  0.1}
-
-(defn- add-rating-to-item
-  "NEW"
-  [item]
-  (let [score (+ (* 0.4 (:tweaked-rating-norm item))
-                 (* 0.4 (:tweaked-count-norm  item))
-                 (* 0.1 (:tweaked-price-norm  item)))]
-    (assoc item :awesomeness score)))
-
-(defn- add-rating
-  [items]
-  (map add-rating-to-item items))
-
-;;-----
-
-(defn- score-and-count-lt
-  "Comparator for sorting, in ASC order."
-  [i1 i2]
-  (let [a1 (:awesomeness i1)
-        a2 (:awesomeness i2)
-        c1 (:tweaked-count-norm i1)
-        c2 (:tweaked-count-norm i2)]
-    (or (< a1 a2)
-        (and (= a1 a2) (< c1 c2)))))
 
 (defn- rm-norms
   [items]
@@ -145,29 +135,35 @@
                 :tweaked-count
                 :tweaked-count-norm) items))
 
-;;-------------------------------
+(defn- score-and-sort
+  [items factors]
+  (->> items
+       add-yelp-norms
+       add-price-rank-norm
+       (add-score factors)
+       (sort-by (juxt :awesomeness :tweaked-count-norm))
+       rm-norms))
 
-;; VALUE  
-(defn score-and-sort
+;;---------------------------------
+
+(def value-factors
+  {:tweaked-price-norm  0.4
+   :tweaked-rating-norm 0.3
+   :tweaked-count-norm  0.3})
+
+(def rating-factors
+  {:tweaked-rating-norm 0.4
+   :tweaked-count-norm  0.4
+   :tweaked-price-norm  0.1})
+
+(defn value-and-sort
   "Final Score and Sort
    Add weighted scores for Ranking, Review, Price
    Sort (ASC) by score and then number of reviews (more reviews, higher)"
   [items]
-  (->> items
-       add-yelp-norms
-       ;; add-price-val-norm
-       add-price-rank-norm
-       add-score
-       (sort score-and-count-lt)
-       rm-norms))
+  (score-and-sort items value-factors))
 
-;; RATING
 (defn rate-and-sort
   "Weigh Yelp more than price, distance."
   [items]
-  (->> items
-       add-yelp-norms
-       add-price-rank-norm
-       add-rating
-       (sort score-and-count-lt)
-       rm-norms))
+  (score-and-sort items rating-factors))

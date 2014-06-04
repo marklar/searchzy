@@ -4,6 +4,11 @@
              [responses :as responses]
              [tz :as tz]]))
 
+(defn join-keys
+  "Combine multiple keywords into one, joined by '-'."
+  [& keywords]
+  (keyword (clojure.string/join \- (map name keywords))))
+
 ;; This doesn't exist in the core lib?
 (defn compact [seq] (remove nil? seq))
 
