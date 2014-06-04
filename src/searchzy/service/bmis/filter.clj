@@ -54,7 +54,7 @@
          ;; asc rating (which is rarely what we'll want)
          "rating"   (value/rate-and-sort bmis)
          ;; asc value (which is rarely what we'll want)
-         "value"    (value/score-and-sort bmis)))
+         "value"    (value/value-and-sort bmis)))
 
 (defn- maybe-re-sort
   [sort-map bmis]

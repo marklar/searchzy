@@ -2,6 +2,7 @@
   "Middleware: Uncaught Exceptions"
   (:require [searchzy.service
              [responses :as responses]]))
+            
 
 ;; TODO: move into "middleware" namespace?
 
@@ -10,8 +11,9 @@
   (fn [request]
     (try
       (handler request)
-      (catch Exception e
+      (catch Throwable t
         (responses/error-json {:endpoint (:uri request)
                                :params (:params request)
-                               :error (str e)
+                               :error (str t)
+                               :stack_trace (map str (.getStackTrace t))
                                })))))
