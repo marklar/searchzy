@@ -10,20 +10,20 @@ geocoding:
 mongo-db:
     main:
         db-name: centzy_web_production
-        username: centzy_web
-        password: 4FZVvZKMUq43jmJsBUp9KLpLDHNnR9KdEEAi7p3X
+        username: searchzy
+        password: holyfuckifthisworksiliterallywillcrywithhappiness
         host: centzy-production.m0.mongolayer.com
         port: 27017
     areas:
         db-name: locality_web_production_areas
-        username: locality_web
-        password: Mors7G4fQq8P2LkugtaJngKi2jf9seZLgAb2GanyGWWqMEoX9J
+        username: searchzy
+        password: holyfuckifthisworksiliterallywillcrywithhappiness
         host: locality-web-production-areas.m0.mongolayer.com
         port: 27017
     businesses:
         db-name: locality_web_production_businesses
-        username: locality_web
-        password: Mors7G4fQq8P2LkugtaJngKi2jf9seZLgAb2GanyGWWqMEoX9J
+        username: searchzy
+        password: holyfuckifthisworksiliterallywillcrywithhappiness
         host: locality-web-production-businesses.m0.mongolayer.com
         port: 27017
 elastic-search:
