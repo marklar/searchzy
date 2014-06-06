@@ -85,9 +85,9 @@ normalized Yelp and price scores.  The "value" version of
 weights applied to the Yelp and price scores.
 
               "value"  "rating"
-  price_score   0.4      0.1
-  count_score   0.3      0.4
-  stars_score   0.3      0.4
+  price_score   0.5      0.1
+  count_score   0.25     0.4
+  stars_score   0.25     0.4
 
 As you can see, the "value" version gives much more weight to the
 price, whereas "rating" favors the Yelp scores.
