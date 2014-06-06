@@ -6,10 +6,16 @@
 (defn mk-geo-distance-sort-builder
   "Create a GeoDistanceSortBuilder"
   [coords order]
-  (let [o  (if (= order :asc) SortOrder/ASC SortOrder/DESC)
-        sb (GeoDistanceSortBuilder. "latitude_longitude")] 
-    (doto sb
-      (.point (:lat coords) (:lon coords))
-      (.order o)
-      (.unit DistanceUnit/MILES))
-    sb))
+  (if (nil? coords)
+    ;; If no coords, then probably we're using a polygon geofilter,
+    ;; and sorting by distance doesn't make sense.
+    ;; So we just return a nil SortBuilder.
+    nil
+    ;; Okay, let's actually sort by distance...
+    (let [o  (if (= order :asc) SortOrder/ASC SortOrder/DESC)
+          sb (GeoDistanceSortBuilder. "latitude_longitude")] 
+      (doto sb
+        (.point (:lat coords) (:lon coords))
+        (.order o)
+        (.unit DistanceUnit/MILES))
+    sb)))

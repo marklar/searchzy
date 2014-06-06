@@ -75,11 +75,13 @@
 ;;-- public --
 
 (defn mk-input-map
-  [endpoint query business-category-ids address lat lon miles size html utc-offset]
+  [endpoint query business-category-ids
+   address lat lon miles polygon
+   size html utc-offset]
   {:endpoint endpoint
    :query query
    :business-category-ids business-category-ids
-   :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+   :geo-map {:polygon polygon, :address address, :lat lat, :lon lon, :miles miles}
    :page-map {:from "0", :size size}
    :utc-offset utc-offset
    :html html})

@@ -32,6 +32,9 @@
         (f {:from "", :size ""}) => {:from 0, :size 10}
         (f {:from nil, :size "2"}) => {:from 0, :size 2}))
 
+;; (fact "`
+
+
 (fact "`mk-geo-map`"
       (let [f inputs/mk-geo-map]
         ;; Doesn't use geolocation, as it has the lat/lon already.
@@ -39,7 +42,8 @@
             :lat "37"
             :lon "-122"
             :miles nil})
-        => {:address {:input "Palo Alto"
+        => {:polygon nil
+            :address {:input "Palo Alto"
                       :resolved nil}
             :coords {:lat 37, :lon -122}
             :miles 4.0}
@@ -48,7 +52,8 @@
             :lat nil
             :lon nil
             :miles "3"})
-        => {:address {:input "Palo Alto"
+        => {:polygon nil
+            :address {:input "Palo Alto"
                       :resolved "Palo Alto, CA"}
             :coords {:lat 37.44466018676758, :lon -122.1607894897461}
             :miles 3}
@@ -110,7 +115,8 @@
         ;; Doesn't make use of geolocate.
         (f {:geo-map {:address ""
                       :lat "37", :lon "-122"}})
-        => [{:geo-map {:address {:input "", :resolved nil}
+        => [{:geo-map {:polygon nil
+                       :address {:input "", :resolved nil}
                        :coords {:lat 37, :lon -122}
                        :miles 4.0}},
             nil]))
@@ -252,7 +258,9 @@
 
 (let [good-input-geo-map {:lat "60", :lon "-120"}
       default-page-map   {:from 0, :size 10}
-      default-sort-map   {:attribute "value", :order :desc}]
+      default-sort-map   {:attribute "value", :order :desc}
+      geo-err-str "Must provide: (valid 'polygon' OR valid 'address' OR ('lat' AND 'lon'))."]
+
 
   (fact "`lists-clean-input`"
         (let [f inputs/lists-clean-input
@@ -270,7 +278,8 @@
           ;; Providing lat/lon.  Partial page-map.
           (f {:geo-map good-input-geo-map
               :page-map {:from "3"}})
-          => [{:geo-map {:address {:input nil, :resolved nil}
+          => [{:geo-map {:polygon nil
+                         :address {:input nil, :resolved nil}
                          :coords {:lat 60, :lon -120}
                          :miles 4.0}
                :page-map {:from 3, :size 10}}
@@ -280,8 +289,8 @@
           (f {:geo-map {:lat "30"}})
           => [{:geo-map nil, :page-map default-page-map},
               ;; list of one error
-              '({:params [:address :lat :lon]
-                 :message "Must provide: (valid 'address' OR ('lat' AND 'lon'))."
+              '({:params [:polygon :address :lat :lon]
+                 :message "Must provide: (valid 'polygon' OR valid 'address' OR ('lat' AND 'lon'))."
                  :args {:lat "30"}})]
 
           ))
@@ -299,9 +308,9 @@
                :sort-map default-sort-map
                :page-map default-page-map}
               ;; list of one error
-              '({:args nil
-                 :message "Must provide: (valid 'address' OR ('lat' AND 'lon'))."
-                 :params [:address :lat :lon]})
+              [{:args nil
+                :message geo-err-str
+                :params [:polygon :address :lat :lon]}]
               ]
 
           ;; No geo-map, and strange hours-map.
@@ -314,21 +323,20 @@
                :sort-map default-sort-map
                :page-map default-page-map}
               ;; list of two errors (ORDER MATTERS)
-              '(
-                {:param :hours
+              [{:param :hours
                  :message "Some problem with the hours."
                  :args "12:00"}
-                {:params [:address :lat :lon]
-                 :message "Must provide: (valid 'address' OR ('lat' AND 'lon'))."
-                 :args nil}                
-                )
+                {:params [:polygon :address :lat :lon]
+                 :message geo-err-str
+                 :args nil}]
               ]
 
           ;; Defaults for all but geo-map.
           (f {:geo-map {:lat "30", :lon "-120"}})
           => [{:query ""
                :business-category-ids []
-               :geo-map {:address {:input nil, :resolved nil}
+               :geo-map {:polygon nil
+                         :address {:input nil, :resolved nil}
                          :coords {:lat 30, :lon -120}
                          :miles 4.0}
                :hours-map {}
@@ -352,17 +360,18 @@
             :page-map default-page-map
             :sort-map default-sort-map
             :utc-offset-map {}}
-           '({:args nil
-              :message "Must provide: (valid 'address' OR ('lat' AND 'lon'))."
-              :params [:address :lat :lon]}
-             {:message "Param 'item_id' must have non-empty value."
-              :param :item_id})]
+           [{:args nil
+             :message geo-err-str
+             :params [:polygon :address :lat :lon]}
+            {:message "Param 'item_id' must have non-empty value."
+             :param :item_id}]]
 
           ;; Defaults for all but geo-map and item-id.
           (f {:item-id "1234"
               :geo-map {:lat "30", :lon "-120"}})
           => [{:item-id "1234"
-               :geo-map {:address {:input nil, :resolved nil}
+               :geo-map {:polygon nil
+                         :address {:input nil, :resolved nil}
                          :coords {:lat 30, :lon -120}
                          :miles 4.0}
                :hours-map {}
@@ -384,12 +393,12 @@
                :html false
                :page-map {:from 0, :size 10}}
               ;; Errors - order matters (FIFO).
-              '({:args nil
-                 :message "Must provide: (valid 'address' OR ('lat' AND 'lon'))."
-                 :params [:address :lat :lon]}
-                {:args {:normalized-query nil, :original-query nil}
-                 :message "Param 'query' must be non-empty after normalization."
-                 :param :query})]
+              [{:args nil
+                :message geo-err-str
+                :params [:polygon :address :lat :lon]}
+               {:args {:normalized-query nil, :original-query nil}
+                :message "Param 'query' must be non-empty after normalization."
+                :param :query}]]
           ))
 
   (fact "`suggestion-clean-input-v2`"
@@ -404,9 +413,9 @@
                :html false
                :page-map {:from 0, :size 10}}
               ;; Errors - order matters (FIFO).
-              '({:args nil
-                 :message "Must provide: (valid 'address' OR ('lat' AND 'lon'))."
-                 :params [:address :lat :lon]})]
+              [{:args nil
+                :message geo-err-str
+                :params [:polygon :address :lat :lon]}]]
           ))
 
 )

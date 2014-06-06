@@ -7,6 +7,7 @@
              [responses :as responses]
              [geo-sort :as geo-sort]
              [util :as util]
+             [geo-util :as geo-util]
              [inputs :as inputs]]
             [clojurewerkz.elastisch.native
              [document :as es-doc]]))
@@ -77,7 +78,7 @@
     (es-doc/search idx-name mapping-name
                    :query {:filtered 
                            {:query (mk-bool-term-query args)
-                            :filter (util/mk-geo-filter geo-map)}}
+                            :filter (geo-util/mk-geo-filter geo-map)}}
                    :sort   (geo-sort/mk-geo-distance-sort-builder
                             (:coords geo-map) :asc)
                    :from   (:from page-map)

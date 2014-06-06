@@ -2,6 +2,7 @@
   (:require [searchzy.cfg :as cfg]
             [searchzy.service
              [geo-sort :as geo-sort]
+             [geo-util :as geo-util]
              [util :as util]]
             [clojurewerkz.elastisch.native
              [document :as es-doc]]))
@@ -17,7 +18,7 @@
     (:hits
      (es-doc/search (:index names) (:mapping name)
                     :query {:filtered {:query {:term {:business_category_ids cat-id}}
-                                       :filter (util/mk-geo-filter geo-map)}}
+                                       :filter (geo-util/mk-geo-filter geo-map)}}
                     :sort   (geo-sort/mk-geo-distance-sort-builder
                              (:coords geo-map) :asc)
                     :from   (:from page-map)

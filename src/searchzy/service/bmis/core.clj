@@ -7,6 +7,7 @@
             [searchzy.util]
             [searchzy.service
              [geo-sort :as geo-sort]
+             [geo-util :as geo-util]
              [util :as util]
              [inputs :as inputs]]
             [searchzy.service.bmis
@@ -33,7 +34,7 @@
         (:hits
          (es-doc/search idx-name mapping-name
                         :query {:filtered {:query {:term {:item_id item-id}}
-                                           :filter (util/mk-geo-filter geo-map)}}
+                                           :filter (geo-util/mk-geo-filter geo-map)}}
                         :sort   (geo-sort/mk-geo-distance-sort-builder
                                  (:coords geo-map) :asc)
                         :from   (:from page-map)
