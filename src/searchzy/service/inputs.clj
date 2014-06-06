@@ -4,6 +4,7 @@
             [searchzy.service
              [clean :as clean]
              [geo-locate :as geo-locate]
+             [geo-util :as geo-util]
              [query :as q]]))
 
 
@@ -28,19 +29,33 @@
    :size (str->val size 10)})
 
 (defn mk-geo-map
-  "Take input-geo-map: miles, address, lat, lon.
+  "Take input-geo-map: miles, address, lat, lon, polygon.
    If the input is valid, create a geo-map.
    If not, return nil."
-  [{address :address, lat-str :lat, lon-str :lon, miles-str :miles}]
+  [{polygon-strs :polygon, address :address, lat-str :lat, lon-str :lon, miles-str :miles}]
   (let [lat       (str->val lat-str   nil)
         lon       (str->val lon-str   nil)
-        miles     (str->val miles-str 4.0)]
-    (let [res (geo-locate/resolve-address lat lon address)]
-      (if (nil? res)
-        nil
-        {:address {:input address, :resolved (:address res)}
-         :coords (:coords res)
-         :miles miles}))))
+        miles     (str->val miles-str 4.0)
+        polygon   (geo-util/polygon-strs->coords polygon-strs)]
+    (if (geo-util/valid-polygon? polygon)
+      ;; We use the polygon if it's valid.
+      ;; TODO?: Add an extra layer here, to make it like this.
+      ;;   {:polygon polygon
+      ;;    :circle {:center {:address _, :coords _}
+      ;;             :miles _}}
+      {:polygon polygon
+       :address nil
+       :coords nil
+       :miles nil}
+      ;; Otherwise, we use the coords, if they're valid.
+      ;; And if not those, we try to resolve the address.
+      (let [res (geo-locate/resolve-address lat lon address)]
+        (if (nil? res)
+          nil
+          {:polygon nil
+           :address {:input address, :resolved (:address res)}
+           :coords (:coords res)
+           :miles miles})))))
 
 ;; ---
 
@@ -107,8 +122,9 @@
   (clean/mk-cleaner
    :geo-map :geo-map
    mk-geo-map
-   (fn [i o] {:params [:address :lat :lon]
-              :message (str "Must provide: (valid 'address' OR "
+   (fn [i o] {:params [:polygon :address :lat :lon]
+              :message (str "Must provide: (valid 'polygon' OR "
+                            "valid 'address' OR "
                             "('lat' AND 'lon')).")
               :args i})))
 
