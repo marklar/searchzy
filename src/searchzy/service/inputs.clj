@@ -32,11 +32,11 @@
   "Take input-geo-map: miles, address, lat, lon, polygon.
    If the input is valid, create a geo-map.
    If not, return nil."
-  [{polygon-strs :polygon, address :address, lat-str :lat, lon-str :lon, miles-str :miles}]
+  [{polygon-str :polygon, address :address, lat-str :lat, lon-str :lon, miles-str :miles}]
   (let [lat       (str->val lat-str   nil)
         lon       (str->val lon-str   nil)
         miles     (str->val miles-str 4.0)
-        polygon   (geo-util/polygon-strs->coords polygon-strs)]
+        polygon   (geo-util/polygon-str->coords polygon-str)]
     (if (geo-util/valid-polygon? polygon)
       ;; We use the polygon if it's valid.
       ;; TODO?: Add an extra layer here, to make it like this.

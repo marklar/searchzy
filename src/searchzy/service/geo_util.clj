@@ -38,11 +38,12 @@
 ;;----------------------------------
 ;; polygons
 
-(defn polygon-strs->coords
-  [polygon-strs]
-  (if (nil? polygon-strs)
+(defn polygon-str->coords
+  [polygon-str]
+  (if (empty? polygon-str)
     nil
-    (map geo-str->map polygon-strs)))
+    (map geo-str->map
+         (clojure.string/split polygon-str #";"))))
 
 (defn valid-polygon?
   [coords]

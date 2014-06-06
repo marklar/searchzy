@@ -62,8 +62,7 @@
 
   ;; TODO: permalink
   (GET (v-path 1 "/mean_prices")
-       [permalink item_category_ids miles
-        :as {{:strs [polygon]} :query-params}]
+       [permalink item_category_ids miles polygon]
        (mean-prices/validate-and-search
         {:permalink permalink
          :item-category-ids item_category_ids
@@ -73,8 +72,7 @@
 
   ;; TODO:  Make geo-map optional.  If missing, use coords from item.
   (GET (v-path 1 "/business_counts")
-       [item_id address lat lon miles
-        :as {{:strs [polygon]} :query-params}]
+       [item_id address lat lon miles polygon]
        (biz-counts/validate-and-search
         {:item-id item_id
          :geo-map {:polygon polygon, :address address, :lat lat, :lon lon, :miles miles}}))
@@ -83,8 +81,7 @@
        [location_id seo_business_category_id seo_region_id seo_item_id
         area_type state
         address lat lon miles
-        from size
-        :as {{:strs [polygon]} :query-params}]
+        from size polygon]
        (lists/validate-and-search
         {:location-id location_id
          :seo-business-category-id seo_business_category_id
@@ -99,8 +96,7 @@
   (GET (v-path 1 "/businesses")
        [query business_category_ids
         address lat lon miles
-        hours utc_offset sort from size
-        :as {{:strs [polygon]} :query-params}]
+        hours utc_offset sort from size polygon]
        (biz/validate-and-search
         {:query query
          :business-category-ids business_category_ids
@@ -115,8 +111,7 @@
   ;; >>> v1 <<<
   (GET (v-path 1 "/business_menu_items")
        [item_id address lat lon miles
-        hours utc_offset sort from size include_unpriced
-        :as {{:strs [polygon]} :query-params}]
+        hours utc_offset sort from size include_unpriced polygon]
        (items/validate-and-search
         "v1"
         {:item-id item_id
@@ -130,8 +125,7 @@
   ;; >>> v2 <<<
   (GET (v-path 2 "/business_menu_items")
        [item_id address lat lon miles
-        hours utc_offset sort from size include_unpriced
-        :as {{:strs [polygon]} :query-params}]
+        hours utc_offset sort from size include_unpriced polygon]
        (items/validate-and-search
         "v2"
         {:item-id item_id
@@ -147,8 +141,7 @@
   (GET (v-path 1 "/suggestions")
        [query business_category_ids
         address lat lon miles
-        size html
-        :as {uri :uri, {:strs [polygon]} :query-params}]
+        size html polygon uri]
        (let [input-map (sugg/mk-input-map uri query business_category_ids
                                           address lat lon miles polygon
                                           size html nil)
@@ -163,8 +156,7 @@
        [query business_category_ids
         address lat lon miles utc_offset
         size
-        html use_jsonp
-        :as {uri :uri, {:strs [polygon]} :query-params}]
+        html use_jsonp polygon uri]
        (let [input-map (sugg/mk-input-map uri query business_category_ids
                                           address lat lon miles polygon
                                           size html utc_offset)
