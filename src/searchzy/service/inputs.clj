@@ -144,6 +144,12 @@
               :message "Some problem with the paging info."
               :args i})))
 
+(def clean-merchant-appointment-enabled
+  (clean/mk-cleaner
+   :merchant-appointment-enabled :merchant-appointment-enabled
+   true-str?     ;; always produces t/f, never error (nil)
+   (fn [i o])))  ;; no-op
+
 (def clean-include-unpriced
   (clean/mk-cleaner
    :include-unpriced :include-unpriced
@@ -153,8 +159,8 @@
 (def clean-html
   (clean/mk-cleaner
    :html :html
-   true-str?    ;; always produces t/f, never error (nil)
-   (fn [i o]))) ;; no-op
+   true-str?     ;; always produces t/f, never error (nil)
+   (fn [i o])))  ;; no-op
 
 (defn- get-order-and-attr
   [sort-str]
@@ -294,6 +300,7 @@
   [args]
   (let [sort-attrs #{"value" "distance" "score"}]
     (clean/gather->> args
+                     clean-merchant-appointment-enabled
                      ;; One is required, either query or biz-cat-ids.
                      clean-optional-query
                      clean-business-category-ids
@@ -310,6 +317,7 @@
   [args]
   (let [sort-attrs #{"price" "value" "distance" "rating"}]
     (clean/gather->> args
+                     clean-merchant-appointment-enabled
                      clean-required-item-id
                      clean-include-unpriced
                      clean-geo-map

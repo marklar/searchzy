@@ -44,7 +44,8 @@
    We haven't done paging yet (because we needed metadata),
    so we need to do paging here."
   [results related-items metadata day-of-week
-   {:keys [ item-id geo-map hours-map
+   {:keys [ item-id merchant-appointment-enabled
+           geo-map hours-map
             utc-offset-map sort-map page-map
             include-unpriced ]}]
   (let [pageful   (take (:size page-map) (drop (:from page-map) results))
@@ -52,6 +53,7 @@
     (responses/ok-json
      {:endpoint "/v1/business_menu_items"   ; TODO: pass this in
       :arguments {:item_id item-id
+                  :merchant_appointment_enabled merchant-appointment-enabled
                   :include_unpriced include-unpriced
                   :geo_filter geo-map
                   :hours_filter hours-map

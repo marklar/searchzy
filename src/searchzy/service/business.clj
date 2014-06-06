@@ -167,7 +167,7 @@
 (defn- mk-response
   "From ES results, create service response.
    We've already done paging; no need to do so now."
-  [es-results {:keys [query business-category-ids
+  [es-results {:keys [query business-category-ids merchant-appointment-enabled 
                       geo-map hours-map utc-offset-map
                       sort-map page-map]}]
   (let [rails-tz     (results->rails-tz (:hits es-results))
@@ -176,6 +176,7 @@
      {:endpoint "/v1/businesses"   ; TODO: pass this in
       :arguments {:query query
                   :business_category_ids business-category-ids
+                  :merchant_appointment_enabled merchant-appointment-enabled
                   :geo_filter geo-map
                   :hours_filter hours-map
                   :utc_offset utc-offset-map
