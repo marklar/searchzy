@@ -12,6 +12,12 @@
 ;; This doesn't exist in the core lib?
 (defn compact [seq] (remove nil? seq))
 
+(defn mk-merch-appt-filter
+  [bool]
+  (if bool
+    {:term {:merchant_appointment_enabled "T"}}
+    nil))
+
 (defn mk-suggestion-query
   "String 's' may contain mutiple terms.
    Perform a boolean query."

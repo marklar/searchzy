@@ -94,11 +94,12 @@
          }))
 
   (GET (v-path 1 "/businesses")
-       [query business_category_ids
+       [query business_category_ids merchant_appointment_enabled
         address lat lon miles
         hours utc_offset sort from size polygon]
        (biz/validate-and-search
         {:query query
+         :merchant-appointment-enabled merchant_appointment_enabled
          :business-category-ids business_category_ids
          :geo-map {:polygon polygon, :address address, :lat lat, :lon lon, :miles miles}
          :hours hours
@@ -110,11 +111,12 @@
 
   ;; >>> v1 <<<
   (GET (v-path 1 "/business_menu_items")
-       [item_id address lat lon miles
+       [item_id merchant_appointment_enabled address lat lon miles
         hours utc_offset sort from size include_unpriced polygon]
        (items/validate-and-search
         "v1"
         {:item-id item_id
+         :merchant-appointment-enabled merchant_appointment_enabled
          :include-unpriced include_unpriced
          :geo-map {:polygon polygon, :address address, :lat lat, :lon lon, :miles miles}
          :hours hours
@@ -124,11 +126,12 @@
 
   ;; >>> v2 <<<
   (GET (v-path 2 "/business_menu_items")
-       [item_id address lat lon miles
+       [item_id merchant_appointment_enabled address lat lon miles
         hours utc_offset sort from size include_unpriced polygon]
        (items/validate-and-search
         "v2"
         {:item-id item_id
+         :merchant-appointment-enabled merchant_appointment_enabled
          :include-unpriced include_unpriced
          :geo-map {:polygon polygon, :address address, :lat lat, :lon lon, :miles miles}
          :hours hours
