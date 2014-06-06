@@ -22,6 +22,7 @@
      :latitude_longitude {:type "geo_point"
                           :null_value "66.66,66.66"  ; Doesn't seem to work.
                           :include_in_all false}
+     :merchant_appointment_enabled {:type "boolean"}
 
      ;; An *array* of strings.
      :business_category_ids {:type "string"}

@@ -23,6 +23,7 @@
      :latitude_longitude {:type "geo_point"
                           :null_value "66.66,66.66"
                           :include_in_all false}
+     :merchant_appointment_enabled {:type "boolean"}
 
      ;; SORT
      ;; from the business

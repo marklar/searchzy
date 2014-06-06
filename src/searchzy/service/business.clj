@@ -70,23 +70,25 @@
     {:terms {:business_category_ids biz-cat-ids}}))
 
 (defn- mk-filtered-query
-  [query-str query-type geo-map biz-cat-ids sort-map]
-  (let [query-map (mk-query query-str query-type sort-map)
-        id-filter (mk-biz-cat-id-filter biz-cat-ids)
-        geo-filter (geo-util/mk-geo-filter geo-map)]
+  [query-str query-type geo-map merch-appt biz-cat-ids sort-map]
+  (let [query-map    (mk-query query-str query-type sort-map)
+        id-filter    (mk-biz-cat-id-filter biz-cat-ids)
+        merch-filter (util/mk-merch-appt-filter merch-appt)
+        geo-filter   (geo-util/mk-geo-filter geo-map)]
     {:filtered {:query query-map
-                :filter {:and [id-filter geo-filter]}}}))
+                :filter {:and [id-filter geo-filter merch-filter]}}}))
 
 (defn es-search
   "Perform ES search, return results map.
    If sort is by 'value', change scoring function and sort by its result."
-  [query-str query-type biz-cat-ids geo-map sort-map page-map]
+  [query-str query-type merch-appt biz-cat-ids geo-map sort-map page-map]
   (let [es-names (:businesses cfg/elastic-search-names)]
     (:hits
      (es-doc/search (:index es-names)
                     (:mapping es-names)
                     :query  (mk-filtered-query query-str query-type
-                                               geo-map biz-cat-ids sort-map)
+                                               geo-map merch-appt
+                                               biz-cat-ids sort-map)
                     :sort   (mk-sort sort-map geo-map)
                     :from   (:from page-map)
                     :size   (:size page-map)))))
@@ -101,18 +103,21 @@
 (def MAX_ITEMS 1000)
 (defn get-results
   "Returns hits -plus- total."
-  [{:keys [query business-category-ids geo-map hours-map sort-map page-map]}]
+  [{:keys [query merch-appt business-category-ids geo-map hours-map sort-map page-map]}]
   (if (nil? (:wday hours-map))
 
     ;;-- ElasticSearch filters. --
     ;; We don't need to post-filter results based on hours.
     ;; So we can have ES do the paging for us.
-    (es-search query :match business-category-ids geo-map sort-map page-map)
+    (es-search query :match
+               merch-appt business-category-ids
+               geo-map sort-map page-map)
 
     ;;-- We filter. --
     ;; We DO need to post-filter.
     ;; But first let's get lots...
-    (let [{hits :hits} (es-search query :match business-category-ids
+    (let [{hits :hits} (es-search query :match
+                                  merch-appt business-category-ids
                                   geo-map sort-map
                                   {:from 0, :size MAX_ITEMS})
           ;; ...then post-filter...
@@ -167,7 +172,7 @@
 (defn- mk-response
   "From ES results, create service response.
    We've already done paging; no need to do so now."
-  [es-results {:keys [query business-category-ids merchant-appointment-enabled 
+  [es-results {:keys [query business-category-ids merchant-appointment-enabled
                       geo-map hours-map utc-offset-map
                       sort-map page-map]}]
   (let [rails-tz     (results->rails-tz (:hits es-results))
