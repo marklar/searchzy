@@ -144,6 +144,7 @@
                   cs :coordinates
                   hs :hours
                   p :permalink
+                  mae :merchant_appointment_enabled
                   bcis :business_category_ids
                   yid :yelp_id
                   ysr :yelp_star_rating
@@ -154,6 +155,7 @@
        :business_category_ids bcis
        :yelp {:id yid, :star_rating ysr, :review_count yrc}
        :phone_number phone_number
+       :merchange_appointment_enabled mae   ; Might be t/f, might be nil.
        :distance_in_mi dist
        :coordinates cs
        :hours_today hours-today})))
