@@ -103,6 +103,7 @@
   (assoc
       (select-keys mg-map [:_id :fdb_id :name :permalink
                            :yelp_star_rating :yelp_review_count :yelp_id
+                           :merchant_appointment_enabled
                            :rails_time_zone])
     ;; search
     :phone_number (get-phone-number mg-map)
