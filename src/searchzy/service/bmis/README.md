@@ -1,5 +1,5 @@
 
-== Sorting by Quality ==
+# Sorting by Quality
 
 We want to sort the BusinessMenuItems based on the quality of the
 business/service.
@@ -18,7 +18,7 @@ Let's first look at how we compute the constituent parts of the score,
 and then how the final scores are computed.
 
 
-= Yelp Data =
+## Yelp Data
 
 Both the "value" and the "rating" sort use Yelp data.
 
@@ -64,7 +64,7 @@ out of 15 ratings, it would get a normalized score of ((15 - 10) / 15)
 == 0.333.
 
 
-= Price Data =
+## Price Data
 
 Both the "value" and the "rating" sort also use price data.
 
@@ -77,17 +77,17 @@ normalized score based on its price.  And as with Yelp data, we use
 the price's rank within the range of prices to assign the score.
 
 
-= Awesomeness: Combine Them =
+## Awesomeness: Combine Them
 
 Finally, we calculate the "awesomeness" score as a function of the
 normalized Yelp and price scores.  The "value" version of
 "awesomeness" and the "rating" version of same differ only in the
 weights applied to the Yelp and price scores.
 
-              "value"  "rating"
-  price_score   0.5      0.1
-  count_score   0.25     0.4
-  stars_score   0.25     0.4
+                "value"  "rating"
+    price_score   0.5      0.1
+    count_score   0.25     0.4
+    stars_score   0.25     0.4
 
 As you can see, the "value" version gives much more weight to the
 price, whereas "rating" favors the Yelp scores.
