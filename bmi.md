@@ -12,21 +12,21 @@ Using `address` and specifying some optional values, `miles`, `from`,
 and `size`:
 
 * [/v1/business_menu_items ?
-   item_id = 5076ea696bddbbdcc000000e &
-   sort = price &
-   address = New%20York,%20NY &
-   miles = 2.5 &
-   from = 0 &
-   size = 8
+   item_id=5076ea696bddbbdcc000000e &
+   sort=price &
+   address=New%20York,%20NY &
+   miles=2.5 &
+   from=0 &
+   size=8
   ](http://localhost:3000/v1/business_menu_items?item_id=5076ea696bddbbdcc000000e&sort=price&address=New%20York,%20NY&miles=2.5&from=0&size=8)
       
 Using `lat` and `lon` instead of `address`:
 
 * [/v1/business_menu_items ?
-   item_id = 5076ea696bddbbdcc000000e &
-   sort = price &
-   lat = 40.714 &
-   lon = -74.006
+   item_id=5076ea696bddbbdcc000000e &
+   sort=price &
+   lat=40.714 &
+   lon=-74.006
   ](http://localhost:3000/v1/business_menu_items?item_id=5076ea696bddbbdcc000000e&sort=price&lat=40.714&lon=-74.006)
       
 ## Behavior
@@ -110,7 +110,7 @@ query-string parameters) uses an UNDERBAR.
 * type: enum `{price, -price, value, -value, distance, -distance}`
 * optional: defaults to `-value`
 * order:
-  * A '`-`' prefix means DESC order.  (You'll probably want to use `-value`.)
+  * A `-` prefix means DESC order.  (You'll probably want to use `-value`.)
   * No prefix means ASC order.  (That's probably what you'll want to use for `distance` and `price`.)
 
 ### Paging
@@ -176,7 +176,7 @@ Filter results by proximity to this location.
     * name: `lat`
     * type: float
     * e.g. `10.347372387`
-    * longitude
-      * name: `lon`
-      * type: float
-      * e.g. `40.278171872`
+  * longitude
+    * name: `lon`
+    * type: float
+    * e.g. `40.278171872`
