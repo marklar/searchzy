@@ -19,13 +19,15 @@
 
 (defn- rm-index [name]
   (let [pre (str "index '" name "':")]
+    ;; This doesn't work in newer versions of Elastisch.
+    ;; Have to explicitly pass in the ES connection.
     (if (es-idx/exists? name)
       (do (println pre "exists.  deleting.")
           (es-idx/delete name))
       (println pre "doesn't exist."))))
 
 (defn- get-idx-names []
-  (map (fn [_ m] (:index m))
+  (map (fn [[_ m]] (:index m))
        cfg/elastic-search-names))
 
 (defn- blow-away-everything []
