@@ -1,17 +1,3 @@
-
-  (let [path "/v1/suggestions"
-        query "nai"
-        size 8
-        url1 (util/mk-url path {:query query
-                                :address util/address
-                                :miles util/miles
-                                :size size})
-        url2 (util/mk-url path {:query query
-                                :lat util/lat
-                                :lon util/lon})
-        url3 (str url2 "&html=true")
-        url4 (util/mk-url path {:query query :lat util/lat})]
-
 # Suggestions (Auto-Suggest)
       
 ## Try It
