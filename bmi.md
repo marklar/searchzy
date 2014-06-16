@@ -2,18 +2,32 @@
 
 ## Try It
 
-First, try a couple of queries.  In the results, be sure to have a
-look at the `arguments`, to get a sense for how it's interpreting the
-query-string parameters.
+First, try a couple of queries.  Be sure to have Searchzy running on
+your local machine at port 3000 (the default).
+
+In the results, be sure to have a look at the `arguments`, to get a
+sense for how it's interpreting the query-string parameters.
       
 Using `address` and specifying some optional values, `miles`, `from`,
 and `size`:
 
-* /v1/business_menu_items?item_id=5076ea696bddbbdcc000000e&sort=price&address=New%20York,%20NY&miles=2.5&from=0&size=8
+* [/v1/business_menu_items ?
+   item_id = 5076ea696bddbbdcc000000e &
+   sort = price &
+   address = New%20York,%20NY &
+   miles = 2.5 &
+   from = 0 &
+   size = 8
+  ](http://localhost:3000/v1/business_menu_items?item_id=5076ea696bddbbdcc000000e&sort=price&address=New%20York,%20NY&miles=2.5&from=0&size=8)
       
 Using `lat` and `lon` instead of `address`:
 
-* /v1/business_menu_items?item_id=5076ea696bddbbdcc000000e&sort=price&lat=40.714&lon=-74.006
+* [/v1/business_menu_items ?
+   item_id = 5076ea696bddbbdcc000000e &
+   sort = price &
+   lat = 40.714 &
+   lon = -74.006
+  ](http://localhost:3000/v1/business_menu_items?item_id=5076ea696bddbbdcc000000e&sort=price&lat=40.714&lon=-74.006)
       
 ## Behavior
       
