@@ -12,13 +12,11 @@
 ;; This doesn't exist in the core lib?
 (defn compact [seq] (remove nil? seq))
 
-;; Assert that the input values are good.
-(defn mk-geo-filter
-  "Create map for filtering by geographic distance."
-  [{:keys [miles coords]}]
-  (let [coords-str (str (:lat coords) "," (:lon coords))]
-    {:geo_distance {:distance (str miles "miles")
-                    :latitude_longitude coords-str}}))
+(defn mk-merch-appt-filter
+  [bool]
+  (if bool
+    {:term {:merchant_appointment_enabled "T"}}
+    nil))
 
 (defn mk-suggestion-query
   "String 's' may contain mutiple terms.

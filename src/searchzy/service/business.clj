@@ -25,8 +25,14 @@
   (let [order (:order sort-map)]
     (match (:attribute sort-map)
            "value"    (value-sort order)
-           "distance" (geo-sort/mk-geo-distance-sort-builder
-                       (:coords geo-map) order)
+           ;; NB: We can't use distance sort with polygons.
+           ;; TODO: Modify validation so that sort 'distance' doesn't go with 'polygon'.
+           "distance" (if-not (nil? (:polygon geo-map))
+                        ;; If we have a polygon, sort by 'value' instead.
+                        (value-sort order)
+                        ;; Otherwise use geo-distance.
+                        (geo-sort/mk-geo-distance-sort-builder
+                         (:coords geo-map) order))
            "score"    {:_score order}
            :else      DEFAULT_SORT)))
 
@@ -64,23 +70,25 @@
     {:terms {:business_category_ids biz-cat-ids}}))
 
 (defn- mk-filtered-query
-  [query-str query-type geo-map biz-cat-ids sort-map]
-  (let [query-map (mk-query query-str query-type sort-map)
-        id-filter (mk-biz-cat-id-filter biz-cat-ids)
-        geo-filter (util/mk-geo-filter geo-map)]
+  [query-str query-type geo-map merch-appt biz-cat-ids sort-map]
+  (let [query-map    (mk-query query-str query-type sort-map)
+        id-filter    (mk-biz-cat-id-filter biz-cat-ids)
+        merch-filter (util/mk-merch-appt-filter merch-appt)
+        geo-filter   (geo-util/mk-geo-filter geo-map)]
     {:filtered {:query query-map
-                :filter {:and [id-filter geo-filter]}}}))
+                :filter {:and [id-filter geo-filter merch-filter]}}}))
 
 (defn es-search
   "Perform ES search, return results map.
    If sort is by 'value', change scoring function and sort by its result."
-  [query-str query-type biz-cat-ids geo-map sort-map page-map]
+  [query-str query-type merch-appt biz-cat-ids geo-map sort-map page-map]
   (let [es-names (:businesses cfg/elastic-search-names)]
     (:hits
      (es-doc/search (:index es-names)
                     (:mapping es-names)
                     :query  (mk-filtered-query query-str query-type
-                                               geo-map biz-cat-ids sort-map)
+                                               geo-map merch-appt
+                                               biz-cat-ids sort-map)
                     :sort   (mk-sort sort-map geo-map)
                     :from   (:from page-map)
                     :size   (:size page-map)))))
@@ -95,18 +103,21 @@
 (def MAX_ITEMS 1000)
 (defn get-results
   "Returns hits -plus- total."
-  [{:keys [query business-category-ids geo-map hours-map sort-map page-map]}]
+  [{:keys [query merch-appt business-category-ids geo-map hours-map sort-map page-map]}]
   (if (nil? (:wday hours-map))
 
     ;;-- ElasticSearch filters. --
     ;; We don't need to post-filter results based on hours.
     ;; So we can have ES do the paging for us.
-    (es-search query :match business-category-ids geo-map sort-map page-map)
+    (es-search query :match
+               merch-appt business-category-ids
+               geo-map sort-map page-map)
 
     ;;-- We filter. --
     ;; We DO need to post-filter.
     ;; But first let's get lots...
-    (let [{hits :hits} (es-search query :match business-category-ids
+    (let [{hits :hits} (es-search query :match
+                                  merch-appt business-category-ids
                                   geo-map sort-map
                                   {:from 0, :size MAX_ITEMS})
           ;; ...then post-filter...
@@ -120,6 +131,16 @@
 
 ;; -- create response --
 
+;;
+;; How do you sort by distance when you have a polygon?
+;; Can merely use a *filter*:
+;;     http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-geo-polygon-filter.html
+;; 
+;; If you want to sort, you need to have a center to the polygon.
+;; Only if the polygon is regular may it have an obvious center.
+;; How to know whether it's regular?  And how to compute the center?
+;; 
+
 (defn- mk-response-hit
   "From ES hit, make service hit."
   [coords day-of-week biz]
@@ -128,35 +149,39 @@
                   cs :coordinates
                   hs :hours
                   p :permalink
+                  mae :merchant_appointment_enabled
                   bcis :business_category_ids
                   yid :yelp_id
                   ysr :yelp_star_rating
                   yrc :yelp_review_count} :_source} biz]
-    ;; TODO: if cs is nil, use :latitude_longitude instead.
-    (let [dist (geo-util/haversine cs coords)
-          hours-today (util/get-hours-for-day hs day-of-week)]
+    (let [dist          (geo-util/haversine cs coords)
+          hours-today   (util/get-hours-for-day hs day-of-week)]
       {:_id id :name n :address a :permalink p
        :business_category_ids bcis
        :yelp {:id yid, :star_rating ysr, :review_count yrc}
        :phone_number phone_number
+       :merchange_appointment_enabled mae   ; Might be t/f, might be nil.
        :distance_in_mi dist
        :coordinates cs
        :hours_today hours-today})))
 
+(defn- results->rails-tz
+  [es-hits]
+  (some #(-> % :_source :rails_time_zone) es-hits))
+
 (defn- mk-response
   "From ES results, create service response.
    We've already done paging; no need to do so now."
-  [es-results {:keys [query business-category-ids
+  [es-results {:keys [query business-category-ids merchant-appointment-enabled
                       geo-map hours-map utc-offset-map
                       sort-map page-map]}]
-  (let [rails-time-zone
-        (some #(-> % :_source :rails_time_zone) (:hits es-results))
-        day-of-week
-        (util/get-day-of-week hours-map rails-time-zone utc-offset-map)]
+  (let [rails-tz     (results->rails-tz (:hits es-results))
+        day-of-week  (util/get-day-of-week hours-map rails-tz utc-offset-map)]
     (responses/ok-json
      {:endpoint "/v1/businesses"   ; TODO: pass this in
       :arguments {:query query
                   :business_category_ids business-category-ids
+                  :merchant_appointment_enabled merchant-appointment-enabled
                   :geo_filter geo-map
                   :hours_filter hours-map
                   :utc_offset utc-offset-map
@@ -165,6 +190,8 @@
                   :paging page-map}
       :results {:count (:total es-results)
                 :hits (map #(mk-response-hit (:coords geo-map) day-of-week %)
+                           ;; I don't remember...
+                           ;; Why is it necessary to remove the hits lacking coords?
                            (remove #(nil? (:coordinates (:_source %)))
                                    (:hits es-results)))}})))
 

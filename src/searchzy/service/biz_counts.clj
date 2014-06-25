@@ -3,6 +3,7 @@
   (:require [searchzy.cfg :as cfg]
             [searchzy.service
              [util :as util]
+             [geo-util :as geo-util]
              [inputs :as inputs]
              [responses :as responses]]
             [clojurewerkz.elastisch.native
@@ -24,7 +25,7 @@
    {;; There's no query at all.  Only...
     :query {:match_all {}}
     ;; ...a filter.
-    :filter {:bool {:must [(util/mk-geo-filter (:geo-map valid-args))
+    :filter {:bool {:must [(geo-util/mk-geo-filter (:geo-map valid-args))
                            {:term {:item_id (:item-id valid-args)}}]}}}})
 
 (def MAX_BMIS 1000)
@@ -36,7 +37,7 @@
    Return count of businesses."
   [valid-args]
   (let [es-names (:business_menu_items cfg/elastic-search-names)
-        geo-filter (util/mk-geo-filter (:geo-map valid-args))
+        geo-filter (geo-util/mk-geo-filter (:geo-map valid-args))
         results (es-doc/search (:index es-names)
                                (:mapping es-names)
                                :query (bmis-query valid-args)
@@ -55,7 +56,7 @@
    {;; There's no query at all.  Only...
     :query {:match_all {}}
     ;; ...a filter.
-    :filter (util/mk-geo-filter geo-map)}})
+    :filter (geo-util/mk-geo-filter geo-map)}})
 
 (defn- search-bizs
   [geo-map]

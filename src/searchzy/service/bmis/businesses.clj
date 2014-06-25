@@ -2,6 +2,7 @@
   (:require [searchzy.cfg :as cfg]
             [searchzy.service
              [geo-sort :as geo-sort]
+             [geo-util :as geo-util]
              [util :as util]]
             [clojurewerkz.elastisch.native
              [document :as es-doc]]))
@@ -12,16 +13,19 @@
   "Perform search against BusinessCategory _id, specifically using:
      - geo-distance sort  -AND-
      - geo-distance filter"
-  [cat-id geo-map page-map]
-  (let [names (:businesses cfg/elastic-search-names)]
+  [cat-id merch-appt geo-map page-map]
+  (let [names        (:businesses cfg/elastic-search-names)
+        geo-filter   (geo-util/mk-geo-filter geo-map)
+        merch-filter (util/mk-merch-appt-filter merch-appt)
+        filters      (util/compact [geo-filter merch-filter])]
     (:hits
      (es-doc/search (:index names) (:mapping name)
                     :query {:filtered {:query {:term {:business_category_ids cat-id}}
-                                       :filter (util/mk-geo-filter geo-map)}}
-                    :sort   (geo-sort/mk-geo-distance-sort-builder
-                             (:coords geo-map) :asc)
-                    :from   (:from page-map)
-                    :size   (:size page-map)))))
+                                       :filter {:and filters}}}
+                    :sort  (geo-sort/mk-geo-distance-sort-builder
+                            (:coords geo-map) :asc)
+                    :from  (:from page-map)
+                    :size  (:size page-map)))))
 
 ;;-------------------------
 
@@ -29,10 +33,10 @@
   "Given business_category_id,
    search ElasticSearch for corresponding Businesses.
    Doesn't return BusinessMenuBmis, mind you -- just Businesses."
-  [biz-cat-id geo-map pager]
+  [biz-cat-id merch-appt geo-map pager]
   (if (nil? biz-cat-id)
     []
-    (let [{bizs :hits} (es-search biz-cat-id geo-map pager)]
+    (let [{bizs :hits} (es-search biz-cat-id merch-appt geo-map pager)]
       bizs)))
 
 (defn ->bmi

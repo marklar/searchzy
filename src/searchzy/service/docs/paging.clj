@@ -22,4 +22,3 @@
       [:li "optional: defaults to " [:span.code "10"]]
       [:li "note: If there are fewer than " [:span.code "size"]
        " available, just return those."]]]]))
-

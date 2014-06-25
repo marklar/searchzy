@@ -147,9 +147,9 @@
 ;;---------------------------------
 
 (def value-factors
-  {:tweaked-price-norm  0.4
-   :tweaked-rating-norm 0.3
-   :tweaked-count-norm  0.3})
+  {:tweaked-price-norm  0.5
+   :tweaked-rating-norm 0.25
+   :tweaked-count-norm  0.25})
 
 (def rating-factors
   {:tweaked-rating-norm 0.4

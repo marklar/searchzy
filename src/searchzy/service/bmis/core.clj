@@ -7,6 +7,7 @@
             [searchzy.util]
             [searchzy.service
              [geo-sort :as geo-sort]
+             [geo-util :as geo-util]
              [util :as util]
              [inputs :as inputs]]
             [searchzy.service.bmis
@@ -27,17 +28,20 @@
   "Perform search against item_id, specifically using:
      - geo-distance sort  -AND-
      - geo-distance filter"
-  [item-id geo-map page-map]
-  (map :_source
-       (:hits
-        (:hits
-         (es-doc/search idx-name mapping-name
-                        :query {:filtered {:query {:term {:item_id item-id}}
-                                           :filter (util/mk-geo-filter geo-map)}}
-                        :sort   (geo-sort/mk-geo-distance-sort-builder
-                                 (:coords geo-map) :asc)
-                        :from   (:from page-map)
-                        :size   (:size page-map))))))
+  [item-id merch-appt geo-map page-map]
+  (let [geo-filter    (geo-util/mk-geo-filter geo-map)
+        merch-filter  (util/mk-merch-appt-filter merch-appt)
+        filters       (util/compact [geo-filter merch-filter])]
+    (map :_source
+         (:hits
+          (:hits
+           (es-doc/search idx-name mapping-name
+                          :query {:filtered {:query {:term {:item_id item-id}}
+                                             :filter {:and filters}}}
+                          :sort   (geo-sort/mk-geo-distance-sort-builder
+                                   (:coords geo-map) :asc)
+                          :from   (:from page-map)
+                          :size   (:size page-map)))))))
 
 (defn- de-dupe
   "If a biz in bizs is already in bmis, then remove from bizs."
@@ -46,12 +50,12 @@
     (remove #((set biz-ids) (:_id %)) bizs)))
 
 (defn- maybe-add-unpriced
-  [include-unpriced bmis item-id geo-map fake-pager]
+  [include-unpriced bmis item-id merch-appt geo-map fake-pager]
   (if include-unpriced
-    (let [biz-cat-id (items/get-biz-cat-id item-id)
-          bizs (bizs/for-category biz-cat-id geo-map fake-pager)
-          novel-bizs (de-dupe bizs bmis)
-          novel-bmis (map bizs/->bmi novel-bizs)]
+    (let [biz-cat-id  (items/get-biz-cat-id item-id)
+          bizs        (bizs/for-category biz-cat-id merch-appt geo-map fake-pager)
+          novel-bizs  (de-dupe bizs bmis)
+          novel-bmis  (map bizs/->bmi novel-bizs)]
       ;; TODO: rather than concating (and later sorting),
       ;; we really ought to 'zipper' together the priced-bmis and the unpriced-bizs.
       ;; But we haven't included distances here (that happens in ns:filter).
@@ -62,14 +66,15 @@
 (defn- get-all-open-bmis
   "Filter by miles.  Sort by distance.
    Then in-process, do additional filtering and sorting as needed."
-  [{:keys [item-id geo-map hours-map sort-map include-unpriced]}]
+  [{:keys [item-id merchant-appointment-enabled geo-map hours-map sort-map include-unpriced]}]
   ;; Do search, getting lots of (MAX-BMIS) results.
   ;; Return *only* the actual hits, losing the metadata (actual number of results).
   (let [fake-pager {:from 0, :size MAX-BMIS}
-        priced-bmis (es-search item-id geo-map fake-pager)
-        bmis (maybe-add-unpriced include-unpriced
-                                 priced-bmis item-id geo-map
-                                 fake-pager)]
+        priced-bmis (es-search item-id merchant-appointment-enabled geo-map fake-pager)
+        bmis        (maybe-add-unpriced include-unpriced
+                                        priced-bmis item-id
+                                        merchant-appointment-enabled
+                                        geo-map fake-pager)]
     (filter/filter-sort bmis include-unpriced geo-map hours-map sort-map)))
 
 ;;-------------------------

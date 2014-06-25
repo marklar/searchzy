@@ -62,7 +62,7 @@
 
   ;; TODO: permalink
   (GET (v-path 1 "/mean_prices")
-       [api_key permalink item_category_ids miles]
+       [permalink item_category_ids miles polygon]
        (mean-prices/validate-and-search
         {:permalink permalink
          :item-category-ids item_category_ids
@@ -72,17 +72,16 @@
 
   ;; TODO:  Make geo-map optional.  If missing, use coords from item.
   (GET (v-path 1 "/business_counts")
-       [api_key item_id address lat lon miles]
+       [item_id address lat lon miles polygon]
        (biz-counts/validate-and-search
         {:item-id item_id
-         :geo-map {:address address, :lat lat, :lon lon, :miles miles}}))
+         :geo-map {:polygon polygon, :address address, :lat lat, :lon lon, :miles miles}}))
 
   (GET (v-path 1 "/lists")
-       [api_key
-        location_id seo_business_category_id seo_region_id seo_item_id
+       [location_id seo_business_category_id seo_region_id seo_item_id
         area_type state
         address lat lon miles
-        from size]
+        from size polygon]
        (lists/validate-and-search
         {:location-id location_id
          :seo-business-category-id seo_business_category_id
@@ -90,18 +89,19 @@
          :seo-item-id seo_item_id
          :area-type area_type
          :state state
-         :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+         :geo-map {:polygon polygon, :address address, :lat lat, :lon lon, :miles miles}
          :page-map {:from from, :size size}
          }))
 
   (GET (v-path 1 "/businesses")
-       [api_key query business_category_ids
+       [query business_category_ids merchant_appointment_enabled
         address lat lon miles
-        hours utc_offset sort from size]
+        hours utc_offset sort from size polygon]
        (biz/validate-and-search
         {:query query
+         :merchant-appointment-enabled merchant_appointment_enabled
          :business-category-ids business_category_ids
-         :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+         :geo-map {:polygon polygon, :address address, :lat lat, :lon lon, :miles miles}
          :hours hours
          :utc-offset utc_offset
          :sort sort
@@ -111,13 +111,14 @@
 
   ;; >>> v1 <<<
   (GET (v-path 1 "/business_menu_items")
-       [api_key item_id address lat lon miles
-        hours utc_offset sort from size include_unpriced]
+       [item_id merchant_appointment_enabled address lat lon miles
+        hours utc_offset sort from size include_unpriced polygon]
        (items/validate-and-search
         "v1"
         {:item-id item_id
+         :merchant-appointment-enabled merchant_appointment_enabled
          :include-unpriced include_unpriced
-         :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+         :geo-map {:polygon polygon, :address address, :lat lat, :lon lon, :miles miles}
          :hours hours
          :utc-offset utc_offset
          :sort sort
@@ -125,13 +126,14 @@
 
   ;; >>> v2 <<<
   (GET (v-path 2 "/business_menu_items")
-       [api_key item_id address lat lon miles
-        hours utc_offset sort from size include_unpriced]
+       [item_id merchant_appointment_enabled address lat lon miles
+        hours utc_offset sort from size include_unpriced polygon]
        (items/validate-and-search
         "v2"
         {:item-id item_id
+         :merchant-appointment-enabled merchant_appointment_enabled
          :include-unpriced include_unpriced
-         :geo-map {:address address, :lat lat, :lon lon, :miles miles}
+         :geo-map {:polygon polygon, :address address, :lat lat, :lon lon, :miles miles}
          :hours hours
          :utc-offset utc_offset
          :sort sort
@@ -140,10 +142,12 @@
   ;;-- SUGGESTIONS --
 
   (GET (v-path 1 "/suggestions")
-       [query business_category_ids address lat lon miles size html]
-       (let [path (v-path 1 "/suggestions")
-             input-map (sugg/mk-input-map path query business_category_ids
-                                          address lat lon miles size html nil)
+       [query business_category_ids
+        address lat lon miles
+        size html polygon uri]
+       (let [input-map (sugg/mk-input-map uri query business_category_ids
+                                          address lat lon miles polygon
+                                          size html nil)
              res (sugg/validate-and-search-v1 input-map)]
          (responses/json-p-ify res)))
 
@@ -152,15 +156,15 @@
   ;; + Adds fdb_id to each entity in each section of results.
   ;; + Allows utc_offset string to include appropriate hours_today info in response.
   (GET (v-path 2 "/suggestions")
-       ;; Does NOT require api_key.
        [query business_category_ids
         address lat lon miles utc_offset
         size
-        html use_jsonp]
-       (let [path (v-path 2 "/suggestions")
-             input-map (sugg/mk-input-map path query business_category_ids
-                                          address lat lon miles size html utc_offset)
+        html use_jsonp polygon uri]
+       (let [input-map (sugg/mk-input-map uri query business_category_ids
+                                          address lat lon miles polygon
+                                          size html utc_offset)
              res (sugg/validate-and-search-v2 input-map)]
+         ;; possibly wrap in jsonp
          (if (inputs/true-str? use_jsonp)
            (responses/json-p-ify res)
            res)))
