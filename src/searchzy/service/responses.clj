@@ -2,7 +2,8 @@
   (:require [clojure.data.json :as json]))
 
 (def json-headers
-  {"Content-Type" "application/json; charset=utf-8"})
+  {"Content-Type" "application/json; charset=utf-8"
+   "Access-Control-Allow-Origin" "*"})
 
 (defn- json-response
   [status obj]
