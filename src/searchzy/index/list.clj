@@ -79,8 +79,7 @@
                      {:updated_at {:$gte after}}
                      {})))
 
-(defn recreate-idx
-  []
+(defn recreate-idx []
   (util/recreate-idx idx-name mapping-types))
 
 (defn mk-idx

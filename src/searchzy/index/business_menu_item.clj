@@ -103,7 +103,7 @@
    Add each (and its embedded BusinessUnifiedMenuItems) to the index.
    Return count (of Businesses)."
   [& {:keys [limit after biz-ids]}]
-  (if (or (nil? after) (nil? biz-ids))
+  (if (and (nil? after) (empty? biz-ids))
     (recreate-idx))
   (doseq-cnt add-to-idx
              5000

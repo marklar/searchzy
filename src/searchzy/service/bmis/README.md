@@ -27,26 +27,33 @@ Yelp provides up to two signals per Business (and thus BMI):
   * the average value of those reviews ("star rating"),
     between 0.0 and 5.0.
 
-Smoothing.  In some cases, a Business hasn't been rated.  But we need
-each Business to have non-zero values for these signals, so we provide
-a default:
-  * count: 1
-  * stars: 3.0
+### Smoothing
 
-Tweaking.  Statistically speaking, the greater the number of reviews,
-the more dependable their "star rating".  Also, a large number of
-positive reviews indicates a broader level of support for the
-Business, and a large number of negative reviews indicates a broad
-level of frustration.  We want to capture these insights in our
-"awesomeness" score.
+In some cases, a Business hasn't been rated.  But we need each
+Business to have non-zero values for these signals, so we provide a
+default:
+
+* count: 1
+* stars: 3.0
+
+### Tweaking
+
+Statistically speaking, the greater the number of reviews, the more
+dependable their "star rating".  Also, a large number of positive
+reviews indicates a broader level of support for the Business, and a
+large number of negative reviews indicates a broad level of
+frustration.  We want to capture these insights in our "awesomeness"
+score.
 
 To do this, first we add a "tweaked" version of the review count.  If
 the star rating is generally negative (< 3.0), then we multiply it by
 -1.  So the more reviews resulting in a negative star count a Business
 has, the lower its "tweaked" review count.
 
-Normalizing.  Then, with both the review count and the star rating, we
-want to assign a normalized score -- between 0 and 1.
+### Normalizing
+
+Then, with both the review count and the star rating, we want to
+assign a normalized score -- between 0 and 1.
 
 (Perhaps the most obvious way to do this would be a straight mapping
 between the value and where it lies in the range of values.  For
@@ -68,13 +75,17 @@ out of 15 ratings, it would get a normalized score of ((15 - 10) / 15)
 
 Both the "value" and the "rating" sort also use price data.
 
-Smoothing.  Not all BusinessMenuItems have prices, but since we want
-to score them (in part) based on price, we give those that lack a
-price that of the highest possible.
+### Smoothing
 
-Normalize.  Then, as with Yelp data, we want to give the BMI a
-normalized score based on its price.  And as with Yelp data, we use
-the price's rank within the range of prices to assign the score.
+Not all BusinessMenuItems have prices, but since we want to score them
+(in part) based on price, we give those that lack a price that of the
+highest possible.
+
+### Normalize
+
+Then, as with Yelp data, we want to give the BMI a normalized score
+based on its price.  And as with Yelp data, we use the price's rank
+within the range of prices to assign the score.
 
 
 ## Awesomeness: Combine Them
