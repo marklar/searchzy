@@ -206,7 +206,7 @@
 (defn mk-idx
   "Fetch Businesses from MongoDB and add them to index.  Return count."
   [& {:keys [limit after biz-ids]}]
-  (if-not (or after biz-ids)
+  (if (and (nil? after) (empty? biz-ids))
     (recreate-idx))
   (doseq-cnt add-to-idx
              5000

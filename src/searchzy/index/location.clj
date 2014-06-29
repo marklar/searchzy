@@ -17,14 +17,12 @@
      :permalink {:type "string"
                  :index "not_analyzed"}}}})
 
-(defn- add-to-idx
-  [mg-map]
+(defn- add-to-idx [mg-map]
   (es-doc/put idx-name mapping-name
               (str (:_id mg-map))
               mg-map))
 
-(defn- recreate-idx
-  []
+(defn- recreate-idx []
   (util/recreate-idx idx-name mapping-types))
 
 (defn mk-idx
