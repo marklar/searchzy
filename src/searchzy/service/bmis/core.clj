@@ -49,28 +49,34 @@
   (let [biz-ids (map #(get-in % [:business :_id]) bmis)]
     (remove #((set biz-ids) (:_id %)) bizs)))
 
+(defn- get-bizs
+  [item-id merch-appt geo-map fake-pager]
+  (let [biz-cat-id (items/get-biz-cat-id item-id)]
+    (bizs/for-category biz-cat-id merch-appt geo-map fake-pager)))
+
 (defn- maybe-add-unpriced
   [include-unpriced bmis item-id merch-appt geo-map fake-pager]
-  (if include-unpriced
-    (let [biz-cat-id (items/get-biz-cat-id item-id)
-          bizs       (bizs/for-category biz-cat-id merch-appt geo-map fake-pager)
-          novel-bizs (de-dupe bizs bmis)
-          novel-bmis (map bizs/->bmi novel-bizs)]
+  (if-not include-unpriced
+    bmis
+    (let [bizs       (get-bizs item-id merch-appt geo-map fake-pager)
+          novel-bmis (map bizs/->bmi (de-dupe bizs bmis))]
       ;; TODO: rather than concating (and later sorting),
       ;; we really ought to 'zipper' together the priced-bmis and the unpriced-bizs.
       ;; But we haven't included distances here (that happens in ns:filter).
-      (concat bmis novel-bmis))
-    bmis))
+      (concat bmis novel-bmis))))
 
 (def MAX-BMIS 250)
 (defn- get-all-open-bmis
   "Filter by miles.  Sort by distance.
    Then in-process, do additional filtering and sorting as needed."
-  [{:keys [item-id merchant-appointment-enabled geo-map hours-map sort-map include-unpriced]}]
+  [{:keys [item-id merchant-appointment-enabled geo-map hours-map
+           sort-map include-unpriced]}]
   ;; Do search, getting lots of (MAX-BMIS) results.
-  ;; Return *only* the actual hits, losing the metadata (actual number of results).
+  ;; Return *only* the actual hits,
+  ;; losing the metadata (actual number of results).
   (let [fake-pager  {:from 0, :size MAX-BMIS}
-        priced-bmis (es-search item-id merchant-appointment-enabled geo-map fake-pager)
+        priced-bmis (es-search item-id merchant-appointment-enabled
+                               geo-map fake-pager)
         bmis        (maybe-add-unpriced include-unpriced
                                         priced-bmis item-id
                                         merchant-appointment-enabled
