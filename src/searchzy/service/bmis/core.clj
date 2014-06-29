@@ -29,33 +29,33 @@
      - geo-distance sort  -AND-
      - geo-distance filter"
   [item-id merch-appt geo-map page-map]
-  (let [geo-filter    (geo-util/mk-geo-filter geo-map)
-        merch-filter  (util/mk-merch-appt-filter merch-appt)
-        filters       (util/compact [geo-filter merch-filter])]
+  (let [geo-filter   (geo-util/mk-geo-filter geo-map)
+        merch-filter (util/mk-merch-appt-filter merch-appt)
+        filters      (util/compact [geo-filter merch-filter])]
     (map :_source
          (:hits
           (:hits
            (es-doc/search idx-name mapping-name
                           :query {:filtered {:query {:term {:item_id item-id}}
                                              :filter {:and filters}}}
-                          :sort   (geo-sort/mk-geo-distance-sort-builder
-                                   (:coords geo-map) :asc)
-                          :from   (:from page-map)
-                          :size   (:size page-map)))))))
+                          :sort  (geo-sort/mk-geo-distance-sort-builder
+                                  (:coords geo-map) :asc)
+                          :from  (:from page-map)
+                          :size  (:size page-map)))))))
 
 (defn- de-dupe
   "If a biz in bizs is already in bmis, then remove from bizs."
   [bizs bmis]
-  (let [biz-ids (map #(-> % :business :_id) bmis)]
+  (let [biz-ids (map #(get-in % [:business :_id]) bmis)]
     (remove #((set biz-ids) (:_id %)) bizs)))
 
 (defn- maybe-add-unpriced
   [include-unpriced bmis item-id merch-appt geo-map fake-pager]
   (if include-unpriced
-    (let [biz-cat-id  (items/get-biz-cat-id item-id)
-          bizs        (bizs/for-category biz-cat-id merch-appt geo-map fake-pager)
-          novel-bizs  (de-dupe bizs bmis)
-          novel-bmis  (map bizs/->bmi novel-bizs)]
+    (let [biz-cat-id (items/get-biz-cat-id item-id)
+          bizs       (bizs/for-category biz-cat-id merch-appt geo-map fake-pager)
+          novel-bizs (de-dupe bizs bmis)
+          novel-bmis (map bizs/->bmi novel-bizs)]
       ;; TODO: rather than concating (and later sorting),
       ;; we really ought to 'zipper' together the priced-bmis and the unpriced-bizs.
       ;; But we haven't included distances here (that happens in ns:filter).
@@ -69,7 +69,7 @@
   [{:keys [item-id merchant-appointment-enabled geo-map hours-map sort-map include-unpriced]}]
   ;; Do search, getting lots of (MAX-BMIS) results.
   ;; Return *only* the actual hits, losing the metadata (actual number of results).
-  (let [fake-pager {:from 0, :size MAX-BMIS}
+  (let [fake-pager  {:from 0, :size MAX-BMIS}
         priced-bmis (es-search item-id merchant-appointment-enabled geo-map fake-pager)
         bmis        (maybe-add-unpriced include-unpriced
                                         priced-bmis item-id
@@ -83,7 +83,7 @@
   [bmis valid-args]
   (util/get-day-of-week
    (:hours-map valid-args)
-   (some #(-> % :business :rails_time_zone) bmis)
+   (some #(get-in % [:business :rails_time_zone]) bmis)
    (:utc-offset-map valid-args)))
 
 ;;-------------------------
@@ -92,16 +92,16 @@
   "For >>>> v2 <<<<<.
    For v1, use `meta/get-metadata`."
   [bmis day-of-week]
-  {:price_micros (price/metadata bmis)
+  {:price_micros   (price/metadata bmis)
    :business_hours (hours/metadata bmis day-of-week)})
 
 (defn- search
   [valid-args meta-fn]
-  (let [bmis (get-all-open-bmis valid-args)
+  (let [bmis          (get-all-open-bmis valid-args)
         related-items (items/get-related-items (:item-id valid-args))
         ;; Gather metadata from the results returned.
-        day-of-week (get-day-of-week bmis valid-args)
-        metadata (meta-fn bmis day-of-week)]
+        day-of-week   (get-day-of-week bmis valid-args)
+        metadata      (meta-fn bmis day-of-week)]
     (hits/mk-response bmis related-items metadata day-of-week valid-args)))
 
 ;;-------------------------
