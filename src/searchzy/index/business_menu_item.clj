@@ -39,7 +39,8 @@
   "Given a MenuItem, create a MenuItem-specific es-map.
    Later we'll add in its Business info."
   [item]
-  (if (nil? (:item_id item))
+  (if (or (nil? (:item_id item))
+          (= 0 (:price_micros item)))
     nil
     {:_id (:_id item)
      :fdb_id (:fdb_id item)
