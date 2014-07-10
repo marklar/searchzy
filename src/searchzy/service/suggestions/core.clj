@@ -52,9 +52,12 @@
     (let [no-q (clojure.string/blank? query)
           biz-results  (if no-q
                          {:total 0, :hits []}
-                         (biz/es-search query :prefix
+                         (biz/es-search query 
+                                        :prefix
+                                        nil ; merch-appt
                                         business-category-ids
-                                        geo-map nil ; -sort-
+                                        geo-map 
+                                        nil ; -sort-
                                         page-map))
           item-results (if no-q
                          {:total 0, :hits []}

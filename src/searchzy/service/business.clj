@@ -74,9 +74,10 @@
   (let [query-map    (mk-query query-str query-type sort-map)
         id-filter    (mk-biz-cat-id-filter biz-cat-ids)
         merch-filter (util/mk-merch-appt-filter merch-appt)
-        geo-filter   (geo-util/mk-geo-filter geo-map)]
+        geo-filter   (geo-util/mk-geo-filter geo-map)
+        filters      (util/compact [id-filter geo-filter merch-filter])]
     {:filtered {:query query-map
-                :filter {:and [id-filter geo-filter merch-filter]}}}))
+                :filter {:and filters}}}))
 
 (defn es-search
   "Perform ES search, return results map.
