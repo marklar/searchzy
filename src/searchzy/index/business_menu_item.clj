@@ -39,21 +39,13 @@
   "Given a MenuItem, create a MenuItem-specific es-map.
    Later we'll add in its Business info."
   [item]
-  (if (or (nil? (:item_id item))
-          (= 0 (:price_micros item)))
-    nil
-    {:_id (:_id item)
-     :fdb_id (:fdb_id item)
-     :name (:name item)
-     :item_id (str (:item_id item))
-     :price_micros (:price_micros item)
-     :value_score_picos (:value_score_picos item)}))
+  {:_id (:_id item)
+   :fdb_id (:fdb_id item)
+   :name (:name item)
+   :item_id (str (:item_id item))
+   :price_micros (:price_micros item)
+   :value_score_picos (:value_score_picos item)})
 
-;;
-;; TODO:
-;;   Should this use :unified_menu :sections ?
-;;   Or should it use :business_items ?
-;;
 (defn- get-items-from-mg-map
   [{{sections :sections} :unified_menu}]
   (flatten (map :items sections)))
@@ -64,6 +56,8 @@
      (mk-es-maps mg-map (biz/mk-es-map mg-map)))
   ([mg-map biz-map]
      (let [items (get-items-from-mg-map mg-map)
+           priced-items (remove #(= 0 (:price_micros %)) items)
+           id-ed-priced-items (remove #(nil? (:item_id %)) priced-items)
            biz-info (merge {:business biz-map}
                            (select-keys biz-map [:yelp_star_rating
                                                  :yelp_review_count
@@ -72,7 +66,7 @@
                                                  :latitude_longitude]))]
        (map
         #(merge % biz-info)
-        (remove nil? (map mk-es-item-map items))))))
+        (map mk-es-item-map id-ed-priced-items)))))
 
 (defn- put [id es-map]
   (es-doc/put idx-name mapping-name id es-map))
